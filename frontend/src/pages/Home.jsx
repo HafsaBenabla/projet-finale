@@ -3,36 +3,9 @@ import { Link } from "react-router-dom";
 import { FaSearch, FaMapMarkerAlt, FaCalendarAlt, FaUsers } from "react-icons/fa";
 import { images } from "../constants/images";
 import SearchBar from "../components/SearchBar";
-import DestinationCard from "../components/DestinationCard";
+import Destinations from "../components/Destinations";
 import HotelCard from "../components/HotelCard";
 import ActivityCard from "../components/ActivityCard";
-
-const destinations = [
-  {
-    id: 1,
-    name: 'Marrakech',
-    image: images.marrakech,
-    type: 'Ville impériale'
-  },
-  {
-    id: 2,
-    name: 'Tanger',
-    image: images.tanger,
-    type: 'Ville côtière'
-  },
-  {
-    id: 3,
-    name: 'Essaouira',
-    image: images.essaouira,
-    type: 'Ville balnéaire'
-  },
-  {
-    id: 4,
-    name: 'Fes',
-    image: images.fes,
-    type: 'Ville historique'
-  }
-];
 
 const hotels = [
   {
@@ -73,15 +46,16 @@ const Home = () => {
     <div className="w-full">
       {/* Hero Section */}
       <section 
-        className="relative h-screen w-full bg-cover bg-center"
+        className="relative h-[80vh] w-full bg-cover bg-center"
         style={{ backgroundImage: `url(${images.hero})` }}
       >
         <div className="absolute inset-0 bg-black/50" />
-        <div className="container-full relative h-full flex flex-col items-center justify-center text-white">
-          <h1 className="text-5xl md:text-7xl font-bold text-center mb-6">
-            Le Sahara Marocain Vous Attend
+        <div className="w-full max-w-[1400px] mx-auto px-4 relative h-full flex flex-col items-center justify-center text-white">
+          <h1 className="text-6xl md:text-7xl font-bold text-center mb-6 tracking-tight">
+            Le Sahara Marocain
+            <span className="block mt-2 text-orange-400">Vous Attend</span>
           </h1>
-          <p className="text-xl md:text-2xl text-center mb-12">
+          <p className="text-xl md:text-2xl text-center mb-12 max-w-3xl">
             Découvrez la magie des dunes dorées et vivez une aventure inoubliable
           </p>
 
@@ -91,24 +65,19 @@ const Home = () => {
       </section>
 
       {/* Destinations Section */}
-      <section className="py-20">
-        <div className="container-full">
-          <h2 className="section-title text-center">Destinations Populaires</h2>
-          <p className="section-subtitle text-center mb-12">Explorez les villes les plus emblématiques du Maroc</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {destinations.map((city) => (
-              <DestinationCard key={city.id} name={city.name} image={city.image} />
-            ))}
-          </div>
-        </div>
-      </section>
+      <Destinations />
 
       {/* Hotels Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="container-full">
-          <h2 className="section-title text-center">Hébergements de Luxe</h2>
-          <p className="section-subtitle text-center mb-12">Séjournez dans les plus beaux hôtels du Maroc</p>
+      <section className="py-16 bg-gray-50">
+        <div className="w-full max-w-[1400px] mx-auto px-4">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              Hébergements de Luxe
+            </h2>
+            <p className="text-xl text-gray-600">
+              Séjournez dans les plus beaux hôtels du Maroc
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {hotels.map((hotel) => (
@@ -125,12 +94,18 @@ const Home = () => {
       </section>
 
       {/* Activities Section */}
-      <section className="py-20">
-        <div className="container-full">
-          <h2 className="section-title text-center">Activités Incontournables</h2>
-          <p className="section-subtitle text-center mb-12">Vivez des expériences uniques au Maroc</p>
+      <section className="py-16">
+        <div className="w-full max-w-[1400px] mx-auto px-4">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              Activités Incontournables
+            </h2>
+            <p className="text-xl text-gray-600">
+              Vivez des expériences uniques au Maroc
+            </p>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {activities.map((activity) => (
               <ActivityCard key={activity.name} name={activity.name} image={activity.image} />
             ))}
@@ -139,17 +114,19 @@ const Home = () => {
       </section>
 
       {/* Newsletter Section */}
-      <section className="py-20 bg-sahara text-white">
-        <div className="container-full text-center">
+      <section className="py-16 bg-orange-500 text-white">
+        <div className="w-full max-w-[1400px] mx-auto px-4 text-center">
           <h2 className="text-4xl font-bold mb-4">Restez Informé</h2>
-          <p className="text-xl mb-8 opacity-90">Recevez nos meilleures offres et découvrez nos nouveautés</p>
+          <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
+            Recevez nos meilleures offres et découvrez nos nouveautés
+          </p>
           <div className="max-w-xl mx-auto flex gap-4">
             <input 
               type="email" 
               placeholder="Votre email" 
               className="flex-1 px-6 py-3 rounded-full text-gray-800 outline-none"
             />
-            <button className="px-8 py-3 bg-white text-sahara font-semibold rounded-full hover:bg-gray-100 transition-colors">
+            <button className="px-8 py-3 bg-white text-orange-500 font-semibold rounded-full hover:bg-gray-100 transition-colors">
               S'inscrire
             </button>
           </div>

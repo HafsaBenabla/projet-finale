@@ -21,7 +21,7 @@ function SearchBar() {
           <option>4+ Voyageurs</option>
         </select>
       </div>
-      <button className="btn-primary min-w-[120px]">
+      <button className="inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-full hover:bg-sahara/90 transition-colors duration-300 transform hover:-translate-y-0.5 min-w-[120px]">
         <FaSearch className="mr-2" /> Rechercher
       </button>
     </div>

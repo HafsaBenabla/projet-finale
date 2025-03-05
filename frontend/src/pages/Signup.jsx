@@ -26,8 +26,9 @@ const Signup = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          Créer un compte
+        <h2 className="mt-6 text-center text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">
+          <span className="block text-orange-600 mb-1">Rejoignez-nous</span>
+          <span className="block">Créez votre compte</span>
         </h2>
       </div>
 
@@ -44,7 +45,7 @@ const Signup = () => {
                   name="name"
                   type="text"
                   required
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-sahara focus:border-sahara"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                   value={formData.name}
                   onChange={handleChange}
                 />
@@ -61,7 +62,7 @@ const Signup = () => {
                   name="email"
                   type="email"
                   required
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-sahara focus:border-sahara"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                   value={formData.email}
                   onChange={handleChange}
                 />
@@ -78,7 +79,7 @@ const Signup = () => {
                   name="password"
                   type="password"
                   required
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-sahara focus:border-sahara"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                   value={formData.password}
                   onChange={handleChange}
                 />
@@ -95,7 +96,7 @@ const Signup = () => {
                   name="confirmPassword"
                   type="password"
                   required
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-sahara focus:border-sahara"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                 />
@@ -105,7 +106,7 @@ const Signup = () => {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sahara hover:bg-sahara/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sahara"
+                className="inline-flex items-center w-full justify-center px-6 py-3 bg-orange-500 text-white font-semibold rounded-full hover:bg-orange-600 transition-colors duration-300 transform hover:-translate-y-0.5"
               >
                 S'inscrire
               </button>
@@ -117,7 +118,7 @@ const Signup = () => {
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white text-gray-500">
                   Déjà un compte?{' '}
-                  <Link to="/login" className="font-medium text-sahara hover:text-sahara/90">
+                  <Link to="/login" className="font-medium text-orange-500 hover:text-orange-600">
                     Se connecter
                   </Link>
                 </span>

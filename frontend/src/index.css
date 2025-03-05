@@ -1,0 +1,236 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+  @apply w-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-sahara rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-orange-500;
+}
+
+/* Carousel Container */
+.carousel-container {
+  @apply overflow-hidden relative w-full;
+  perspective: 2000px;
+  transform-style: preserve-3d;
+  padding: 40px 0;
+  background: linear-gradient(
+    180deg,
+    rgba(249, 250, 251, 0) 0%,
+    rgba(249, 250, 251, 0.8) 50%,
+    rgba(249, 250, 251, 0) 100%
+  );
+}
+
+/* Carousel Track */
+.carousel-track {
+  @apply flex gap-8;
+  animation: scroll 120s linear infinite;
+  width: max-content;
+  transform-style: preserve-3d;
+  will-change: transform;
+  transition: animation-play-state 0.5s ease;
+}
+
+@keyframes scroll {
+  0% {
+    transform: translateX(-100%) translateZ(0);
+  }
+  100% {
+    transform: translateX(0%) translateZ(0);
+  }
+}
+
+/* Carousel Item */
+.carousel-item {
+  @apply flex-none w-[300px];
+  transform-style: preserve-3d;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+  animation: float 8s ease-in-out infinite;
+  animation-delay: calc(var(--parallax-delay) * 1s);
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) translateZ(0) scale(1);
+  }
+  50% {
+    transform: translateY(-12px) translateZ(30px) scale(1.02);
+  }
+}
+
+/* Destination Card */
+.destination-card {
+  @apply relative h-[400px] rounded-2xl overflow-hidden;
+  transform: perspective(2000px) rotateY(0deg) translateZ(0);
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+  will-change: transform;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  animation: tilt 8s ease-in-out infinite;
+  animation-delay: calc(var(--parallax-delay) * 1s);
+}
+
+@keyframes tilt {
+  0%, 100% {
+    transform: rotateY(0deg) translateZ(0);
+  }
+  50% {
+    transform: rotateY(3deg) translateZ(20px);
+  }
+}
+
+.destination-card::before {
+  content: '';
+  @apply absolute inset-0;
+  background: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.destination-card:hover {
+  transform: perspective(2000px) rotateY(-8deg) translateZ(60px) scale(1.05);
+  box-shadow: 25px 25px 70px rgba(0, 0, 0, 0.25);
+  z-index: 2;
+}
+
+.destination-card:hover::before {
+  opacity: 1;
+}
+
+/* Card Image */
+.destination-card img {
+  @apply w-full h-full object-cover;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+  will-change: transform;
+  animation: scale 12s ease-in-out infinite;
+  animation-delay: calc(var(--parallax-delay) * 1s);
+}
+
+@keyframes scale {
+  0%, 100% {
+    transform: scale(1) translateZ(0);
+  }
+  50% {
+    transform: scale(1.04) translateZ(20px);
+  }
+}
+
+.destination-card:hover img {
+  transform: scale(1.08) translateX(-1%) translateZ(30px);
+}
+
+/* Card Overlay */
+.destination-overlay {
+  @apply absolute inset-0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.9) 0%,
+    rgba(0, 0, 0, 0.5) 50%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  opacity: 0;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateZ(40px);
+  will-change: opacity, transform;
+}
+
+.destination-card:hover .destination-overlay {
+  opacity: 1;
+}
+
+/* Card Content */
+.destination-content {
+  @apply absolute bottom-0 left-0 right-0 p-8 text-white;
+  transform: translateY(100%) translateZ(50px);
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.destination-card:hover .destination-content {
+  transform: translateY(0) translateZ(50px);
+}
+
+.destination-content h3 {
+  @apply font-bold text-2xl mb-3;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  transform: translateZ(60px);
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.destination-content p {
+  @apply text-sm opacity-0 mb-4;
+  transition: all 0.5s ease 0.1s;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  transform: translateZ(55px);
+}
+
+.destination-card:hover .destination-content p {
+  opacity: 1;
+}
+
+/* Explore Button */
+.destination-content button {
+  @apply transform-gpu;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateZ(70px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  will-change: transform;
+}
+
+.destination-content button:hover {
+  transform: translateZ(70px) scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Edge Fade Effect */
+.carousel-container::before,
+.carousel-container::after {
+  content: '';
+  @apply absolute top-0 bottom-0 w-32 z-10 pointer-events-none;
+  background: linear-gradient(
+    to right,
+    rgba(249, 250, 251, 1) 0%,
+    rgba(249, 250, 251, 0) 100%
+  );
+}
+
+.carousel-container::after {
+  @apply right-0;
+  background: linear-gradient(
+    to left,
+    rgba(249, 250, 251, 1) 0%,
+    rgba(249, 250, 251, 0) 100%
+  );
+}
+
+/* Pause animations on hover */
+.carousel-track:hover {
+  animation-play-state: paused;
+}
+
+.carousel-track:hover .carousel-item,
+.carousel-track:hover .destination-card,
+.carousel-track:hover .destination-card img {
+  animation-play-state: paused;
+}
