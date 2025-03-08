@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const destinations = [
   {
@@ -65,12 +66,12 @@ const destinations = [
 
 const Destinations = () => {
   const trackRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return;
 
-    // Démarrer l'animation après un court délai pour s'assurer que les cartes sont visibles
     setTimeout(() => {
       track.style.animation = 'scroll 120s linear infinite';
     }, 100);
@@ -98,7 +99,10 @@ const Destinations = () => {
     };
   }, []);
 
-  // Doubler le tableau pour assurer un défilement infini
+  const handleExplore = (cityName) => {
+    navigate(`/city/${cityName}`);
+  };
+
   const extendedDestinations = [...destinations, ...destinations];
 
   return (
@@ -133,7 +137,10 @@ const Destinations = () => {
                     <div className="destination-content">
                       <h3>{destination.name}</h3>
                       <p>{destination.description}</p>
-                      <button className="mt-4 px-6 py-2 bg-sahara text-white rounded-full text-sm hover:bg-sahara/90 transition-all duration-300 ease-out transform hover:scale-105">
+                      <button 
+                        onClick={() => handleExplore(destination.name)}
+                        className="mt-4 px-6 py-2 bg-sahara text-white rounded-full text-sm hover:bg-sahara/90 transition-all duration-300 ease-out transform hover:scale-105"
+                      >
                         Explorer
                       </button>
                     </div>
