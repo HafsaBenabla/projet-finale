@@ -1,87 +1,76 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useVoyages } from '../context/VoyagesContext';
 
 const Voyages = () => {
-  // Données des voyages
-  const voyages = [
-    {
-      id: 1,
-      title: "Circuit des Villes Impériales",
-      description: "8 jours de découverte à travers les plus belles villes du Maroc",
-      image: "https://images.pexels.com/photos/3889843/pexels-photo-3889843.jpeg",
-      destination: "Marrakech",
-      duration: "8+ jours",
-      price: 8900,
-      budget: "Standard"
-    },
-    {
-      id: 2,
-      title: "Escapade dans le Sahara",
-      description: "Une aventure inoubliable dans les dunes dorées du désert",
-      image: "https://images.pexels.com/photos/4553618/pexels-photo-4553618.jpeg",
-      destination: "Sahara",
-      duration: "4-7 jours",
-      price: 6500,
-      budget: "Standard"
-    },
-    {
-      id: 3,
-      title: "Découverte de Fès",
-      description: "Immersion dans la plus ancienne médina du monde",
-      image: "https://images.pexels.com/photos/4502973/pexels-photo-4502973.jpeg",
-      destination: "Fès",
-      duration: "2-3 jours",
-      price: 3500,
-      budget: "Économique"
-    },
-    {
-      id: 4,
-      title: "Luxe à Marrakech",
-      description: "Séjour de luxe dans la ville rouge avec spa et activités premium",
-      image: "https://images.pexels.com/photos/2404046/pexels-photo-2404046.jpeg",
-      destination: "Marrakech",
-      duration: "4-7 jours",
-      price: 15000,
-      budget: "Premium"
-    },
-    {
-      id: 5,
-      title: "Trek dans l'Atlas",
-      description: "Randonnée spectaculaire dans les montagnes de l'Atlas",
-      image: "https://images.pexels.com/photos/2437291/pexels-photo-2437291.jpeg",
-      destination: "Atlas",
-      duration: "4-7 jours",
-      price: 5500,
-      budget: "Économique"
-    },
-    {
-      id: 6,
-      title: "Culture et Gastronomie",
-      description: "Un voyage culinaire à travers les saveurs du Maroc",
-      image: "https://images.pexels.com/photos/2641886/pexels-photo-2641886.jpeg",
-      destination: "Fès",
-      duration: "2-3 jours",
-      price: 4500,
-      budget: "Standard"
-    }
-  ];
-
-  // États pour les filtres
+  const navigate = useNavigate();
+  const voyagesData = useVoyages();
+  
+  // État pour les filtres
   const [destinationFilter, setDestinationFilter] = useState('');
   const [durationFilter, setDurationFilter] = useState('');
   const [budgetFilter, setBudgetFilter] = useState('');
 
+  // État pour gérer les likes et dislikes avec leurs compteurs
+  const [reactions, setReactions] = useState(
+    voyagesData.reduce((acc, voyage) => ({
+      ...acc,
+      [voyage.id]: { like: 0, dislike: 0, userReaction: null }
+    }), {})
+  );
+
+  const handleReaction = (id, type) => {
+    setReactions(prev => {
+      const currentReaction = prev[id];
+      
+      // Si l'utilisateur clique sur le même bouton, on annule son vote
+      if (currentReaction.userReaction === type) {
+        return {
+          ...prev,
+          [id]: {
+            like: type === 'like' ? currentReaction.like - 1 : currentReaction.like,
+            dislike: type === 'dislike' ? currentReaction.dislike - 1 : currentReaction.dislike,
+            userReaction: null
+          }
+        };
+      }
+      
+      // Si l'utilisateur change son vote
+      if (currentReaction.userReaction) {
+        return {
+          ...prev,
+          [id]: {
+            like: type === 'like' ? currentReaction.like + 1 : currentReaction.like - (currentReaction.userReaction === 'like' ? 1 : 0),
+            dislike: type === 'dislike' ? currentReaction.dislike + 1 : currentReaction.dislike - (currentReaction.userReaction === 'dislike' ? 1 : 0),
+            userReaction: type
+          }
+        };
+      }
+      
+      // Si c'est le premier vote de l'utilisateur
+      return {
+        ...prev,
+        [id]: {
+          like: type === 'like' ? currentReaction.like + 1 : currentReaction.like,
+          dislike: type === 'dislike' ? currentReaction.dislike + 1 : currentReaction.dislike,
+          userReaction: type
+        }
+      };
+    });
+  };
+
   // Liste des destinations uniques
-  const destinations = [...new Set(voyages.map(voyage => voyage.destination))];
+  const destinations = [...new Set(voyagesData.map(voyage => voyage.destination))];
 
   // Filtrage des voyages
   const filteredVoyages = useMemo(() => {
-    return voyages.filter(voyage => {
+    return voyagesData.filter(voyage => {
       const matchDestination = !destinationFilter || voyage.destination === destinationFilter;
       const matchDuration = !durationFilter || voyage.duration === durationFilter;
       const matchBudget = !budgetFilter || voyage.budget === budgetFilter;
       return matchDestination && matchDuration && matchBudget;
     });
-  }, [destinationFilter, durationFilter, budgetFilter]);
+  }, [destinationFilter, durationFilter, budgetFilter, voyagesData]);
 
   return (
     <div className="w-full pt-16">
@@ -136,28 +125,69 @@ const Voyages = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredVoyages.map((voyage) => (
             <div key={voyage.id} className="bg-white rounded-xl shadow-lg overflow-hidden transform transition duration-500 hover:scale-105">
-              <div className="h-48 overflow-hidden">
+              <div className="relative h-48 overflow-hidden group">
                 <img 
                   src={voyage.image} 
                   alt={voyage.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-110"
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </div>
               <div className="p-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="px-3 py-1 bg-sahara/10 text-sahara rounded-full text-sm">
+                  <span className="px-3 py-1 bg-sahara/10 text-sahara rounded-full text-sm font-medium">
                     {voyage.destination}
                   </span>
                   <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
                     {voyage.duration}
                   </span>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900">{voyage.title}</h3>
-                <p className="mt-2 text-gray-600">{voyage.description}</p>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">{voyage.title}</h3>
+                <p className="text-gray-600 line-clamp-2">{voyage.description}</p>
+                
                 <div className="mt-4 flex items-center justify-between">
-                  <span className="text-sahara font-semibold">À partir de {voyage.price} MAD</span>
-                  <button className="px-4 py-2 bg-sahara text-white rounded-full hover:bg-sahara/90 transition-colors">
-                    Détails
+                  <div className="text-2xl font-bold text-sahara">
+                    {voyage.price.toLocaleString()} MAD
+                  </div>
+                  <div className="text-gray-600 text-sm">
+                    {voyage.maxPlaces} places max
+                  </div>
+                </div>
+
+                <div className="mt-6 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <button 
+                      onClick={() => handleReaction(voyage.id, 'like')}
+                      className={`flex items-center gap-2 transition-colors ${
+                        reactions[voyage.id]?.userReaction === 'like'
+                          ? 'text-orange-500' 
+                          : 'text-gray-500 hover:text-orange-500'
+                      }`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                      </svg>
+                      <span className="font-medium">{reactions[voyage.id]?.like || 0}</span>
+                    </button>
+                    <button 
+                      onClick={() => handleReaction(voyage.id, 'dislike')}
+                      className={`flex items-center gap-2 transition-colors ${
+                        reactions[voyage.id]?.userReaction === 'dislike'
+                          ? 'text-red-500' 
+                          : 'text-gray-500 hover:text-red-500'
+                      }`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+                      </svg>
+                      <span className="font-medium">{reactions[voyage.id]?.dislike || 0}</span>
+                    </button>
+                  </div>
+                  <button 
+                    onClick={() => navigate(`/voyage/${voyage.id}`)}
+                    className="px-6 py-2 bg-sahara text-white rounded-full font-medium hover:bg-sahara/90 transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-sahara focus:ring-offset-2"
+                  >
+                    Plus de détails
                   </button>
                 </div>
               </div>
