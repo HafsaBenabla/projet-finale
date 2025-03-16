@@ -14,31 +14,79 @@ const hotels = [
     location: 'Marrakech',
     price: 1130,
     rating: 4.8,
-    image: images.saharaPalace
+    image: 'https://i.pinimg.com/564x/d2/10/d3/d210d3d08f6fe04cf4b7f7e78f71c9c9.jpg',
+    type: 'Palace',
+    features: ['Spa', 'Piscine', 'Restaurant Gastronomique', 'Vue sur l\'Atlas'],
+    agencyPackage: {
+      id: 'circuit-imperial-marrakech',
+      name: 'Circuit des Villes Impériales',
+      duration: '8 jours'
+    }
   },
   {
     id: 2,
-    name: 'Atlas Sky Hotel',
-    location: 'Chefchaouen',
-    price: 180,
+    name: 'Riad Fès Heritage',
+    location: 'Fès',
+    price: 780,
     rating: 4.6,
-    image: images.atlasSky
+    image: 'https://i.pinimg.com/564x/8c/21/98/8c219814458f9c9d06b05a46c5300e5d.jpg',
+    type: 'Riad',
+    features: ['Terrasse Panoramique', 'Hammam', 'Architecture Traditionnelle'],
+    agencyPackage: {
+      id: 'decouverte-fes',
+      name: 'Découverte de Fès',
+      duration: '3 jours'
+    }
   },
   {
     id: 3,
     name: 'Ocean View Essaouira',
     location: 'Essaouira',
-    price: 210,
-    rating: 4.8,
-    image: images.oceanView
+    price: 920,
+    rating: 4.7,
+    image: 'https://i.pinimg.com/564x/d9/5a/86/d95a86c6c5491c96b6c4b3c64c0d44f3.jpg',
+    type: 'Boutique Hôtel',
+    features: ['Vue sur Océan', 'Surf', 'Restaurant de Fruits de Mer'],
+    agencyPackage: null
+  },
+  {
+    id: 4,
+    name: 'Kasbah du Désert',
+    location: 'Merzouga',
+    price: 850,
+    rating: 4.9,
+    image: 'https://i.pinimg.com/564x/a0/cc/97/a0cc97e6b9d95b8f6b52f5e8f8d4c7b4.jpg',
+    type: 'Kasbah',
+    features: ['Vue sur les Dunes', 'Piscine', 'Excursions en Dromadaire'],
+    agencyPackage: {
+      id: 'escapade-sahara',
+      name: 'Escapade dans le Sahara',
+      duration: '5 jours'
+    }
   }
 ];
 
 const activities = [
-  { name: 'Tour du Désert', image: images.desertTour },
-  { name: 'Visite de Médina', image: images.medina },
-  { name: 'Surf à Essaouira', image: images.surfing },
-  { name: 'Randonnée Atlas', image: images.hiking },
+  { 
+    id: 'excursion-desert',
+    name: 'Tour du Désert', 
+    image: images.desertTour 
+  },
+  { 
+    id: 'hammam-traditionnel',
+    name: 'Hammam Traditionnel', 
+    image: 'https://i.pinimg.com/564x/2c/ba/09/2cba09b4bf4d1998d63dd0e9a01c2b7f.jpg'
+  },
+  { 
+    id: 'cours-cuisine',
+    name: 'Cours de Cuisine', 
+    image: 'https://i.pinimg.com/564x/57/c6/fa/57c6fa9d423d3e67f6142598142c7d71.jpg'
+  },
+  { 
+    id: 'randonnee-atlas',
+    name: 'Randonnée Atlas', 
+    image: images.hiking 
+  },
 ];
 
 const Home = () => {
@@ -75,11 +123,11 @@ const Home = () => {
               Hébergements de Luxe
             </h2>
             <p className="text-xl text-gray-600">
-              Séjournez dans les plus beaux hôtels du Maroc
+              Découvrez notre sélection d'hébergements d'exception à travers le Maroc
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {hotels.map((hotel) => (
               <HotelCard 
                 key={hotel.id}
@@ -87,6 +135,10 @@ const Home = () => {
                 location={hotel.location}
                 price={hotel.price}
                 image={hotel.image}
+                rating={hotel.rating}
+                type={hotel.type}
+                features={hotel.features}
+                agencyPackage={hotel.agencyPackage}
               />
             ))}
           </div>
@@ -107,7 +159,12 @@ const Home = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {activities.map((activity) => (
-              <ActivityCard key={activity.name} name={activity.name} image={activity.image} />
+              <ActivityCard 
+                key={activity.id}
+                id={activity.id}
+                name={activity.name} 
+                image={activity.image} 
+              />
             ))}
           </div>
         </div>

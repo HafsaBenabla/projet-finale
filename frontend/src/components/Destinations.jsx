@@ -72,22 +72,25 @@ const Destinations = () => {
     const track = trackRef.current;
     if (!track) return;
 
-    setTimeout(() => {
-      track.style.animation = 'scroll 120s linear infinite';
-    }, 100);
+    // Calculer la largeur totale des éléments originaux
+    const itemWidth = 300; // Largeur d'une carte
+    const gap = 32; // Espace entre les cartes (8 * 4 = 32px)
+    const totalWidth = destinations.length * (itemWidth + gap);
+
+    // Définir la largeur du conteneur pour accommoder les éléments dupliqués
+    track.style.width = `${totalWidth * 2}px`;
+
+    // Démarrer l'animation
+    track.style.animation = 'none';
+    track.offsetHeight; // Force reflow
+    track.style.animation = `scroll ${destinations.length * 6}s linear infinite`;
 
     const handleMouseEnter = () => {
       track.style.animationPlayState = 'paused';
-      track.querySelectorAll('.carousel-item').forEach(item => {
-        item.style.animationPlayState = 'paused';
-      });
     };
 
     const handleMouseLeave = () => {
       track.style.animationPlayState = 'running';
-      track.querySelectorAll('.carousel-item').forEach(item => {
-        item.style.animationPlayState = 'running';
-      });
     };
 
     track.addEventListener('mouseenter', handleMouseEnter);
@@ -103,6 +106,7 @@ const Destinations = () => {
     navigate(`/city/${cityName}`);
   };
 
+  // Dupliquer les destinations pour un défilement infini fluide
   const extendedDestinations = [...destinations, ...destinations];
 
   return (
@@ -116,7 +120,7 @@ const Destinations = () => {
         </p>
         
         <div className="carousel-container">
-          <div className="carousel-track" ref={trackRef} style={{ animation: 'none' }}>
+          <div className="carousel-track" ref={trackRef}>
             {extendedDestinations.map((destination, index) => (
               <div
                 key={`${destination.id}-${index}`}
