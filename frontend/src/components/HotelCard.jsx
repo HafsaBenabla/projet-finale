@@ -16,7 +16,7 @@ function HotelCard({
 
   const handleViewPackage = () => {
     if (agencyPackage) {
-      navigate(`/packages/${agencyPackage.id}`);
+      navigate(`/voyage/${agencyPackage.id}`);
     } else {
       navigate(`/hotels/${name.toLowerCase().replace(/\s+/g, '-')}`);
     }

@@ -12,81 +12,86 @@ const hotels = [
     id: 1,
     name: 'Sahara Palace Marrakech',
     location: 'Marrakech',
-    price: 1130,
+    price: 8900,
     rating: 4.8,
-    image: 'https://i.pinimg.com/564x/d2/10/d3/d210d3d08f6fe04cf4b7f7e78f71c9c9.jpg',
+    image: 'https://i.pinimg.com/736x/4c/bf/1f/4cbf1f5b6e463f34bb9e71337a4a72b6.jpg',
     type: 'Palace',
     features: ['Spa', 'Piscine', 'Restaurant Gastronomique', 'Vue sur l\'Atlas'],
     agencyPackage: {
-      id: 'circuit-imperial-marrakech',
+      id: '1',
       name: 'Circuit des Villes Impériales',
-      duration: '8 jours'
+      duration: '8+ jours'
     }
   },
   {
     id: 2,
     name: 'Riad Fès Heritage',
     location: 'Fès',
-    price: 780,
+    price: 3500,
     rating: 4.6,
-    image: 'https://i.pinimg.com/564x/8c/21/98/8c219814458f9c9d06b05a46c5300e5d.jpg',
+    image: 'https://i.pinimg.com/236x/2d/27/d1/2d27d13abdbe5c99863a189aa39e18b0.jpg',
     type: 'Riad',
     features: ['Terrasse Panoramique', 'Hammam', 'Architecture Traditionnelle'],
     agencyPackage: {
-      id: 'decouverte-fes',
+      id: '3',
       name: 'Découverte de Fès',
-      duration: '3 jours'
+      duration: '2-3 jours'
     }
   },
   {
     id: 3,
-    name: 'Ocean View Essaouira',
-    location: 'Essaouira',
-    price: 920,
-    rating: 4.7,
-    image: 'https://i.pinimg.com/564x/d9/5a/86/d95a86c6c5491c96b6c4b3c64c0d44f3.jpg',
-    type: 'Boutique Hôtel',
-    features: ['Vue sur Océan', 'Surf', 'Restaurant de Fruits de Mer'],
-    agencyPackage: null
-  },
-  {
-    id: 4,
     name: 'Kasbah du Désert',
     location: 'Merzouga',
-    price: 850,
+    price: 6500,
     rating: 4.9,
-    image: 'https://i.pinimg.com/564x/a0/cc/97/a0cc97e6b9d95b8f6b52f5e8f8d4c7b4.jpg',
+    image: 'https://i.pinimg.com/236x/94/c2/74/94c2746c843628602c37fed233b9a72a.jpg',
     type: 'Kasbah',
     features: ['Vue sur les Dunes', 'Piscine', 'Excursions en Dromadaire'],
     agencyPackage: {
-      id: 'escapade-sahara',
+      id: '2',
       name: 'Escapade dans le Sahara',
-      duration: '5 jours'
+      duration: '4-7 jours'
     }
   }
 ];
 
 const activities = [
   { 
-    id: 'excursion-desert',
-    name: 'Tour du Désert', 
-    image: images.desertTour 
+    id: 'desert-tour',
+    name: 'Circuit des Villes Impériales',
+    image: 'https://i.pinimg.com/736x/4c/bf/1f/4cbf1f5b6e463f34bb9e71337a4a72b6.jpg',
+    voyageId: '1',
+    description: 'Explorez les médinas historiques et les monuments majestueux',
+    duration: '8+ jours',
+    price: 8900
   },
   { 
-    id: 'hammam-traditionnel',
-    name: 'Hammam Traditionnel', 
-    image: 'https://i.pinimg.com/564x/2c/ba/09/2cba09b4bf4d1998d63dd0e9a01c2b7f.jpg'
+    id: 'sahara-adventure',
+    name: 'Escapade dans le Sahara',
+    image: 'https://i.pinimg.com/236x/94/c2/74/94c2746c843628602c37fed233b9a72a.jpg',
+    voyageId: '2',
+    description: 'Vivez une expérience unique sous les étoiles du Sahara',
+    duration: '4-7 jours',
+    price: 6500
   },
   { 
-    id: 'cours-cuisine',
-    name: 'Cours de Cuisine', 
-    image: 'https://i.pinimg.com/564x/57/c6/fa/57c6fa9d423d3e67f6142598142c7d71.jpg'
+    id: 'fes-discovery',
+    name: 'Découverte de Fès',
+    image: 'https://i.pinimg.com/236x/2d/27/d1/2d27d13abdbe5c99863a189aa39e18b0.jpg',
+    voyageId: '3',
+    description: 'Immersion dans la plus ancienne médina du monde',
+    duration: '2-3 jours',
+    price: 3500
   },
   { 
-    id: 'randonnee-atlas',
-    name: 'Randonnée Atlas', 
-    image: images.hiking 
-  },
+    id: 'atlas-trek',
+    name: 'Trek dans l\'Atlas',
+    image: 'https://i.pinimg.com/236x/0b/77/76/0b7776713ea85f3cbc97b2289e16a22d.jpg',
+    voyageId: '5',
+    description: 'Randonnée spectaculaire dans les montagnes de l\'Atlas',
+    duration: '4-7 jours',
+    price: 5500
+  }
 ];
 
 const Home = () => {
@@ -162,8 +167,12 @@ const Home = () => {
               <ActivityCard 
                 key={activity.id}
                 id={activity.id}
-                name={activity.name} 
-                image={activity.image} 
+                name={activity.name}
+                image={activity.image}
+                description={activity.description}
+                duration={activity.duration}
+                price={activity.price}
+                voyageId={activity.voyageId}
               />
             ))}
           </div>

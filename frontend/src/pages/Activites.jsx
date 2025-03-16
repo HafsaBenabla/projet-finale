@@ -15,7 +15,7 @@ const Activites = () => {
         price: 2500,
         duration: 2,
         maxParticipants: 10,
-        image: 'https://i.pinimg.com/564x/a0/cc/97/a0cc97e6b9d95b8f6b52f5e8f8d4c7b4.jpg',
+        image: 'https://i.pinimg.com/736x/94/c2/74/94c2746c843628602c37fed233b9a72a.jpg',
         type: 'travel',
         agency: 'Desert Adventures'
       },
@@ -27,7 +27,7 @@ const Activites = () => {
         price: 12500,
         duration: 8,
         maxParticipants: 12,
-        image: 'https://i.pinimg.com/564x/d2/10/d3/d210d3d08f6fe04cf4b7f7e78f71c9c9.jpg',
+        image: 'https://i.pinimg.com/736x/4c/bf/1f/4cbf1f5b6e463f34bb9e71337a4a72b6.jpg',
         type: 'travel',
         agency: 'Sahara Tours'
       }
@@ -41,7 +41,7 @@ const Activites = () => {
         price: 800,
         duration: 3,
         maxParticipants: 6,
-        image: 'https://i.pinimg.com/564x/2c/ba/09/2cba09b4bf4d1998d63dd0e9a01c2b7f.jpg',
+        image: 'https://i.pinimg.com/736x/2c/ba/09/2cba09b4bf4d1998d63dd0e9a01c2b7f.jpg',
         type: 'local'
       },
       {
@@ -52,7 +52,7 @@ const Activites = () => {
         price: 950,
         duration: 4,
         maxParticipants: 8,
-        image: 'https://i.pinimg.com/564x/57/c6/fa/57c6fa9d423d3e67f6142598142c7d71.jpg',
+        image: 'https://i.pinimg.com/736x/57/c6/fa/57c6fa9d423d3e67f6142598142c7d71.jpg',
         type: 'local'
       },
       {
@@ -63,7 +63,7 @@ const Activites = () => {
         price: 450,
         duration: 3,
         maxParticipants: 6,
-        image: 'https://i.pinimg.com/564x/8c/21/98/8c219814458f9c9d06b05a46c5300e5d.jpg',
+        image: 'https://i.pinimg.com/736x/8c/21/98/8c219814458f9c9d06b05a46c5300e5d.jpg',
         type: 'local'
       }
     ]

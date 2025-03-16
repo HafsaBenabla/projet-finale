@@ -15,7 +15,7 @@ const ActivitesLocales = () => {
       basePrice: 400,
       duration: 2,
       maxParticipantsPerSlot: 7,
-      image: 'https://i.pinimg.com/564x/e5/d7/e0/e5d7e0dd7f0c9ffd41e7b53c5fce9d2f.jpg',
+      image: 'https://i.pinimg.com/736x/e5/d7/e0/e5d7e0dd7f0c9ffd41e7b53c5fce9d2f.jpg',
       timeSlots: [
         {
           id: 'quad-casa-1',
@@ -48,7 +48,7 @@ const ActivitesLocales = () => {
       basePrice: 350,
       duration: 3,
       maxParticipantsPerSlot: 6,
-      image: 'https://i.pinimg.com/564x/d9/5a/86/d95a86c6c5491c96b6c4b3c64c0d44f3.jpg',
+      image: 'https://i.pinimg.com/736x/d9/5a/86/d95a86c6c5491c96b6c4b3c64c0d44f3.jpg',
       timeSlots: [
         {
           id: 'surf-ess-1',
@@ -74,7 +74,7 @@ const ActivitesLocales = () => {
       basePrice: 300,
       duration: 4,
       maxParticipantsPerSlot: 8,
-      image: 'https://i.pinimg.com/564x/57/c6/fa/57c6fa9d423d3e67f6142598142c7d71.jpg',
+      image: 'https://i.pinimg.com/736x/57/c6/fa/57c6fa9d423d3e67f6142598142c7d71.jpg',
       timeSlots: [
         {
           id: 'cuisine-fes-1',

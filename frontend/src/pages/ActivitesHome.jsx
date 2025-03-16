@@ -29,7 +29,7 @@ const ActivitesHome = () => {
           >
             <div className="h-[400px]">
               <img 
-                src="https://i.pinimg.com/564x/a0/cc/97/a0cc97e6b9d95b8f6b52f5e8f8d4c7b4.jpg"
+                src="https://i.pinimg.com/736x/d2/10/d3/d210d3d08f6fe04cf4b7f7e78f71c9c9.jpg"
                 alt="Activités de Voyage"
                 className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
               />
@@ -62,7 +62,7 @@ const ActivitesHome = () => {
           >
             <div className="h-[400px]">
               <img 
-                src="https://i.pinimg.com/564x/2c/ba/09/2cba09b4bf4d1998d63dd0e9a01c2b7f.jpg"
+                src="https://i.pinimg.com/736x/57/c6/fa/57c6fa9d423d3e67f6142598142c7d71.jpg"
                 alt="Activités Locales"
                 className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
               />
