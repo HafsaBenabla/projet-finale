@@ -65,49 +65,44 @@ const destinations = [
 ];
 
 const Destinations = () => {
-  const trackRef = useRef(null);
   const navigate = useNavigate();
+  const containerRef = useRef(null);
 
   useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
+    const container = containerRef.current;
+    if (!container) return;
 
-    // Calculer la largeur totale des éléments originaux
-    const itemWidth = 300; // Largeur d'une carte
-    const gap = 32; // Espace entre les cartes (8 * 4 = 32px)
-    const totalWidth = destinations.length * (itemWidth + gap);
+    // Clone les premiers éléments et les ajoute à la fin pour un défilement infini
+    const firstCards = container.querySelectorAll('.destination-card');
+    firstCards.forEach(card => {
+      const clone = card.cloneNode(true);
+      container.appendChild(clone);
+    });
 
-    // Définir la largeur du conteneur pour accommoder les éléments dupliqués
-    track.style.width = `${totalWidth * 2}px`;
+    // Animation de défilement
+    container.style.animation = `scroll ${destinations.length * 10}s linear infinite`;
 
-    // Démarrer l'animation
-    track.style.animation = 'none';
-    track.offsetHeight; // Force reflow
-    track.style.animation = `scroll ${destinations.length * 6}s linear infinite`;
-
+    // Pause sur hover
     const handleMouseEnter = () => {
-      track.style.animationPlayState = 'paused';
+      container.style.animationPlayState = 'paused';
     };
 
     const handleMouseLeave = () => {
-      track.style.animationPlayState = 'running';
+      container.style.animationPlayState = 'running';
     };
 
-    track.addEventListener('mouseenter', handleMouseEnter);
-    track.addEventListener('mouseleave', handleMouseLeave);
+    container.addEventListener('mouseenter', handleMouseEnter);
+    container.addEventListener('mouseleave', handleMouseLeave);
 
     return () => {
-      track.removeEventListener('mouseenter', handleMouseEnter);
-      track.removeEventListener('mouseleave', handleMouseLeave);
+      container.removeEventListener('mouseenter', handleMouseEnter);
+      container.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, []);
 
   const handleExplore = (cityName) => {
     navigate(`/city/${cityName}`);
   };
-
-  // Dupliquer les destinations pour un défilement infini fluide
-  const extendedDestinations = [...destinations, ...destinations];
 
   return (
     <div className="bg-gray-50 py-16">
@@ -119,40 +114,56 @@ const Destinations = () => {
           Découvrez les plus belles villes du Maroc, chacune avec son charme unique et son histoire fascinante
         </p>
         
-        <div className="carousel-container">
-          <div className="carousel-track" ref={trackRef}>
-            {extendedDestinations.map((destination, index) => (
+        <div className="overflow-hidden relative">
+          <style>
+            {`
+              @keyframes scroll {
+                0% {
+                  transform: translateX(0);
+                }
+                100% {
+                  transform: translateX(calc(-300px * ${destinations.length}));
+                }
+              }
+            `}
+          </style>
+          <div 
+            ref={containerRef}
+            className="flex gap-8 py-4"
+            style={{
+              width: `calc(300px * ${destinations.length * 2} + 2rem * ${destinations.length * 2})`,
+            }}
+          >
+            {destinations.map((destination) => (
               <div
-                key={`${destination.id}-${index}`}
-                className="carousel-item"
-                style={{ '--parallax-delay': (index % destinations.length) * 0.2 }}
+                key={destination.id}
+                className="destination-card flex-shrink-0 w-[300px] h-[400px] rounded-2xl overflow-hidden shadow-lg relative transform transition-all duration-300 hover:scale-105 hover:z-10"
               >
-                <div className="destination-card">
-                  <img
-                    src={destination.image}
-                    alt={destination.name}
-                    className="w-full h-full object-cover"
-                    loading={index < destinations.length ? "eager" : "lazy"}
-                    onError={(e) => {
-                      e.target.src = 'https://images.unsplash.com/photo-1553899017-4ff76981e09e?q=80&w=1000&auto=format';
-                    }}
-                  />
-                  <div className="destination-overlay">
-                    <div className="destination-content">
-                      <h3>{destination.name}</h3>
-                      <p>{destination.description}</p>
-                      <button 
-                        onClick={() => handleExplore(destination.name)}
-                        className="mt-4 px-6 py-2 bg-sahara text-white rounded-full text-sm hover:bg-sahara/90 transition-all duration-300 ease-out transform hover:scale-105"
-                      >
-                        Explorer
-                      </button>
-                    </div>
+                <img
+                  src={destination.image}
+                  alt={destination.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = 'https://images.unsplash.com/photo-1553899017-4ff76981e09e?q=80&w=1000&auto=format';
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent">
+                  <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                    <h3 className="text-2xl font-bold mb-2">{destination.name}</h3>
+                    <p className="text-sm mb-4 opacity-90">{destination.description}</p>
+                    <button 
+                      onClick={() => handleExplore(destination.name)}
+                      className="px-6 py-2 bg-sahara text-white rounded-full text-sm hover:bg-sahara/90 transition-all duration-300 transform hover:scale-105"
+                    >
+                      Explorer
+                    </button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
+          <div className="absolute top-0 left-0 h-full w-32 bg-gradient-to-r from-gray-50 to-transparent z-10"></div>
+          <div className="absolute top-0 right-0 h-full w-32 bg-gradient-to-l from-gray-50 to-transparent z-10"></div>
         </div>
       </div>
     </div>
