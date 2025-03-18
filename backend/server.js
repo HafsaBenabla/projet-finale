@@ -115,12 +115,22 @@ app.get('/api/agencies', async (req, res) => {
 });
 
 app.post('/api/agencies', async (req, res) => {
+  console.log('Requête reçue pour ajouter une agence:', req.body);
   const agency = new Agency(req.body);
   try {
+    console.log('Tentative de sauvegarde de l\'agence:', agency);
     const newAgency = await agency.save();
+    console.log('Agence sauvegardée avec succès:', newAgency);
     res.status(201).json(newAgency);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Erreur lors de la sauvegarde de l\'agence:', error);
+    res.status(400).json({ 
+      message: error.message,
+      details: error.errors ? Object.keys(error.errors).map(key => ({
+        field: key,
+        message: error.errors[key].message
+      })) : null
+    });
   }
 });
 

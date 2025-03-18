@@ -34,7 +34,7 @@ function App() {
               <Route path="/activites-voyages" element={<ActivitesVoyages />} />
               <Route path="/activites-locales" element={<ActivitesLocales />} />
               <Route path="/activities/:id" element={<ActivityDetail />} />
-              <Route path="/ajouter" element={<AddNew />} />
+              <Route path="/admin/dashboard" element={<AddNew />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
