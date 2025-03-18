@@ -10,7 +10,7 @@ import ActivitesHome from './pages/ActivitesHome'
 import ActivitesVoyages from './pages/Activites'
 import ActivitesLocales from './pages/ActivitesLocales'
 import ActivityDetail from './pages/ActivityDetail'
-import AddActivity from './pages/AddActivity'
+import AddNew from './pages/AddNew'
 import About from './pages/About'
 import Contact from './pages/Contact'
 import Login from './pages/Login'
@@ -34,7 +34,7 @@ function App() {
               <Route path="/activites-voyages" element={<ActivitesVoyages />} />
               <Route path="/activites-locales" element={<ActivitesLocales />} />
               <Route path="/activities/:id" element={<ActivityDetail />} />
-              <Route path="/ajouter" element={<AddActivity />} />
+              <Route path="/ajouter" element={<AddNew />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />

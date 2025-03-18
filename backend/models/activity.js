@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const activitySchema = new mongoose.Schema({
-  title: {
+  name: {
     type: String,
     required: true
   },
@@ -9,27 +9,23 @@ const activitySchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  price: {
+    type: Number,
+    required: true
+  },
   city: {
     type: String,
     required: true
   },
-  price: {
-    type: Number,
+  category: {
+    type: String,
     required: true
   },
   image: {
     type: String,
     required: true
   },
-  maxParticipants: {
-    type: Number,
-    required: true
-  },
-  duration: {
-    type: Number,
-    required: true
-  },
-  date: {
+  createdAt: {
     type: Date,
     default: Date.now
   }
