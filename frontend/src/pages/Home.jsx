@@ -99,16 +99,16 @@ const Home = () => {
     <div className="w-full">
       {/* Hero Section */}
       <section 
-        className="relative h-[80vh] w-full bg-cover bg-center"
+        className="relative min-h-[60vh] sm:h-[80vh] w-full bg-cover bg-center"
         style={{ backgroundImage: `url(${images.hero})` }}
       >
         <div className="absolute inset-0 bg-black/50" />
         <div className="w-full max-w-[1400px] mx-auto px-4 relative h-full flex flex-col items-center justify-center text-white">
-          <h1 className="text-6xl md:text-7xl font-bold text-center mb-6 tracking-tight">
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold text-center mb-4 sm:mb-6 tracking-tight">
             Le Sahara Marocain
             <span className="block mt-2 text-orange-400">Vous Attend</span>
           </h1>
-          <p className="text-xl md:text-2xl text-center mb-12 max-w-3xl">
+          <p className="text-lg sm:text-xl md:text-2xl text-center mb-8 sm:mb-12 max-w-3xl px-4">
             Découvrez la magie des dunes dorées et vivez une aventure inoubliable
           </p>
 
@@ -121,18 +121,18 @@ const Home = () => {
       <Destinations />
 
       {/* Hotels Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-12 sm:py-16 bg-gray-50">
         <div className="w-full max-w-[1400px] mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
               Hébergements de Luxe
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-lg sm:text-xl text-gray-600">
               Découvrez notre sélection d'hébergements d'exception à travers le Maroc
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {hotels.map((hotel) => (
               <HotelCard 
                 key={hotel.id}
@@ -151,13 +151,13 @@ const Home = () => {
       </section>
 
       {/* Activities Section */}
-      <section className="py-16">
+      <section className="py-12 sm:py-16">
         <div className="w-full max-w-[1400px] mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
               Activités Incontournables
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-lg sm:text-xl text-gray-600">
               Vivez des expériences uniques au Maroc
             </p>
           </div>
@@ -180,19 +180,19 @@ const Home = () => {
       </section>
 
       {/* Newsletter Section */}
-      <section className="py-16 bg-orange-500 text-white">
+      <section className="py-12 sm:py-16 bg-orange-500 text-white">
         <div className="w-full max-w-[1400px] mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-4">Restez Informé</h2>
-          <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Restez Informé</h2>
+          <p className="text-lg sm:text-xl mb-6 sm:mb-8 opacity-90 max-w-2xl mx-auto">
             Recevez nos meilleures offres et découvrez nos nouveautés
           </p>
-          <div className="max-w-xl mx-auto flex gap-4">
+          <div className="max-w-xl mx-auto flex flex-col sm:flex-row gap-4">
             <input 
               type="email" 
               placeholder="Votre email" 
-              className="flex-1 px-6 py-3 rounded-full text-gray-800 outline-none"
+              className="w-full sm:flex-1 px-6 py-3 rounded-full text-gray-800 outline-none"
             />
-            <button className="px-8 py-3 bg-white text-orange-500 font-semibold rounded-full hover:bg-gray-100 transition-colors">
+            <button className="w-full sm:w-auto px-8 py-3 bg-white text-orange-500 font-semibold rounded-full hover:bg-gray-100 transition-colors">
               S'inscrire
             </button>
           </div>

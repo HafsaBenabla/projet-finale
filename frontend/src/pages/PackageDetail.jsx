@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaHotel, FaClock, FaMoneyBillWave, FaCheck } from 'react-icons/fa';
 
@@ -147,7 +147,61 @@ const packagesData = {
 
 const PackageDetail = () => {
   const { id } = useParams();
+  const [showReservationForm, setShowReservationForm] = useState(false);
+  const [formData, setFormData] = useState({
+    clientName: '',
+    email: '',
+    phone: '',
+    numberOfPersons: 1
+  });
+  const [reservationStatus, setReservationStatus] = useState(null);
   const packageData = packagesData[id];
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('http://localhost:5000/api/reservations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          voyageId: id,
+          ...formData
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setReservationStatus({
+          type: 'success',
+          message: 'Réservation effectuée avec succès!'
+        });
+        // Update the available spots in the UI
+        packageData.maxParticipants = data.availableSpots;
+        setShowReservationForm(false);
+      } else {
+        setReservationStatus({
+          type: 'error',
+          message: data.message || 'Erreur lors de la réservation'
+        });
+      }
+    } catch (error) {
+      setReservationStatus({
+        type: 'error',
+        message: 'Erreur de connexion au serveur'
+      });
+    }
+  };
 
   if (!packageData) {
     return (
@@ -220,29 +274,104 @@ const PackageDetail = () => {
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
-              <h2 className="text-2xl font-semibold mb-6">Ce qui est inclus</h2>
-              <div className="space-y-3">
-                {packageData.included.map((item, index) => (
-                  <div key={index} className="flex items-center gap-3 text-gray-600">
-                    <FaCheck className="text-sahara flex-shrink-0" />
-                    <span>{item}</span>
-                  </div>
-                ))}
+          <div className="space-y-6">
+            {/* Prix et Réservation */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="text-center mb-6">
+                <p className="text-4xl font-bold text-primary">{packageData.price} DH</p>
+                <p className="text-gray-600">par personne</p>
               </div>
-
-              <div className="mt-8">
-                <div className="bg-sahara/10 rounded-lg p-4 mb-6">
-                  <div className="flex justify-between items-center text-lg font-semibold">
-                    <span>Prix par personne</span>
-                    <span className="text-sahara">{packageData.price} DH</span>
-                  </div>
-                </div>
-
-                <button className="w-full bg-sahara text-white py-3 rounded-xl font-semibold hover:bg-sahara/90 transition-colors">
+              
+              {!showReservationForm ? (
+                <button
+                  onClick={() => setShowReservationForm(true)}
+                  className="w-full bg-primary text-white py-3 rounded-lg hover:bg-primary-dark transition duration-300"
+                >
                   Réserver maintenant
                 </button>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Nom complet</label>
+                    <input
+                      type="text"
+                      name="clientName"
+                      value={formData.clientName}
+                      onChange={handleInputChange}
+                      required
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      required
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Téléphone</label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      required
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Nombre de personnes</label>
+                    <input
+                      type="number"
+                      name="numberOfPersons"
+                      value={formData.numberOfPersons}
+                      onChange={handleInputChange}
+                      min="1"
+                      max={packageData.maxParticipants}
+                      required
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                    />
+                  </div>
+                  <div className="flex space-x-4">
+                    <button
+                      type="submit"
+                      className="flex-1 bg-primary text-white py-2 rounded-lg hover:bg-primary-dark transition duration-300"
+                    >
+                      Confirmer la réservation
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowReservationForm(false)}
+                      className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition duration-300"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {reservationStatus && (
+                <div className={`mt-4 p-3 rounded ${
+                  reservationStatus.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  {reservationStatus.message}
+                </div>
+              )}
+
+              <div className="mt-6 space-y-3">
+                <p className="flex items-center text-gray-600">
+                  <FaUsers className="mr-2" />
+                  Places disponibles: {packageData.maxParticipants}
+                </p>
+                <p className="flex items-center text-gray-600">
+                  <FaCalendarAlt className="mr-2" />
+                  {packageData.duration}
+                </p>
               </div>
             </div>
           </div>
@@ -252,4 +381,4 @@ const PackageDetail = () => {
   );
 };
 
-export default PackageDetail; 
+export default PackageDetail;

@@ -2,6 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Responsive Design */
+@layer utilities {
+  /* Mobile First Design */
+  @media (max-width: 640px) {
+    .carousel-container {
+      @apply py-4;
+    }
+
+    .carousel-track {
+      @apply gap-4;
+    }
+
+    .carousel-item {
+      @apply w-[280px];
+    }
+
+    .destination-card {
+      @apply h-[350px];
+    }
+
+    .destination-content {
+      @apply p-4;
+    }
+
+    .destination-content h3 {
+      @apply text-xl mb-2;
+    }
+
+    .destination-content p {
+      @apply text-xs mb-2;
+    }
+
+    .destination-content button {
+      @apply text-sm py-1 px-3;
+    }
+  }
+}
+
 /* Scrollbar Styles */
 ::-webkit-scrollbar {
   @apply w-2;
@@ -104,14 +142,21 @@
   pointer-events: none;
 }
 
-.destination-card:hover {
-  transform: perspective(2000px) rotateY(-8deg) translateZ(60px) scale(1.05);
-  box-shadow: 25px 25px 70px rgba(0, 0, 0, 0.25);
-  z-index: 2;
-}
+/* Responsive hover effects - disable on mobile */
+@media (min-width: 640px) {
+  .destination-card:hover {
+    transform: perspective(2000px) rotateY(-8deg) translateZ(60px) scale(1.05);
+    box-shadow: 25px 25px 70px rgba(0, 0, 0, 0.25);
+    z-index: 2;
+  }
 
-.destination-card:hover::before {
-  opacity: 1;
+  .destination-card:hover::before {
+    opacity: 1;
+  }
+
+  .destination-card:hover img {
+    transform: scale(1.08) translateX(-1%) translateZ(30px);
+  }
 }
 
 /* Card Image */
@@ -131,10 +176,6 @@
   50% {
     transform: scale(1.04) translateZ(20px);
   }
-}
-
-.destination-card:hover img {
-  transform: scale(1.08) translateX(-1%) translateZ(30px);
 }
 
 /* Card Overlay */
@@ -185,9 +226,12 @@
   will-change: transform;
 }
 
-.destination-content button:hover {
-  transform: translateZ(70px) scale(1.1);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+/* Responsive button hover - only on desktop */
+@media (min-width: 640px) {
+  .destination-content button:hover {
+    transform: translateZ(70px) scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  }
 }
 
 /* Edge Fade Effect */

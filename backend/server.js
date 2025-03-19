@@ -4,6 +4,7 @@ import cors from 'cors';
 import { Activity } from './models/activity.js';
 import { Voyage } from './models/voyage.js';
 import { Agency } from './models/agency.js';
+import { Reservation } from './models/reservation.js';
 
 const app = express();
 const PORT = 5000;
@@ -82,6 +83,18 @@ app.get('/api/voyages', async (req, res) => {
   }
 });
 
+app.get('/api/voyages/:id', async (req, res) => {
+  try {
+    const voyage = await Voyage.findById(req.params.id);
+    if (!voyage) {
+      return res.status(404).json({ message: "Voyage non trouvé" });
+    }
+    res.json(voyage);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 app.post('/api/voyages', async (req, res) => {
   const voyage = new Voyage(req.body);
   try {
@@ -101,6 +114,52 @@ app.delete('/api/voyages/:id', async (req, res) => {
     res.json({ message: "Voyage supprimé avec succès" });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Routes pour les réservations
+app.post('/api/reservations', async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { voyageId, clientName, email, phone, numberOfPersons } = req.body;
+
+    // Vérifier si le voyage existe et a assez de places disponibles
+    const voyage = await Voyage.findById(voyageId).session(session);
+    if (!voyage) {
+      throw new Error('Voyage non trouvé');
+    }
+
+    if (voyage.availableSpots < numberOfPersons) {
+      throw new Error('Pas assez de places disponibles');
+    }
+
+    // Créer la réservation
+    const reservation = new Reservation({
+      voyageId,
+      clientName,
+      email,
+      phone,
+      numberOfPersons
+    });
+    await reservation.save({ session });
+
+    // Mettre à jour le nombre de places disponibles
+    voyage.availableSpots -= numberOfPersons;
+    await voyage.save({ session });
+
+    await session.commitTransaction();
+    res.status(201).json({ 
+      message: 'Réservation effectuée avec succès',
+      reservation,
+      availableSpots: voyage.availableSpots
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    res.status(400).json({ message: error.message });
+  } finally {
+    session.endSession();
   }
 });
 

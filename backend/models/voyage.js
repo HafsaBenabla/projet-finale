@@ -25,10 +25,15 @@ const voyageSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    availableSpots: {
+        type: Number,
+        required: true,
+        default: 15
+    },
     createdAt: {
         type: Date,
         default: Date.now
     }
 });
 
-export const Voyage = mongoose.model('Voyage', voyageSchema); 
+export const Voyage = mongoose.model('Voyage', voyageSchema);
