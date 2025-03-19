@@ -96,12 +96,19 @@ app.get('/api/voyages/:id', async (req, res) => {
 });
 
 app.post('/api/voyages', async (req, res) => {
-  const voyage = new Voyage(req.body);
   try {
+    const voyage = new Voyage(req.body);
     const newVoyage = await voyage.save();
     res.status(201).json(newVoyage);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Erreur lors de la création du voyage:', error);
+    res.status(400).json({ 
+      message: error.message,
+      details: error.errors ? Object.keys(error.errors).map(key => ({
+        field: key,
+        message: error.errors[key].message
+      })) : null
+    });
   }
 });
 
@@ -123,16 +130,26 @@ app.post('/api/reservations', async (req, res) => {
   session.startTransaction();
 
   try {
-    const { voyageId, clientName, email, phone, numberOfPersons } = req.body;
+    const { voyageId, clientName, email, phone, numberOfPersons, departureDate } = req.body;
 
-    // Vérifier si le voyage existe et a assez de places disponibles
-    const voyage = await Voyage.findById(voyageId).session(session);
-    if (!voyage) {
-      throw new Error('Voyage non trouvé');
-    }
+    // Vérifier et mettre à jour le voyage en une seule opération atomique
+    const updatedVoyage = await Voyage.findOneAndUpdate(
+      {
+        _id: voyageId,
+        availableSpots: { $gte: numberOfPersons }
+      },
+      {
+        $inc: { availableSpots: -numberOfPersons }
+      },
+      {
+        new: true,
+        session,
+        runValidators: false // Désactiver la validation pour cette mise à jour
+      }
+    );
 
-    if (voyage.availableSpots < numberOfPersons) {
-      throw new Error('Pas assez de places disponibles');
+    if (!updatedVoyage) {
+      throw new Error('Voyage non trouvé ou places insuffisantes');
     }
 
     // Créer la réservation
@@ -141,19 +158,17 @@ app.post('/api/reservations', async (req, res) => {
       clientName,
       email,
       phone,
-      numberOfPersons
+      numberOfPersons,
+      departureDate,
+      status: 'confirmée'
     });
     await reservation.save({ session });
-
-    // Mettre à jour le nombre de places disponibles
-    voyage.availableSpots -= numberOfPersons;
-    await voyage.save({ session });
 
     await session.commitTransaction();
     res.status(201).json({ 
       message: 'Réservation effectuée avec succès',
       reservation,
-      availableSpots: voyage.availableSpots
+      availableSpots: updatedVoyage.availableSpots
     });
   } catch (error) {
     await session.abortTransaction();

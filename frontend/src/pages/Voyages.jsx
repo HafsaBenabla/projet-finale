@@ -4,7 +4,7 @@ import { useVoyages } from '../context/VoyagesContext';
 
 const Voyages = () => {
   const navigate = useNavigate();
-  const voyagesData = useVoyages();
+  const { voyages, loading, error } = useVoyages();
   
   // État pour les filtres
   const [destinationFilter, setDestinationFilter] = useState('');
@@ -13,9 +13,9 @@ const Voyages = () => {
 
   // État pour gérer les likes et dislikes avec leurs compteurs
   const [reactions, setReactions] = useState(
-    voyagesData.reduce((acc, voyage) => ({
+    (voyages || []).reduce((acc, voyage) => ({
       ...acc,
-      [voyage.id]: { like: 0, dislike: 0, userReaction: null }
+      [voyage._id]: { like: 0, dislike: 0, userReaction: null }
     }), {})
   );
 
@@ -60,17 +60,38 @@ const Voyages = () => {
   };
 
   // Liste des destinations uniques
-  const destinations = [...new Set(voyagesData.map(voyage => voyage.destination))];
+  const destinations = useMemo(() => {
+    return [...new Set((voyages || []).map(voyage => voyage.destination))];
+  }, [voyages]);
 
   // Filtrage des voyages
   const filteredVoyages = useMemo(() => {
-    return voyagesData.filter(voyage => {
+    return (voyages || []).filter(voyage => {
       const matchDestination = !destinationFilter || voyage.destination === destinationFilter;
       const matchDuration = !durationFilter || voyage.duration === durationFilter;
       const matchBudget = !budgetFilter || voyage.budget === budgetFilter;
       return matchDestination && matchDuration && matchBudget;
     });
-  }, [destinationFilter, durationFilter, budgetFilter, voyagesData]);
+  }, [destinationFilter, durationFilter, budgetFilter, voyages]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-sahara"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur</h2>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full pt-16">
@@ -124,7 +145,7 @@ const Voyages = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredVoyages.map((voyage) => (
-            <div key={voyage.id} className="bg-white rounded-xl shadow-lg overflow-hidden transform transition duration-500 hover:scale-105">
+            <div key={voyage._id} className="bg-white rounded-xl shadow-lg overflow-hidden transform transition duration-500 hover:scale-105">
               <div className="relative h-48 overflow-hidden group">
                 <img 
                   src={voyage.image} 
@@ -149,17 +170,23 @@ const Voyages = () => {
                   <div className="text-2xl font-bold text-sahara">
                     {voyage.price.toLocaleString()} MAD
                   </div>
-                  <div className="text-gray-600 text-sm">
-                    {voyage.maxPlaces} places max
+                  <div className={`text-sm ${voyage.availableSpots < 5 ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
+                    {voyage.availableSpots === 0 ? (
+                      'Complet'
+                    ) : voyage.availableSpots < 5 ? (
+                      `Plus que ${voyage.availableSpots} places !`
+                    ) : (
+                      `${voyage.availableSpots} places disponibles`
+                    )}
                   </div>
                 </div>
 
                 <div className="mt-6 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <button 
-                      onClick={() => handleReaction(voyage.id, 'like')}
+                      onClick={() => handleReaction(voyage._id, 'like')}
                       className={`flex items-center gap-2 transition-colors ${
-                        reactions[voyage.id]?.userReaction === 'like'
+                        reactions[voyage._id]?.userReaction === 'like'
                           ? 'text-orange-500' 
                           : 'text-gray-500 hover:text-orange-500'
                       }`}
@@ -167,12 +194,12 @@ const Voyages = () => {
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
                       </svg>
-                      <span className="font-medium">{reactions[voyage.id]?.like || 0}</span>
+                      <span className="font-medium">{reactions[voyage._id]?.like || 0}</span>
                     </button>
                     <button 
-                      onClick={() => handleReaction(voyage.id, 'dislike')}
+                      onClick={() => handleReaction(voyage._id, 'dislike')}
                       className={`flex items-center gap-2 transition-colors ${
-                        reactions[voyage.id]?.userReaction === 'dislike'
+                        reactions[voyage._id]?.userReaction === 'dislike'
                           ? 'text-red-500' 
                           : 'text-gray-500 hover:text-red-500'
                       }`}
@@ -180,11 +207,11 @@ const Voyages = () => {
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
                       </svg>
-                      <span className="font-medium">{reactions[voyage.id]?.dislike || 0}</span>
+                      <span className="font-medium">{reactions[voyage._id]?.dislike || 0}</span>
                     </button>
                   </div>
                   <button 
-                    onClick={() => navigate(`/voyage/${voyage.id}`)}
+                    onClick={() => navigate(`/voyage/${voyage._id}`)}
                     className="px-6 py-2 bg-sahara text-white rounded-full font-medium hover:bg-sahara/90 transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-sahara focus:ring-offset-2"
                   >
                     Plus de détails

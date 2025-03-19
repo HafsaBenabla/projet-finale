@@ -25,7 +25,8 @@ const AddNew = () => {
     price: '',
     destination: '',
     duration: '',
-    image: ''
+    image: '',
+    agence: ''
   });
 
   // États pour le formulaire d'agence
@@ -624,36 +625,58 @@ const AddNew = () => {
                     onChange={handleVoyageChange}
                     required
                     style={{ borderRadius: '8px' }}
+                    placeholder="Entrez le titre du voyage"
                   />
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Prix</Form.Label>
+                  <Form.Label>Agence organisatrice</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="agence"
+                    value={voyageData.agence}
+                    onChange={handleVoyageChange}
+                    required
+                    style={{ borderRadius: '8px' }}
+                    placeholder="Nom de l'agence qui organise"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Prix (MAD)</Form.Label>
                   <Form.Control
                     type="number"
                     name="price"
                     value={voyageData.price}
                     onChange={handleVoyageChange}
                     required
+                    min="0"
                     style={{ borderRadius: '8px' }}
+                    placeholder="Prix en dirhams"
                   />
                 </Form.Group>
               </Col>
-            </Row>
-            <Form.Group className="mb-3">
-              <Form.Label>Description</Form.Label>
-              <Form.Control
-                as="textarea"
-                name="description"
-                value={voyageData.description}
-                onChange={handleVoyageChange}
-                required
-                style={{ borderRadius: '8px' }}
-              />
-            </Form.Group>
-            <Row>
-              <Col md={6}>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Durée (jours)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="duration"
+                    value={voyageData.duration}
+                    onChange={handleVoyageChange}
+                    required
+                    min="1"
+                    style={{ borderRadius: '8px' }}
+                    placeholder="Nombre de jours"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
                 <Form.Group className="mb-3">
                   <Form.Label>Destination</Form.Label>
                   <Form.Control
@@ -663,23 +686,25 @@ const AddNew = () => {
                     onChange={handleVoyageChange}
                     required
                     style={{ borderRadius: '8px' }}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Durée (en jours)</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="duration"
-                    value={voyageData.duration}
-                    onChange={handleVoyageChange}
-                    required
-                    style={{ borderRadius: '8px' }}
+                    placeholder="Ville de destination"
                   />
                 </Form.Group>
               </Col>
             </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Description détaillée</Form.Label>
+              <Form.Control
+                as="textarea"
+                name="description"
+                value={voyageData.description}
+                onChange={handleVoyageChange}
+                required
+                style={{ borderRadius: '8px', minHeight: '120px' }}
+                placeholder="Décrivez le programme du voyage, les points d'intérêt, etc."
+              />
+            </Form.Group>
+
             <Form.Group className="mb-3">
               <Form.Label>URL de l'image</Form.Label>
               <Form.Control
@@ -689,11 +714,24 @@ const AddNew = () => {
                 onChange={handleVoyageChange}
                 required
                 style={{ borderRadius: '8px' }}
+                placeholder="Lien vers l'image du voyage"
               />
             </Form.Group>
-            <Button style={buttonStyle} type="submit" className="mt-3">
-              Ajouter le voyage
-            </Button>
+
+            <div className="d-flex justify-content-end">
+              <Button 
+                style={{
+                  ...buttonStyle,
+                  fontSize: '1.1rem',
+                  padding: '0.8rem 2.5rem'
+                }} 
+                type="submit" 
+                className="mt-3"
+              >
+                <i className="fas fa-plus-circle me-2"></i>
+                Ajouter le voyage
+              </Button>
+            </div>
           </Form>
         </div>
       )}

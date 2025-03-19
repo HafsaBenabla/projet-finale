@@ -23,9 +23,18 @@ const reservationSchema = new mongoose.Schema({
     required: true,
     min: 1
   },
+  departureDate: {
+    type: Date,
+    required: true
+  },
   dateCreated: {
     type: Date,
     default: Date.now
+  },
+  status: {
+    type: String,
+    enum: ['confirmée', 'en attente', 'annulée'],
+    default: 'confirmée'
   }
 });
 

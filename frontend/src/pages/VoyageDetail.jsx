@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaMapMarkerAlt, FaClock } from 'react-icons/fa';
-import { useVoyages } from '../context/VoyagesContext';
 import ActivitySelectionCard from '../components/ActivitySelectionCard';
+import { useVoyages } from '../context/VoyagesContext';
 
 // Activités disponibles par ville
 const activitiesByCity = {
@@ -149,8 +149,10 @@ const activitiesByCity = {
 const VoyageDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const voyages = useVoyages();
-  const voyage = voyages.find(v => v.id === parseInt(id));
+  const { refreshVoyages } = useVoyages();
+  const [voyage, setVoyage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [formData, setFormData] = useState({
     nom: '',
@@ -161,6 +163,26 @@ const VoyageDetail = () => {
   });
 
   const [selectedActivities, setSelectedActivities] = useState([]);
+  const [reservationStatus, setReservationStatus] = useState(null);
+
+  useEffect(() => {
+    const fetchVoyage = async () => {
+      try {
+        const response = await fetch(`http://localhost:5000/api/voyages/${id}`);
+        if (!response.ok) {
+          throw new Error('Voyage non trouvé');
+        }
+        const data = await response.json();
+        setVoyage(data);
+        setLoading(false);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    fetchVoyage();
+  }, [id]);
 
   // Récupérer les activités disponibles pour la destination
   const availableActivities = useMemo(() => {
@@ -172,12 +194,6 @@ const VoyageDetail = () => {
     const activitiesPrice = selectedActivities.reduce((sum, activity) => sum + activity.price, 0);
     return voyage.price * formData.nombrePersonnes + activitiesPrice * formData.nombrePersonnes;
   };
-
-  // Rediriger si le voyage n'existe pas
-  if (!voyage) {
-    navigate('/voyages');
-    return null;
-  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -198,17 +214,94 @@ const VoyageDetail = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Données de réservation:', {
-      ...formData,
-      voyageId: voyage.id,
-      voyageTitle: voyage.title,
-      selectedActivities,
-      totalPrice: calculateTotalPrice()
-    });
-    alert('Réservation envoyée avec succès!');
+    setReservationStatus(null);
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/reservations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          voyageId: voyage._id,
+          clientName: formData.nom,
+          email: formData.email,
+          phone: formData.telephone,
+          numberOfPersons: parseInt(formData.nombrePersonnes),
+          departureDate: formData.dateDepart
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Mettre à jour le nombre de places disponibles localement
+        setVoyage(prev => ({
+          ...prev,
+          availableSpots: data.availableSpots
+        }));
+
+        setReservationStatus({
+          type: 'success',
+          message: 'Réservation effectuée avec succès!'
+        });
+
+        // Réinitialiser le formulaire
+        setFormData({
+          nom: '',
+          email: '',
+          telephone: '',
+          nombrePersonnes: 1,
+          dateDepart: ''
+        });
+        
+        // Rafraîchir les données des voyages dans le contexte
+        refreshVoyages();
+        
+        // Recharger les données du voyage pour avoir les informations à jour
+        const voyageResponse = await fetch(`http://localhost:5000/api/voyages/${voyage._id}`);
+        if (voyageResponse.ok) {
+          const updatedVoyage = await voyageResponse.json();
+          setVoyage(updatedVoyage);
+        }
+      } else {
+        throw new Error(data.message || 'Erreur lors de la réservation');
+      }
+    } catch (err) {
+      console.error('Error submitting reservation:', err);
+      setReservationStatus({
+        type: 'error',
+        message: err.message
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-sahara"></div>
+      </div>
+    );
+  }
+
+  if (error || !voyage) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur</h2>
+          <p className="text-gray-600">{error || 'Voyage non trouvé'}</p>
+          <button
+            onClick={() => navigate('/voyages')}
+            className="mt-4 px-6 py-2 bg-sahara text-white rounded-full"
+          >
+            Retour aux voyages
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
@@ -276,7 +369,7 @@ const VoyageDetail = () => {
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h2 className="text-2xl font-semibold mb-4">Activités à {voyage.destination}</h2>
                 <p className="text-gray-600 mb-6">
-                  Enrichissez votre séjour avec ces expériences uniques sélectionnées spécialement pour {voyage.destination}
+                  Enrichissez votre séjour avec ces expériences uniques
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {availableActivities.map((activity) => (
@@ -290,6 +383,28 @@ const VoyageDetail = () => {
                 </div>
               </div>
             )}
+
+            {/* Section des places disponibles */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold mb-2">Places disponibles</h2>
+                  <p className="text-gray-600">
+                    Il reste {voyage.availableSpots} places sur un total de {voyage.maxPlaces}
+                  </p>
+                </div>
+                <div className={`text-3xl font-bold ${
+                  voyage.availableSpots < 5 ? 'text-red-500' : 'text-green-500'
+                }`}>
+                  {voyage.availableSpots}
+                </div>
+              </div>
+              {voyage.availableSpots < 5 && (
+                <p className="mt-2 text-red-500 text-sm">
+                  Plus que quelques places disponibles !
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Formulaire de réservation */}
@@ -297,119 +412,134 @@ const VoyageDetail = () => {
             <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
               <h2 className="text-2xl font-semibold mb-6">Réserver ce voyage</h2>
               
-              <div className="space-y-4 mb-6">
-                <div className="p-4 bg-sahara/10 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-600">Prix de base</span>
-                    <span className="font-semibold">{voyage.price.toLocaleString()} MAD</span>
-                  </div>
-                  {selectedActivities.length > 0 && (
-                    <>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-gray-600">Activités ({selectedActivities.length})</span>
-                        <span className="font-semibold">
-                          +{selectedActivities.reduce((sum, act) => sum + act.price, 0).toLocaleString()} MAD
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-gray-600">Nombre de personnes</span>
-                        <span className="font-semibold">x{formData.nombrePersonnes}</span>
-                      </div>
-                    </>
-                  )}
-                  <div className="border-t border-gray-200 pt-2 mt-2">
-                    <div className="flex justify-between items-center text-lg">
-                      <span className="font-semibold text-sahara">Total</span>
-                      <span className="font-bold text-sahara">{calculateTotalPrice().toLocaleString()} MAD</span>
+              {voyage.availableSpots === 0 ? (
+                <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">
+                  Désolé, ce voyage est complet !
+                </div>
+              ) : (
+                <>
+                  {reservationStatus && (
+                    <div className={`p-4 rounded-lg mb-4 ${
+                      reservationStatus.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {reservationStatus.message}
                     </div>
-                  </div>
-                </div>
+                  )}
 
-                {selectedActivities.length > 0 && (
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-green-800 mb-2">Activités sélectionnées:</h3>
-                    <ul className="space-y-2">
-                      {selectedActivities.map(activity => (
-                        <li key={activity.id} className="flex justify-between items-center text-sm text-green-700">
-                          <span>{activity.title}</span>
-                          <span>{activity.price} MAD</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-gray-700 mb-2" htmlFor="nom">
+                        Nom complet
+                      </label>
+                      <input
+                        type="text"
+                        id="nom"
+                        name="nom"
+                        value={formData.nom}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
+                        required
+                      />
+                    </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-gray-700 mb-2">Nom complet</label>
-                  <input
-                    type="text"
-                    name="nom"
-                    value={formData.nom}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
-                    required
-                  />
-                </div>
+                    <div>
+                      <label className="block text-gray-700 mb-2" htmlFor="email">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
+                        required
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
-                    required
-                  />
-                </div>
+                    <div>
+                      <label className="block text-gray-700 mb-2" htmlFor="telephone">
+                        Téléphone
+                      </label>
+                      <input
+                        type="tel"
+                        id="telephone"
+                        name="telephone"
+                        value={formData.telephone}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
+                        required
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-gray-700 mb-2">Téléphone</label>
-                  <input
-                    type="tel"
-                    name="telephone"
-                    value={formData.telephone}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
-                    required
-                  />
-                </div>
+                    <div>
+                      <label className="block text-gray-700 mb-2" htmlFor="nombrePersonnes">
+                        Nombre de personnes (max: {voyage.availableSpots})
+                      </label>
+                      <input
+                        type="number"
+                        id="nombrePersonnes"
+                        name="nombrePersonnes"
+                        value={formData.nombrePersonnes}
+                        onChange={handleInputChange}
+                        min="1"
+                        max={voyage.availableSpots}
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
+                        required
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-gray-700 mb-2">Nombre de personnes</label>
-                  <input
-                    type="number"
-                    name="nombrePersonnes"
-                    value={formData.nombrePersonnes}
-                    onChange={handleInputChange}
-                    min="1"
-                    max={voyage.maxPlaces}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
-                    required
-                  />
-                </div>
+                    <div>
+                      <label className="block text-gray-700 mb-2" htmlFor="dateDepart">
+                        Date de départ souhaitée
+                      </label>
+                      <input
+                        type="date"
+                        id="dateDepart"
+                        name="dateDepart"
+                        value={formData.dateDepart}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
+                        required
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-gray-700 mb-2">Date de départ souhaitée</label>
-                  <input
-                    type="date"
-                    name="dateDepart"
-                    value={formData.dateDepart}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
-                    required
-                  />
-                </div>
+                    <div className="p-4 bg-sahara/10 rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-600">Prix de base</span>
+                        <span className="font-semibold">{voyage.price.toLocaleString()} MAD</span>
+                      </div>
+                      {selectedActivities.length > 0 && (
+                        <>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-gray-600">Activités ({selectedActivities.length})</span>
+                            <span className="font-semibold">
+                              +{selectedActivities.reduce((sum, act) => sum + act.price, 0).toLocaleString()} MAD
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-gray-600">Nombre de personnes</span>
+                            <span className="font-semibold">x{formData.nombrePersonnes}</span>
+                          </div>
+                        </>
+                      )}
+                      <div className="border-t border-gray-200 pt-2 mt-2">
+                        <div className="flex justify-between items-center text-lg">
+                          <span className="font-semibold text-sahara">Total</span>
+                          <span className="font-bold text-sahara">{calculateTotalPrice().toLocaleString()} MAD</span>
+                        </div>
+                      </div>
+                    </div>
 
-                <button
-                  type="submit"
-                  className="w-full bg-sahara text-white py-3 rounded-lg font-semibold hover:bg-sahara/90 transition-colors focus:outline-none focus:ring-2 focus:ring-sahara focus:ring-offset-2"
-                >
-                  Réserver maintenant
-                </button>
-              </form>
+                    <button
+                      type="submit"
+                      className="w-full py-3 bg-sahara text-white rounded-full font-medium hover:bg-sahara/90 transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-sahara focus:ring-offset-2"
+                    >
+                      Réserver maintenant
+                    </button>
+                  </form>
+                </>
+              )}
             </div>
           </div>
         </div>

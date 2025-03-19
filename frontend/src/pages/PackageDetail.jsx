@@ -1,153 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaHotel, FaClock, FaMoneyBillWave, FaCheck } from 'react-icons/fa';
-
-// Données des packages (à remplacer par des données de l'API plus tard)
-const packagesData = {
-  'circuit-imperial-marrakech': {
-    id: 'circuit-imperial-marrakech',
-    name: 'Circuit des Villes Impériales',
-    agencyName: 'Sahara Tours',
-    description: 'Découvrez les villes impériales du Maroc dans un circuit luxueux incluant un séjour au Sahara Palace Marrakech',
-    duration: '8 jours',
-    maxParticipants: 12,
-    price: 12500,
-    included: [
-      'Hébergement au Sahara Palace Marrakech',
-      'Transport en 4x4 de luxe',
-      'Guide professionnel',
-      'Petits déjeuners et dîners',
-      'Visites guidées des monuments',
-      'Excursions dans le désert'
-    ],
-    itinerary: [
-      {
-        day: 1,
-        title: 'Arrivée à Marrakech',
-        description: 'Accueil à l\'aéroport et installation au Sahara Palace Marrakech'
-      },
-      {
-        day: 2,
-        title: 'Découverte de Marrakech',
-        description: 'Visite de la médina, des jardins Majorelle et du palais Bahia'
-      },
-      {
-        day: 3,
-        title: 'Route vers Fès',
-        description: 'Traversée de l\'Atlas et arrêt à Ifrane'
-      },
-      {
-        day: 4,
-        title: 'Exploration de Fès',
-        description: 'Visite de la médina de Fès et des tanneries'
-      },
-      {
-        day: 5,
-        title: 'Meknès et Volubilis',
-        description: 'Découverte des ruines romaines et de la ville impériale'
-      },
-      {
-        day: 6,
-        title: 'Rabat',
-        description: 'Visite de la capitale administrative'
-      },
-      {
-        day: 7,
-        title: 'Retour à Marrakech',
-        description: 'Temps libre et soirée de gala'
-      },
-      {
-        day: 8,
-        title: 'Départ',
-        description: 'Transfert à l\'aéroport'
-      }
-    ],
-    image: 'https://i.pinimg.com/564x/d2/10/d3/d210d3d08f6fe04cf4b7f7e78f71c9c9.jpg'
-  },
-  'decouverte-fes': {
-    id: 'decouverte-fes',
-    name: 'Découverte de Fès',
-    agencyName: 'Medina Voyages',
-    description: 'Immergez-vous dans l\'histoire millénaire de Fès avec un séjour au Riad Fès Heritage',
-    duration: '3 jours',
-    maxParticipants: 8,
-    price: 4500,
-    included: [
-      'Hébergement au Riad Fès Heritage',
-      'Transferts privés',
-      'Guide local certifié',
-      'Tous les repas',
-      'Ateliers d\'artisanat'
-    ],
-    itinerary: [
-      {
-        day: 1,
-        title: 'Arrivée à Fès',
-        description: 'Accueil et installation au Riad Fès Heritage'
-      },
-      {
-        day: 2,
-        title: 'Médina de Fès',
-        description: 'Exploration des souks et monuments historiques'
-      },
-      {
-        day: 3,
-        title: 'Artisanat et Départ',
-        description: 'Ateliers d\'artisanat traditionnels et départ'
-      }
-    ],
-    image: 'https://i.pinimg.com/564x/8c/21/98/8c219814458f9c9d06b05a46c5300e5d.jpg'
-  },
-  'escapade-sahara': {
-    id: 'escapade-sahara',
-    name: 'Escapade dans le Sahara',
-    agencyName: 'Desert Adventures',
-    description: 'Vivez une expérience unique dans le désert avec un séjour à la Kasbah du Désert',
-    duration: '5 jours',
-    maxParticipants: 10,
-    price: 8900,
-    included: [
-      'Hébergement à la Kasbah du Désert',
-      'Transport en 4x4',
-      'Guide saharien',
-      'Pension complète',
-      'Activités dans le désert',
-      'Soirées traditionnelles'
-    ],
-    itinerary: [
-      {
-        day: 1,
-        title: 'Départ pour Merzouga',
-        description: 'Traversée de l\'Atlas et arrivée à la Kasbah'
-      },
-      {
-        day: 2,
-        title: 'Dunes de l\'Erg Chebbi',
-        description: 'Excursion en dromadaire et nuit sous les étoiles'
-      },
-      {
-        day: 3,
-        title: 'Villages berbères',
-        description: 'Rencontre avec les nomades et leur culture'
-      },
-      {
-        day: 4,
-        title: 'Oasis et détente',
-        description: 'Découverte des oasis et relaxation à la Kasbah'
-      },
-      {
-        day: 5,
-        title: 'Retour',
-        description: 'Retour vers votre destination de départ'
-      }
-    ],
-    image: 'https://i.pinimg.com/564x/a0/cc/97/a0cc97e6b9d95b8f6b52f5e8f8d4c7b4.jpg'
-  }
-};
 
 const PackageDetail = () => {
   const { id } = useParams();
   const [showReservationForm, setShowReservationForm] = useState(false);
+  const [packageData, setPackageData] = useState(null);
   const [formData, setFormData] = useState({
     clientName: '',
     email: '',
@@ -155,7 +13,34 @@ const PackageDetail = () => {
     numberOfPersons: 1
   });
   const [reservationStatus, setReservationStatus] = useState(null);
-  const packageData = packagesData[id];
+  const [loading, setLoading] = useState(true);
+
+  // Fetch voyage data
+  const fetchVoyageData = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/voyages/${id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPackageData(data);
+      } else {
+        setReservationStatus({
+          type: 'error',
+          message: 'Erreur lors du chargement du voyage'
+        });
+      }
+    } catch (error) {
+      setReservationStatus({
+        type: 'error',
+        message: 'Erreur de connexion au serveur'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVoyageData();
+  }, [id]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -186,8 +71,8 @@ const PackageDetail = () => {
           type: 'success',
           message: 'Réservation effectuée avec succès!'
         });
-        // Update the available spots in the UI
-        packageData.maxParticipants = data.availableSpots;
+        // Refresh voyage data to get updated available spots
+        fetchVoyageData();
         setShowReservationForm(false);
       } else {
         setReservationStatus({
@@ -203,12 +88,12 @@ const PackageDetail = () => {
     }
   };
 
+  if (loading) {
+    return <div>Chargement...</div>;
+  }
+
   if (!packageData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-2xl text-gray-600">Package non trouvé</p>
-      </div>
-    );
+    return <div>Voyage non trouvé</div>;
   }
 
   return (
