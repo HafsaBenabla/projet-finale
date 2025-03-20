@@ -36,13 +36,48 @@ const AddNew = () => {
     city: '',
     phone: '',
     email: '',
-    description: ''
+    description: '',
+    stars: '0',
+    image: ''
   });
 
   // États pour la suppression
   const [deleteActivityId, setDeleteActivityId] = useState('');
   const [deleteVoyageId, setDeleteVoyageId] = useState('');
   const [deleteAgencyId, setDeleteAgencyId] = useState('');
+
+  // Liste des villes disponibles
+  const availableCities = [
+    "Agadir",
+    "Al Hoceima",
+    "Asilah",
+    "Azrou",
+    "Béni Mellal",
+    "Casablanca",
+    "Chefchaouen",
+    "Dakhla",
+    "El Jadida",
+    "Errachidia",
+    "Essaouira",
+    "Fès",
+    "Ifrane",
+    "Kénitra",
+    "Larache",
+    "Marrakech",
+    "Meknès",
+    "Merzouga",
+    "Mohammedia",
+    "Nador",
+    "Ouarzazate",
+    "Oujda",
+    "Rabat",
+    "Safi",
+    "Salé",
+    "Tanger",
+    "Taroudant",
+    "Tétouan",
+    "Zagora"
+  ].sort();
 
   // Styles personnalisés
   const cardStyle = {
@@ -123,11 +158,46 @@ const AddNew = () => {
     e.preventDefault();
     setError(null);
     try {
-      console.log('Envoi des données agence:', agencyData);
-      const response = await axios.post('http://localhost:5000/api/agencies', agencyData);
+      // Validation des données
+      if (!agencyData.image.trim()) {
+        throw new Error("L'URL de l'image est requise");
+      }
+
+      if (!agencyData.stars || agencyData.stars === '0') {
+        throw new Error("Veuillez sélectionner le nombre d'étoiles");
+      }
+      
+      // Conversion des étoiles en nombre et préparation des données
+      const formData = {
+        ...agencyData,
+        stars: parseFloat(agencyData.stars),
+        image: agencyData.image.trim()
+      };
+      
+      console.log('Envoi des données agence:', formData);
+      const response = await axios.post('http://localhost:5000/api/agencies', formData);
       console.log('Réponse agence:', response.data);
-      alert('Agence ajoutée avec succès!');
-      navigate('/');
+      
+      if (response.data.agency) {
+        console.log('Agence sauvegardée avec succès:', response.data.agency);
+        alert('Agence ajoutée avec succès!');
+        
+        // Réinitialiser le formulaire
+        setAgencyData({
+          name: '',
+          address: '',
+          city: '',
+          phone: '',
+          email: '',
+          description: '',
+          stars: '0',
+          image: ''
+        });
+        
+        navigate('/');
+      } else {
+        throw new Error('Erreur lors de la sauvegarde de l\'agence');
+      }
     } catch (error) {
       console.error('Erreur complète:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Erreur lors de l\'ajout de l\'agence';
@@ -752,23 +822,131 @@ const AddNew = () => {
                     onChange={handleAgencyChange}
                     required
                     style={{ borderRadius: '8px' }}
+                    placeholder="Entrez le nom de l'agence"
                   />
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Ville</Form.Label>
-                  <Form.Control
-                    type="text"
+                  <Form.Select
                     name="city"
                     value={agencyData.city}
                     onChange={handleAgencyChange}
                     required
-                    style={{ borderRadius: '8px' }}
-                  />
+                    style={{ 
+                      borderRadius: '8px',
+                      padding: '10px',
+                      fontSize: '1rem',
+                      borderColor: '#dee2e6',
+                      backgroundColor: '#fff'
+                    }}
+                    className="focus:border-sahara focus:ring-1 focus:ring-sahara"
+                  >
+                    <option value="">Sélectionnez une ville</option>
+                    <option 
+                      value="Toutes les villes du Maroc"
+                      style={{
+                        padding: '8px',
+                        fontSize: '1rem',
+                        fontWeight: 'bold',
+                        backgroundColor: '#f8f9fa'
+                      }}
+                    >
+                      Toutes les villes du Maroc
+                    </option>
+                    <option disabled style={{ borderBottom: '1px solid #dee2e6' }}>──────────</option>
+                    {availableCities.map(city => (
+                      <option 
+                        key={city} 
+                        value={city}
+                        style={{
+                          padding: '8px',
+                          fontSize: '1rem'
+                        }}
+                      >
+                        {city}
+                      </option>
+                    ))}
+                  </Form.Select>
+                  <Form.Text className="text-muted">
+                    Choisissez la ville où se trouve votre agence, ou "Toutes les villes" si votre agence opère dans tout le Maroc
+                  </Form.Text>
                 </Form.Group>
               </Col>
             </Row>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Nombre d'étoiles</Form.Label>
+                  <div className="d-flex align-items-center">
+                    <Button
+                      onClick={() => {
+                        const currentValue = parseFloat(agencyData.stars);
+                        if (currentValue > 1) {
+                          setAgencyData({ ...agencyData, stars: (currentValue - 0.5).toString() });
+                        }
+                      }}
+                      style={{
+                        backgroundColor: '#FF8C38',
+                        border: 'none',
+                        borderRadius: '8px 0 0 8px',
+                        padding: '0.5rem 1rem'
+                      }}
+                      type="button"
+                    >
+                      -
+                    </Button>
+                    <div
+                      style={{
+                        padding: '0.5rem 1rem',
+                        border: '1px solid #ced4da',
+                        minWidth: '60px',
+                        textAlign: 'center'
+                      }}
+                    >
+                      {agencyData.stars === '0' ? '-' : agencyData.stars}
+                    </div>
+                    <Button
+                      onClick={() => {
+                        const currentValue = parseFloat(agencyData.stars) || 0;
+                        if (currentValue < 5) {
+                          setAgencyData({ ...agencyData, stars: (currentValue + 0.5).toString() });
+                        }
+                      }}
+                      style={{
+                        backgroundColor: '#FF8C38',
+                        border: 'none',
+                        borderRadius: '0 8px 8px 0',
+                        padding: '0.5rem 1rem'
+                      }}
+                      type="button"
+                    >
+                      +
+                    </Button>
+                  </div>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Image de l'agence</Form.Label>
+                  <Form.Control
+                    type="url"
+                    name="image"
+                    value={agencyData.image}
+                    onChange={handleAgencyChange}
+                    required
+                    style={{ borderRadius: '8px' }}
+                    placeholder="URL de l'image de l'agence"
+                  />
+                  <Form.Text className="text-muted">
+                    Entrez une URL valide d'image (ex: https://example.com/image.jpg)
+                  </Form.Text>
+                </Form.Group>
+              </Col>
+            </Row>
+
             <Form.Group className="mb-3">
               <Form.Label>Adresse</Form.Label>
               <Form.Control
@@ -778,8 +956,10 @@ const AddNew = () => {
                 onChange={handleAgencyChange}
                 required
                 style={{ borderRadius: '8px' }}
+                placeholder="Adresse complète de l'agence"
               />
             </Form.Group>
+
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
@@ -791,6 +971,7 @@ const AddNew = () => {
                     onChange={handleAgencyChange}
                     required
                     style={{ borderRadius: '8px' }}
+                    placeholder="Numéro de téléphone"
                   />
                 </Form.Group>
               </Col>
@@ -804,10 +985,12 @@ const AddNew = () => {
                     onChange={handleAgencyChange}
                     required
                     style={{ borderRadius: '8px' }}
+                    placeholder="Adresse email"
                   />
                 </Form.Group>
               </Col>
             </Row>
+
             <Form.Group className="mb-3">
               <Form.Label>Description</Form.Label>
               <Form.Control
@@ -816,12 +999,25 @@ const AddNew = () => {
                 value={agencyData.description}
                 onChange={handleAgencyChange}
                 required
-                style={{ borderRadius: '8px' }}
+                style={{ borderRadius: '8px', minHeight: '120px' }}
+                placeholder="Description détaillée de l'agence"
               />
             </Form.Group>
-            <Button style={buttonStyle} type="submit" className="mt-3">
-              Ajouter l'agence
-            </Button>
+
+            <div className="d-flex justify-content-end">
+              <Button 
+                style={{
+                  ...buttonStyle,
+                  fontSize: '1.1rem',
+                  padding: '0.8rem 2.5rem'
+                }} 
+                type="submit" 
+                className="mt-3"
+              >
+                <i className="fas fa-plus-circle me-2"></i>
+                Ajouter l'agence
+              </Button>
+            </div>
           </Form>
         </div>
       )}
