@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Card, Row, Col, Form, Button } from 'react-bootstrap';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import ImageUploader from '../components/ImageUploader';
 
 const AddNew = () => {
   const navigate = useNavigate();
   const [activeForm, setActiveForm] = useState(null);
   const [error, setError] = useState(null);
+  const [agencies, setAgencies] = useState([]);
   
   // États pour le formulaire d'activité
   const [activityData, setActivityData] = useState({
@@ -14,9 +16,16 @@ const AddNew = () => {
     description: '',
     price: '',
     city: '',
-    category: '',
-    image: ''
+    image: '',
+    type: 'locale', // 'locale' ou 'voyage'
+    duration: '',
+    maxParticipants: '',
+    isWeekendOnly: false,
+    voyageId: '', // Pour les activités de type voyage
+    category: ''
   });
+
+  const [voyages, setVoyages] = useState([]);
 
   // États pour le formulaire de voyage
   const [voyageData, setVoyageData] = useState({
@@ -26,7 +35,12 @@ const AddNew = () => {
     destination: '',
     duration: '',
     image: '',
-    agence: ''
+    agence: '',
+    availableSpots: '',
+    departureDate: '',
+    returnDate: '',
+    included: [],
+    notIncluded: []
   });
 
   // États pour le formulaire d'agence
@@ -93,7 +107,9 @@ const AddNew = () => {
   const activeCardStyle = {
     ...cardStyle,
     transform: 'translateY(-5px)',
-    boxShadow: '0 6px 12px rgba(0, 0, 0, 0.15)'
+    boxShadow: '0 6px 12px rgba(0, 0, 0, 0.15)',
+    border: '2px solid #FF8C38',
+    backgroundColor: '#fff8f3'
   };
 
   const cardIconStyle = {
@@ -110,6 +126,45 @@ const AddNew = () => {
     transition: 'all 0.3s ease'
   };
 
+  // Log l'état initial
+  useEffect(() => {
+    console.log('État initial de activeForm:', activeForm);
+  }, []);
+
+  // Log chaque changement de activeForm
+  useEffect(() => {
+    console.log('activeForm a changé:', activeForm);
+  }, [activeForm]);
+
+  // Fonction pour récupérer la liste des agences
+  useEffect(() => {
+    const fetchAgencies = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/agencies');
+        setAgencies(response.data);
+      } catch (error) {
+        console.error('Erreur lors de la récupération des agences:', error);
+      }
+    };
+    fetchAgencies();
+  }, []);
+
+  // Charger la liste des voyages pour le sélecteur
+  useEffect(() => {
+    const fetchVoyages = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/voyages');
+        if (response.ok) {
+          const data = await response.json();
+          setVoyages(data);
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des voyages:', error);
+      }
+    };
+    fetchVoyages();
+  }, []);
+
   // Gestionnaires de changement pour chaque formulaire
   const handleActivityChange = (e) => {
     setActivityData({ ...activityData, [e.target.name]: e.target.value });
@@ -123,17 +178,85 @@ const AddNew = () => {
     setAgencyData({ ...agencyData, [e.target.name]: e.target.value });
   };
 
-  // Gestionnaires de soumission
+  const handleActivityImageUpload = (imageUrl) => {
+    setActivityData(prev => ({
+      ...prev,
+      image: imageUrl
+    }));
+  };
+
+  const handleVoyageImageUpload = (imageUrl) => {
+    setVoyageData(prev => ({
+      ...prev,
+      image: imageUrl
+    }));
+  };
+
+  const handleAgencyImageUpload = (imageUrl) => {
+    setAgencyData(prev => ({
+      ...prev,
+      image: imageUrl
+    }));
+  };
+
   const handleActivitySubmit = async (e) => {
     e.preventDefault();
     setError(null);
     try {
-      const response = await axios.post('http://localhost:5000/api/activities', activityData);
-      console.log('Réponse activité:', response.data);
-      alert('Activité ajoutée avec succès!');
-      navigate('/activites');
+      console.log('Données du formulaire activité:', activityData);
+
+      if (!activityData.image) {
+        setError('Veuillez uploader une image pour l\'activité');
+        return;
+      }
+
+      const activityPayload = {
+        ...activityData,
+        price: Number(activityData.price),
+        maxParticipants: Number(activityData.maxParticipants),
+        duration: Number(activityData.duration)
+      };
+
+      console.log('Payload envoyé au serveur:', activityPayload);
+
+      const response = await axios.post('http://localhost:5000/api/activities', activityPayload);
+      console.log('Réponse du serveur:', response.data);
+      
+      if (response.data) {
+        if (activityData.type === 'voyage' && activityData.voyageId) {
+          console.log('Mise à jour du voyage avec l\'activité:', activityData.voyageId);
+          try {
+            const updateResponse = await axios.put(
+              `http://localhost:5000/api/voyages/${activityData.voyageId}/activities`,
+              { activityId: response.data._id }
+            );
+            console.log('Réponse mise à jour voyage:', updateResponse.data);
+          } catch (updateError) {
+            console.error('Erreur lors de la mise à jour du voyage:', updateError);
+            alert('L\'activité a été créée mais n\'a pas pu être associée au voyage');
+            return;
+          }
+        }
+        alert('Activité ajoutée avec succès!');
+        // Réinitialiser le formulaire
+        setActivityData({
+          name: '',
+          description: '',
+          price: '',
+          city: '',
+          image: '',
+          type: 'locale',
+          duration: '',
+          maxParticipants: '',
+          isWeekendOnly: false,
+          voyageId: '',
+          category: ''
+        });
+        navigate('/activites');
+      }
     } catch (error) {
       console.error('Erreur complète:', error);
+      console.error('Détails de l\'erreur:', error.response?.data);
       setError(error.response?.data?.message || 'Erreur lors de l\'ajout de l\'activité');
       alert(error.response?.data?.message || 'Erreur lors de l\'ajout de l\'activité');
     }
@@ -143,14 +266,40 @@ const AddNew = () => {
     e.preventDefault();
     setError(null);
     try {
+      if (!voyageData.image) {
+        setError('Veuillez uploader une image pour le voyage');
+        return;
+      }
+
       const response = await axios.post('http://localhost:5000/api/voyages', voyageData);
+      
+      // Vérification du type de contenu
+      const contentType = response.headers['content-type'];
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('La réponse du serveur n\'est pas au format JSON');
+      }
+
       console.log('Réponse voyage:', response.data);
       alert('Voyage ajouté avec succès!');
       navigate('/voyages');
     } catch (error) {
       console.error('Erreur complète:', error);
-      setError(error.response?.data?.message || 'Erreur lors de l\'ajout du voyage');
-      alert(error.response?.data?.message || 'Erreur lors de l\'ajout du voyage');
+      let errorMessage = 'Erreur lors de l\'ajout du voyage';
+      
+      if (error.response) {
+        // La requête a été faite et le serveur a répondu avec un code d'état non-2xx
+        if (error.response.headers['content-type']?.includes('application/json')) {
+          errorMessage = error.response.data.message || errorMessage;
+        } else {
+          errorMessage = 'Le serveur a retourné une réponse invalide';
+        }
+      } else if (error.request) {
+        // La requête a été faite mais aucune réponse n'a été reçue
+        errorMessage = 'Impossible de contacter le serveur';
+      }
+      
+      setError(errorMessage);
+      alert(errorMessage);
     }
   };
 
@@ -158,11 +307,12 @@ const AddNew = () => {
     e.preventDefault();
     setError(null);
     try {
-      // Validation des données
-      if (!agencyData.image.trim()) {
-        throw new Error("L'URL de l'image est requise");
+      if (!agencyData.image) {
+        setError('Veuillez uploader une image pour l\'agence');
+        return;
       }
 
+      // Validation des données
       if (!agencyData.stars || agencyData.stars === '0') {
         throw new Error("Veuillez sélectionner le nombre d'étoiles");
       }
@@ -170,12 +320,18 @@ const AddNew = () => {
       // Conversion des étoiles en nombre et préparation des données
       const formData = {
         ...agencyData,
-        stars: parseFloat(agencyData.stars),
-        image: agencyData.image.trim()
+        stars: parseFloat(agencyData.stars)
       };
       
       console.log('Envoi des données agence:', formData);
       const response = await axios.post('http://localhost:5000/api/agencies', formData);
+      
+      // Vérification du type de contenu
+      const contentType = response.headers['content-type'];
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('La réponse du serveur n\'est pas au format JSON');
+      }
+
       console.log('Réponse agence:', response.data);
       
       if (response.data.agency) {
@@ -200,7 +356,20 @@ const AddNew = () => {
       }
     } catch (error) {
       console.error('Erreur complète:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Erreur lors de l\'ajout de l\'agence';
+      let errorMessage = 'Erreur lors de l\'ajout de l\'agence';
+      
+      if (error.response) {
+        // La requête a été faite et le serveur a répondu avec un code d'état non-2xx
+        if (error.response.headers['content-type']?.includes('application/json')) {
+          errorMessage = error.response.data.message || errorMessage;
+        } else {
+          errorMessage = 'Le serveur a retourné une réponse invalide';
+        }
+      } else if (error.request) {
+        // La requête a été faite mais aucune réponse n'a été reçue
+        errorMessage = 'Impossible de contacter le serveur';
+      }
+      
       setError(errorMessage);
       alert(errorMessage);
     }
@@ -266,7 +435,11 @@ const AddNew = () => {
         <Col md={4}>
           <Card 
             style={activeForm === 'activity' ? activeCardStyle : cardStyle}
-            onClick={() => setActiveForm('activity')}
+            onClick={() => {
+              console.log('Clic sur la carte Activité');
+              console.log('État actuel de activeForm:', activeForm);
+              setActiveForm('activity');
+            }}
             className="text-center p-4"
           >
             <Card.Body>
@@ -589,11 +762,35 @@ const AddNew = () => {
         </Row>
       </div>
 
-      {/* Formulaire pour Activité */}
+      {/* Formulaire pour Activité avec log de débogage */}
+      {console.log('Avant la condition de rendu du formulaire, activeForm:', activeForm)}
       {activeForm === 'activity' && (
-        <div className="form-container p-4" style={{ background: '#f8f9fa', borderRadius: '15px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <div className="form-container p-4" style={{ background: '#f8f9fa', borderRadius: '15px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginTop: '2rem' }}>
+          {console.log('Rendu du formulaire d\'activité')}
           <Form className="mt-4" onSubmit={handleActivitySubmit}>
             <h3 className="mb-4" style={{ color: '#2c3e50' }}>Ajouter une Activité</h3>
+            
+            {/* Type d'activité */}
+            <Form.Group className="mb-4">
+              <Form.Label>Type d'activité</Form.Label>
+              <Form.Select
+                name="type"
+                value={activityData.type}
+                onChange={handleActivityChange}
+                required
+                style={{ borderRadius: '8px' }}
+              >
+                <option value="locale">Activité Locale</option>
+                <option value="voyage">Activité de Voyage</option>
+              </Form.Select>
+            </Form.Group>
+
+            {/* Image en premier */}
+            <div className="mb-4">
+              <Form.Label className="font-medium mb-2 block">Image de l'activité</Form.Label>
+              <ImageUploader onImageUpload={handleActivityImageUpload} />
+            </div>
+
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
@@ -622,6 +819,157 @@ const AddNew = () => {
                 </Form.Group>
               </Col>
             </Row>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Durée (heures)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="duration"
+                    value={activityData.duration}
+                    onChange={handleActivityChange}
+                    required
+                    style={{ borderRadius: '8px' }}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Nombre maximum de participants</Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="maxParticipants"
+                    value={activityData.maxParticipants}
+                    onChange={handleActivityChange}
+                    required
+                    style={{ borderRadius: '8px' }}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            {activityData.type === 'locale' ? (
+              <>
+                <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Ville</Form.Label>
+                      <Form.Select
+                        name="city"
+                        value={activityData.city}
+                        onChange={handleActivityChange}
+                        required
+                        style={{ borderRadius: '8px' }}
+                      >
+                        <option value="">Sélectionnez une ville</option>
+                        {availableCities.map((city) => (
+                          <option key={city} value={city}>
+                            {city}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Catégorie</Form.Label>
+                      <Form.Select
+                        name="category"
+                        value={activityData.category}
+                        onChange={handleActivityChange}
+                        required
+                        style={{ borderRadius: '8px' }}
+                      >
+                        <option value="">Sélectionnez une catégorie</option>
+                        <option value="culture">Culture</option>
+                        <option value="aventure">Aventure</option>
+                        <option value="gastronomie">Gastronomie</option>
+                        <option value="bien-etre">Bien-être</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Form.Group className="mb-3">
+                  <Form.Check
+                    type="checkbox"
+                    name="isWeekendOnly"
+                    label="Disponible uniquement le weekend (samedi et dimanche)"
+                    checked={activityData.isWeekendOnly}
+                    onChange={(e) => handleActivityChange({
+                      target: {
+                        name: 'isWeekendOnly',
+                        value: e.target.checked
+                      }
+                    })}
+                  />
+                </Form.Group>
+              </>
+            ) : (
+              <>
+                <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Voyage associé</Form.Label>
+                      <Form.Select
+                        name="voyageId"
+                        value={activityData.voyageId}
+                        onChange={handleActivityChange}
+                        required
+                        style={{ borderRadius: '8px' }}
+                      >
+                        <option value="">Sélectionnez un voyage</option>
+                        {voyages.map((voyage) => (
+                          <option key={voyage._id} value={voyage._id}>
+                            {voyage.title} - {voyage.destination}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Ville de l'activité</Form.Label>
+                      <Form.Select
+                        name="city"
+                        value={activityData.city}
+                        onChange={handleActivityChange}
+                        required
+                        style={{ borderRadius: '8px' }}
+                      >
+                        <option value="">Sélectionnez une ville</option>
+                        {availableCities.map((city) => (
+                          <option key={city} value={city}>
+                            {city}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Catégorie</Form.Label>
+                      <Form.Select
+                        name="category"
+                        value={activityData.category}
+                        onChange={handleActivityChange}
+                        required
+                        style={{ borderRadius: '8px' }}
+                      >
+                        <option value="">Sélectionnez une catégorie</option>
+                        <option value="culture">Culture</option>
+                        <option value="aventure">Aventure</option>
+                        <option value="gastronomie">Gastronomie</option>
+                        <option value="bien-etre">Bien-être</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </>
+            )}
+
             <Form.Group className="mb-3">
               <Form.Label>Description</Form.Label>
               <Form.Control
@@ -630,51 +978,24 @@ const AddNew = () => {
                 value={activityData.description}
                 onChange={handleActivityChange}
                 required
-                style={{ borderRadius: '8px' }}
+                style={{ borderRadius: '8px', minHeight: '100px' }}
               />
             </Form.Group>
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Ville</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="city"
-                    value={activityData.city}
-                    onChange={handleActivityChange}
-                    required
-                    style={{ borderRadius: '8px' }}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Catégorie</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="category"
-                    value={activityData.category}
-                    onChange={handleActivityChange}
-                    required
-                    style={{ borderRadius: '8px' }}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-            <Form.Group className="mb-3">
-              <Form.Label>URL de l'image</Form.Label>
-              <Form.Control
-                type="text"
-                name="image"
-                value={activityData.image}
-                onChange={handleActivityChange}
-                required
-                style={{ borderRadius: '8px' }}
-              />
-            </Form.Group>
-            <Button style={buttonStyle} type="submit" className="mt-3">
-              Ajouter l'activité
-            </Button>
+
+            <div className="d-flex justify-content-end">
+              <Button 
+                style={{
+                  backgroundColor: '#C6A05B',
+                  border: 'none',
+                  padding: '10px 30px',
+                  borderRadius: '8px',
+                  fontWeight: '600'
+                }} 
+                type="submit"
+              >
+                Ajouter l'activité
+              </Button>
+            </div>
           </Form>
         </div>
       )}
@@ -684,6 +1005,13 @@ const AddNew = () => {
         <div className="form-container p-4" style={{ background: '#f8f9fa', borderRadius: '15px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
           <Form className="mt-4" onSubmit={handleVoyageSubmit}>
             <h3 className="mb-4" style={{ color: '#2c3e50' }}>Ajouter un Voyage</h3>
+            
+            {/* Image en premier */}
+            <div className="mb-4">
+              <Form.Label className="font-medium mb-2 block">Image du voyage</Form.Label>
+              <ImageUploader onImageUpload={handleVoyageImageUpload} />
+            </div>
+
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
@@ -702,15 +1030,20 @@ const AddNew = () => {
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label>Agence organisatrice</Form.Label>
-                  <Form.Control
-                    type="text"
+                  <Form.Select
                     name="agence"
                     value={voyageData.agence}
                     onChange={handleVoyageChange}
                     required
                     style={{ borderRadius: '8px' }}
-                    placeholder="Nom de l'agence qui organise"
-                  />
+                  >
+                    <option value="">Sélectionnez une agence</option>
+                    {agencies.map((agency) => (
+                      <option key={agency._id} value={agency.name}>
+                        {agency.name} ({agency.city})
+                      </option>
+                    ))}
+                  </Form.Select>
                 </Form.Group>
               </Col>
             </Row>
@@ -748,16 +1081,39 @@ const AddNew = () => {
               </Col>
               <Col md={4}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Destination</Form.Label>
+                  <Form.Label>Places disponibles</Form.Label>
                   <Form.Control
-                    type="text"
+                    type="number"
+                    name="availableSpots"
+                    value={voyageData.availableSpots}
+                    onChange={handleVoyageChange}
+                    required
+                    min="1"
+                    style={{ borderRadius: '8px' }}
+                    placeholder="Nombre de places"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={12}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Destination</Form.Label>
+                  <Form.Select
                     name="destination"
                     value={voyageData.destination}
                     onChange={handleVoyageChange}
                     required
                     style={{ borderRadius: '8px' }}
-                    placeholder="Ville de destination"
-                  />
+                  >
+                    <option value="">Sélectionnez une ville</option>
+                    {availableCities.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                  </Form.Select>
                 </Form.Group>
               </Col>
             </Row>
@@ -772,19 +1128,6 @@ const AddNew = () => {
                 required
                 style={{ borderRadius: '8px', minHeight: '120px' }}
                 placeholder="Décrivez le programme du voyage, les points d'intérêt, etc."
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>URL de l'image</Form.Label>
-              <Form.Control
-                type="text"
-                name="image"
-                value={voyageData.image}
-                onChange={handleVoyageChange}
-                required
-                style={{ borderRadius: '8px' }}
-                placeholder="Lien vers l'image du voyage"
               />
             </Form.Group>
 
@@ -811,6 +1154,13 @@ const AddNew = () => {
         <div className="form-container p-4" style={{ background: '#f8f9fa', borderRadius: '15px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
           <Form className="mt-4" onSubmit={handleAgencySubmit}>
             <h3 className="mb-4" style={{ color: '#2c3e50' }}>Ajouter une Agence</h3>
+            
+            {/* Image en premier */}
+            <div className="mb-4">
+              <Form.Label className="font-medium mb-2 block">Image de l'agence</Form.Label>
+              <ImageUploader onImageUpload={handleAgencyImageUpload} />
+            </div>
+
             <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
@@ -844,34 +1194,12 @@ const AddNew = () => {
                     className="focus:border-sahara focus:ring-1 focus:ring-sahara"
                   >
                     <option value="">Sélectionnez une ville</option>
-                    <option 
-                      value="Toutes les villes du Maroc"
-                      style={{
-                        padding: '8px',
-                        fontSize: '1rem',
-                        fontWeight: 'bold',
-                        backgroundColor: '#f8f9fa'
-                      }}
-                    >
-                      Toutes les villes du Maroc
-                    </option>
-                    <option disabled style={{ borderBottom: '1px solid #dee2e6' }}>──────────</option>
+                    <option value="Toutes les villes du Maroc">Toutes les villes du Maroc</option>
+                    <option disabled>──────────</option>
                     {availableCities.map(city => (
-                      <option 
-                        key={city} 
-                        value={city}
-                        style={{
-                          padding: '8px',
-                          fontSize: '1rem'
-                        }}
-                      >
-                        {city}
-                      </option>
+                      <option key={city} value={city}>{city}</option>
                     ))}
                   </Form.Select>
-                  <Form.Text className="text-muted">
-                    Choisissez la ville où se trouve votre agence, ou "Toutes les villes" si votre agence opère dans tout le Maroc
-                  </Form.Text>
                 </Form.Group>
               </Col>
             </Row>
@@ -926,23 +1254,6 @@ const AddNew = () => {
                       +
                     </Button>
                   </div>
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Image de l'agence</Form.Label>
-                  <Form.Control
-                    type="url"
-                    name="image"
-                    value={agencyData.image}
-                    onChange={handleAgencyChange}
-                    required
-                    style={{ borderRadius: '8px' }}
-                    placeholder="URL de l'image de l'agence"
-                  />
-                  <Form.Text className="text-muted">
-                    Entrez une URL valide d'image (ex: https://example.com/image.jpg)
-                  </Form.Text>
                 </Form.Group>
               </Col>
             </Row>

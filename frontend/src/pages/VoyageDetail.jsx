@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaMapMarkerAlt, FaClock } from 'react-icons/fa';
+import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaMapMarkerAlt, FaClock, FaInfoCircle, FaWalking, FaCalendarCheck, FaCheck } from 'react-icons/fa';
 import ActivitySelectionCard from '../components/ActivitySelectionCard';
 import { useVoyages } from '../context/VoyagesContext';
 
@@ -230,7 +230,8 @@ const VoyageDetail = () => {
           email: formData.email,
           phone: formData.telephone,
           numberOfPersons: parseInt(formData.nombrePersonnes),
-          departureDate: formData.dateDepart
+          departureDate: formData.dateDepart,
+          selectedActivities: selectedActivities.map(activity => activity._id)
         }),
       });
 
@@ -304,178 +305,271 @@ const VoyageDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
-      {/* Hero Section */}
-      <div className="relative h-96">
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section avec overlay gradient */}
+      <div className="relative h-[60vh]">
         <img 
           src={voyage.image} 
           alt={voyage.title}
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-          <div className="text-center text-white">
-            <h1 className="text-4xl font-bold mb-4">{voyage.title}</h1>
-            <div className="flex items-center justify-center gap-4">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/30 flex items-center justify-center">
+          <div className="text-center text-white max-w-4xl px-4">
+            <h1 className="text-5xl font-bold mb-4">{voyage.title}</h1>
+            <div className="flex items-center justify-center gap-6 text-xl">
               <span className="flex items-center gap-2">
-                <FaMapMarkerAlt />
+                <FaMapMarkerAlt className="text-sahara" />
                 {voyage.destination}
               </span>
               <span className="flex items-center gap-2">
-                <FaClock />
-                {voyage.duration}
+                <FaClock className="text-sahara" />
+                {voyage.duration} jours
+              </span>
+              <span className="flex items-center gap-2">
+                <FaMoneyBillWave className="text-sahara" />
+                {voyage.price} MAD
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Informations principales */}
+          {/* Colonne principale */}
           <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-semibold mb-4">Description</h2>
-              <p className="text-gray-600">{voyage.description}</p>
+            {/* Section Description */}
+            <div className="bg-white rounded-2xl shadow-lg p-8">
+              <h2 className="text-3xl font-semibold mb-6 text-gray-800 flex items-center gap-3">
+                <FaInfoCircle className="text-sahara" />
+                Description
+              </h2>
+              <p className="text-gray-600 leading-relaxed text-lg">{voyage.description}</p>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-semibold mb-4">Programme du voyage</h2>
-              <div className="space-y-4">
-                {voyage.programme.map((jour, index) => (
-                  <div key={index} className="flex gap-4 items-start">
-                    <div className="flex-shrink-0 w-8 h-8 bg-sahara text-white rounded-full flex items-center justify-center">
-                      {index + 1}
-                    </div>
-                    <p className="text-gray-600">{jour}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-semibold mb-4">Ce qui est inclus</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {voyage.inclusions.map((inclusion, index) => (
-                  <div key={index} className="flex items-center gap-2 text-gray-600">
-                    <div className="w-2 h-2 bg-sahara rounded-full"></div>
-                    {inclusion}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Section des activités complémentaires */}
-            {availableActivities.length > 0 && (
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-2xl font-semibold mb-4">Activités à {voyage.destination}</h2>
-                <p className="text-gray-600 mb-6">
-                  Enrichissez votre séjour avec ces expériences uniques
-                </p>
+            {/* Section Activités */}
+            <div className="bg-white rounded-2xl shadow-lg p-8">
+              <h2 className="text-3xl font-semibold mb-6 text-gray-800 flex items-center gap-3">
+                <FaWalking className="text-sahara" />
+                Activités disponibles
+              </h2>
+              {voyage.activities && voyage.activities.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {availableActivities.map((activity) => (
-                    <ActivitySelectionCard
-                      key={activity.id}
-                      activity={activity}
-                      isSelected={selectedActivities.some(a => a.id === activity.id)}
-                      onSelect={handleActivitySelection}
-                    />
+                  {voyage.activities.map((activity) => (
+                    <div 
+                      key={activity._id} 
+                      onClick={() => handleActivitySelection(activity)}
+                      className={`bg-gray-50 rounded-xl overflow-hidden transition-all duration-300 cursor-pointer hover:shadow-lg ${
+                        selectedActivities.some(a => a._id === activity._id)
+                          ? 'ring-2 ring-sahara bg-sahara/5'
+                          : 'hover:scale-105'
+                      }`}
+                    >
+                      <div className="relative">
+                        <img 
+                          src={activity.image} 
+                          alt={activity.name}
+                          className="w-full h-48 object-cover"
+                        />
+                        {selectedActivities.some(a => a._id === activity._id) && (
+                          <div className="absolute top-4 right-4 bg-sahara text-white px-3 py-1 rounded-full text-sm flex items-center gap-1">
+                            <FaCheck className="text-xs" /> Sélectionnée
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <h3 className="text-xl font-semibold mb-2">{activity.name}</h3>
+                        <p className="text-gray-600 mb-3 text-sm">{activity.description}</p>
+                        <div className="flex flex-wrap gap-3 mb-3">
+                          <span className="bg-sahara/10 text-sahara px-3 py-1 rounded-full text-sm flex items-center gap-1">
+                            <FaClock className="text-xs" /> {activity.duration}h
+                          </span>
+                          <span className="bg-sahara/10 text-sahara px-3 py-1 rounded-full text-sm flex items-center gap-1">
+                            <FaUsers className="text-xs" /> Max {activity.maxParticipants} pers.
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sahara font-semibold">{activity.price} MAD</span>
+                          <span className={`text-sm ${
+                            selectedActivities.some(a => a._id === activity._id)
+                              ? 'text-sahara'
+                              : 'text-gray-500'
+                          }`}>
+                            {selectedActivities.some(a => a._id === activity._id) 
+                              ? 'Cliquez pour retirer'
+                              : 'Cliquez pour sélectionner'
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Section des places disponibles */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-semibold mb-2">Places disponibles</h2>
-                  <p className="text-gray-600">
-                    Il reste {voyage.availableSpots} places sur un total de {voyage.maxPlaces}
-                  </p>
-                </div>
-                <div className={`text-3xl font-bold ${
-                  voyage.availableSpots < 5 ? 'text-red-500' : 'text-green-500'
-                }`}>
-                  {voyage.availableSpots}
-                </div>
-              </div>
-              {voyage.availableSpots < 5 && (
-                <p className="mt-2 text-red-500 text-sm">
-                  Plus que quelques places disponibles !
+              ) : (
+                <p className="text-gray-600 text-center py-8">
+                  Aucune activité n'est actuellement disponible pour ce voyage.
                 </p>
               )}
             </div>
+
+            {/* Section Informations importantes */}
+            <div className="bg-white rounded-2xl shadow-lg p-8 mt-8">
+              <h2 className="text-3xl font-semibold mb-6 text-gray-800 flex items-center gap-3">
+                <FaInfoCircle className="text-sahara" />
+                Informations importantes
+              </h2>
+              <ul className="space-y-4">
+                <li className="flex items-center gap-3">
+                  <div className="bg-green-100 p-2 rounded-full">
+                    <FaCalendarAlt className="text-green-600" />
+                  </div>
+                  <span className="text-gray-700">Annulation gratuite jusqu'à 48h avant le départ</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="bg-green-100 p-2 rounded-full">
+                    <FaUsers className="text-green-600" />
+                  </div>
+                  <span className="text-gray-700">Guide professionnel inclus</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="bg-green-100 p-2 rounded-full">
+                    <FaMapMarkerAlt className="text-green-600" />
+                  </div>
+                  <span className="text-gray-700">Transport depuis votre hôtel</span>
+                </li>
+              </ul>
+            </div>
           </div>
 
-          {/* Formulaire de réservation */}
+          {/* Colonne latérale - Formulaire de réservation */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
-              <h2 className="text-2xl font-semibold mb-6">Réserver ce voyage</h2>
+            {/* Carte récapitulative des prix */}
+            <div className="bg-sahara text-white rounded-2xl shadow-lg p-8 mb-8">
+              <h3 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+                <FaMoneyBillWave />
+                Récapitulatif des prix
+              </h3>
               
-              {voyage.availableSpots === 0 ? (
-                <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">
-                  Désolé, ce voyage est complet !
+              {/* Prix de base */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center pb-4 border-b border-white/20">
+                  <div>
+                    <p className="font-medium">Prix du voyage</p>
+                    <p className="text-sm opacity-80">Prix de base par personne</p>
+                  </div>
+                  <span className="text-2xl font-bold">{voyage.price} MAD</span>
                 </div>
-              ) : (
-                <>
-                  {reservationStatus && (
-                    <div className={`p-4 rounded-lg mb-4 ${
-                      reservationStatus.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      {reservationStatus.message}
-                    </div>
-                  )}
 
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-gray-700 mb-2" htmlFor="nom">
-                        Nom complet
-                      </label>
-                      <input
-                        type="text"
-                        id="nom"
-                        name="nom"
-                        value={formData.nom}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
-                        required
-                      />
+                {/* Prix des activités sélectionnées */}
+                {selectedActivities.length > 0 && (
+                  <>
+                    <div className="py-4 border-b border-white/20">
+                      <p className="font-medium mb-2">Activités sélectionnées</p>
+                      {selectedActivities.map(activity => (
+                        <div key={activity._id} className="flex justify-between items-center mb-2 text-sm">
+                          <span className="opacity-80">{activity.name}</span>
+                          <span>{activity.price} MAD</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between items-center pt-4 text-lg">
+                        <span className="font-medium">Total activités</span>
+                        <span className="font-semibold">
+                          {selectedActivities.reduce((sum, activity) => sum + activity.price, 0)} MAD
+                        </span>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-gray-700 mb-2" htmlFor="email">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
-                        required
-                      />
+                    {/* Prix total - affiché uniquement si des activités sont sélectionnées */}
+                    <div className="pt-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">Prix total par personne</p>
+                          <p className="text-sm opacity-80">Voyage + Activités</p>
+                        </div>
+                        <span className="text-2xl font-bold">
+                          {voyage.price + selectedActivities.reduce((sum, activity) => sum + activity.price, 0)} MAD
+                        </span>
+                      </div>
+                      {formData.nombrePersonnes > 1 && (
+                        <div className="mt-4 pt-4 border-t border-white/20">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="font-medium">Prix total pour {formData.nombrePersonnes} personnes</p>
+                            </div>
+                            <span className="text-2xl font-bold">
+                              {(voyage.price + selectedActivities.reduce((sum, activity) => sum + activity.price, 0)) * formData.nombrePersonnes} MAD
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
+                  </>
+                )}
+              </div>
+            </div>
 
-                    <div>
-                      <label className="block text-gray-700 mb-2" htmlFor="telephone">
-                        Téléphone
-                      </label>
-                      <input
-                        type="tel"
-                        id="telephone"
-                        name="telephone"
-                        value={formData.telephone}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
-                        required
-                      />
-                    </div>
+            {/* Formulaire de réservation */}
+            <div className="bg-white rounded-2xl shadow-lg p-8 sticky top-8">
+              <h2 className="text-2xl font-semibold mb-6 text-gray-800 flex items-center gap-3">
+                <FaCalendarCheck className="text-sahara" />
+                Réserver ce voyage
+              </h2>
 
-                    <div>
-                      <label className="block text-gray-700 mb-2" htmlFor="nombrePersonnes">
-                        Nombre de personnes (max: {voyage.availableSpots})
-                      </label>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2" htmlFor="nom">
+                      Nom complet
+                    </label>
+                    <input
+                      type="text"
+                      id="nom"
+                      name="nom"
+                      value={formData.nom}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sahara focus:border-transparent transition-all"
+                      required
+                      placeholder="Votre nom"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2" htmlFor="email">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sahara focus:border-transparent transition-all"
+                      required
+                      placeholder="votre@email.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2" htmlFor="telephone">
+                      Téléphone
+                    </label>
+                    <input
+                      type="tel"
+                      id="telephone"
+                      name="telephone"
+                      value={formData.telephone}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sahara focus:border-transparent transition-all"
+                      required
+                      placeholder="+212 XXX-XXXXXX"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2" htmlFor="nombrePersonnes">
+                      Nombre de personnes
+                    </label>
+                    <div className="flex items-center">
                       <input
                         type="number"
                         id="nombrePersonnes"
@@ -484,62 +578,60 @@ const VoyageDetail = () => {
                         onChange={handleInputChange}
                         min="1"
                         max={voyage.availableSpots}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sahara focus:border-transparent transition-all"
                         required
                       />
+                      <span className="ml-2 text-gray-500">/ {voyage.availableSpots} disponibles</span>
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="block text-gray-700 mb-2" htmlFor="dateDepart">
-                        Date de départ souhaitée
-                      </label>
-                      <input
-                        type="date"
-                        id="dateDepart"
-                        name="dateDepart"
-                        value={formData.dateDepart}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
-                        required
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2" htmlFor="dateDepart">
+                      Date de départ souhaitée
+                    </label>
+                    <input
+                      type="date"
+                      id="dateDepart"
+                      name="dateDepart"
+                      value={formData.dateDepart}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sahara focus:border-transparent transition-all"
+                      required
+                    />
+                  </div>
+                </div>
 
-                    <div className="p-4 bg-sahara/10 rounded-lg">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-gray-600">Prix de base</span>
-                        <span className="font-semibold">{voyage.price.toLocaleString()} MAD</span>
-                      </div>
-                      {selectedActivities.length > 0 && (
-                        <>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-gray-600">Activités ({selectedActivities.length})</span>
-                            <span className="font-semibold">
-                              +{selectedActivities.reduce((sum, act) => sum + act.price, 0).toLocaleString()} MAD
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-gray-600">Nombre de personnes</span>
-                            <span className="font-semibold">x{formData.nombrePersonnes}</span>
-                          </div>
-                        </>
-                      )}
-                      <div className="border-t border-gray-200 pt-2 mt-2">
-                        <div className="flex justify-between items-center text-lg">
-                          <span className="font-semibold text-sahara">Total</span>
-                          <span className="font-bold text-sahara">{calculateTotalPrice().toLocaleString()} MAD</span>
-                        </div>
-                      </div>
-                    </div>
+                <div className="pt-4">
+                  <button
+                    type="submit"
+                    className="w-full bg-sahara text-white py-4 rounded-lg font-semibold text-lg hover:bg-sahara/90 transition-colors flex items-center justify-center gap-2"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Traitement en cours...
+                      </>
+                    ) : (
+                      <>
+                        <FaCalendarCheck />
+                        Réserver maintenant
+                      </>
+                    )}
+                  </button>
+                </div>
 
-                    <button
-                      type="submit"
-                      className="w-full py-3 bg-sahara text-white rounded-full font-medium hover:bg-sahara/90 transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-sahara focus:ring-offset-2"
-                    >
-                      Réserver maintenant
-                    </button>
-                  </form>
-                </>
-              )}
+                {reservationStatus && (
+                  <div className={`mt-4 p-4 rounded-lg ${
+                    reservationStatus.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                    {reservationStatus.message}
+                  </div>
+                )}
+              </form>
             </div>
           </div>
         </div>

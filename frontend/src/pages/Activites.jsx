@@ -1,73 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { FaClock, FaUsers, FaMapMarkerAlt } from 'react-icons/fa';
+import axios from 'axios';
 
 const Activites = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [allActivities, setAllActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Données des activités (à remplacer par des données de l'API plus tard)
-  const activitiesData = {
-    travelActivities: [
-      {
-        id: 'excursion-desert',
-        title: 'Excursion dans le Désert',
-        description: 'Une aventure inoubliable dans les dunes dorées du Sahara marocain',
-        city: 'Merzouga',
-        price: 2500,
-        duration: 2,
-        maxParticipants: 10,
-        image: 'https://i.pinimg.com/736x/94/c2/74/94c2746c843628602c37fed233b9a72a.jpg',
-        type: 'travel',
-        agency: 'Desert Adventures'
-      },
-      {
-        id: 'circuit-imperial-marrakech',
-        title: 'Circuit des Villes Impériales',
-        description: 'Découvrez les villes historiques du Maroc dans un circuit luxueux',
-        city: 'Marrakech',
-        price: 12500,
-        duration: 8,
-        maxParticipants: 12,
-        image: 'https://i.pinimg.com/736x/4c/bf/1f/4cbf1f5b6e463f34bb9e71337a4a72b6.jpg',
-        type: 'travel',
-        agency: 'Sahara Tours'
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        console.log('Début du chargement des activités...');
+        const response = await axios.get('http://localhost:5000/api/activities');
+        console.log('Réponse de l\'API:', response.data);
+        
+        if (Array.isArray(response.data)) {
+          setAllActivities(response.data);
+          console.log('Activités chargées:', response.data);
+        } else {
+          console.error('La réponse n\'est pas un tableau:', response.data);
+          setError('Format de données incorrect');
+        }
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('Erreur lors du chargement des activités:', err);
+        setError(err.message || 'Erreur lors du chargement des activités');
+        setLoading(false);
       }
-    ],
-    localActivities: [
-      {
-        id: 'hammam-traditionnel',
-        title: 'Hammam Traditionnel',
-        description: 'Découvrez les rituels ancestraux du hammam marocain dans un cadre luxueux',
-        city: 'Marrakech',
-        price: 800,
-        duration: 3,
-        maxParticipants: 6,
-        image: 'https://i.pinimg.com/736x/2c/ba/09/2cba09b4bf4d1998d63dd0e9a01c2b7f.jpg',
-        type: 'local'
-      },
-      {
-        id: 'cours-cuisine',
-        title: 'Cours de Cuisine Marocaine',
-        description: 'Apprenez à préparer les plats emblématiques de la cuisine marocaine',
-        city: 'Fès',
-        price: 950,
-        duration: 4,
-        maxParticipants: 8,
-        image: 'https://i.pinimg.com/736x/57/c6/fa/57c6fa9d423d3e67f6142598142c7d71.jpg',
-        type: 'local'
-      },
-      {
-        id: 'artisanat-medina',
-        title: 'Atelier d\'Artisanat dans la Médina',
-        description: 'Participez à un atelier de poterie ou de tissage avec des artisans locaux',
-        city: 'Fès',
-        price: 450,
-        duration: 3,
-        maxParticipants: 6,
-        image: 'https://i.pinimg.com/736x/8c/21/98/8c219814458f9c9d06b05a46c5300e5d.jpg',
-        type: 'local'
-      }
-    ]
-  };
+    };
+
+    fetchActivities();
+  }, []);
 
   const formatPrice = (price) => {
     return `${price.toLocaleString()} DH`;
@@ -80,19 +45,59 @@ const Activites = () => {
   };
 
   const handleCategoryChange = (category) => {
+    console.log('Changement de catégorie:', category);
     setSelectedCategory(category);
   };
 
   const getFilteredActivities = () => {
-    switch (selectedCategory) {
-      case 'travel':
-        return activitiesData.travelActivities;
-      case 'local':
-        return activitiesData.localActivities;
-      default:
-        return [...activitiesData.travelActivities, ...activitiesData.localActivities];
+    console.log('Filtrage des activités. Catégorie:', selectedCategory);
+    console.log('Toutes les activités:', allActivities);
+
+    if (selectedCategory === 'all') {
+      return allActivities;
     }
+
+    const filterType = selectedCategory === 'travel' ? 'voyage' : 'locale';
+    const filtered = allActivities.filter(activity => activity.type === filterType);
+    console.log('Activités filtrées:', filtered);
+    return filtered;
   };
+
+  if (loading) {
+    return (
+      <div className="w-full pt-16 flex items-center justify-center min-h-screen">
+        <div className="text-xl text-gray-600">Chargement des activités...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full pt-16 flex items-center justify-center min-h-screen">
+        <div className="text-xl text-red-600">{error}</div>
+      </div>
+    );
+  }
+
+  const filteredActivities = getFilteredActivities();
+  console.log('Activités à afficher:', filteredActivities);
+
+  if (allActivities.length === 0) {
+    return (
+      <div className="w-full pt-16">
+        <div className="bg-gray-50 py-12">
+          <div className="container mx-auto px-4">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold text-gray-900">Activités au Maroc</h1>
+              <p className="mt-4 text-xl text-gray-600">
+                Aucune activité n'est disponible pour le moment
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full pt-16">
@@ -165,25 +170,17 @@ const Activites = () => {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {getFilteredActivities().map((activity) => (
-            <div key={activity.id} className="bg-white rounded-xl shadow-lg overflow-hidden transform transition-transform hover:scale-[1.02]">
-              <div className="h-48 bg-gray-200 relative">
+          {filteredActivities.map((activity) => (
+            <div key={activity._id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+              <div className="h-48 relative">
                 <img 
                   src={activity.image}
-                  alt={activity.title}
+                  alt={activity.name}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full text-sahara font-semibold">
-                  {activity.city}
-                </div>
-                {activity.type === 'travel' && activity.agency && (
-                  <div className="absolute bottom-4 left-4 bg-sahara px-3 py-1 rounded-full text-white text-sm">
-                    {activity.agency}
-                  </div>
-                )}
               </div>
               <div className="p-6">
-                <h3 className="text-xl font-semibold text-gray-900">{activity.title}</h3>
+                <h3 className="text-xl font-semibold text-gray-900">{activity.name}</h3>
                 <p className="mt-2 text-gray-600 line-clamp-2">{activity.description}</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <span className="flex items-center gap-1 px-3 py-1 bg-sahara/10 text-sahara rounded-full text-sm">
@@ -202,7 +199,7 @@ const Activites = () => {
                 <div className="mt-4 flex items-center justify-between">
                   <span className="text-sahara font-semibold">{formatPrice(activity.price)}</span>
                   <button 
-                    onClick={() => window.location.href = `/activities/${activity.id}`}
+                    onClick={() => window.location.href = `/activities/${activity._id}`}
                     className="px-4 py-2 bg-sahara text-white rounded-full hover:bg-sahara/90 transition-colors"
                   >
                     Voir les détails

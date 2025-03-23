@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import ImageUploader from '../components/ImageUploader';
 
 // Image par défaut pour les agences
 const DEFAULT_AGENCY_IMAGE = "https://images.pexels.com/photos/1537008/pexels-photo-1537008.jpeg";
@@ -28,40 +29,41 @@ function CityAgencies() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchAgencies = async () => {
-      try {
-        setLoading(true);
-        console.log('Fetching agencies for city:', cityName);
-        
-        const response = await fetch(`http://localhost:5000/api/agencies?city=${encodeURIComponent(cityName)}`);
-        console.log('Response status:', response.status);
-        
-        if (!response.ok) {
-          throw new Error('Erreur lors de la récupération des agences');
-        }
-        
-        const data = await response.json();
-        console.log('Données reçues du serveur:', data);
-
-        // Vérifier et nettoyer les données des agences
-        const cleanedAgencies = data.map(agency => ({
-          ...agency,
-          image: agency.image?.trim() || DEFAULT_AGENCY_IMAGE,
-          stars: parseFloat(agency.stars) || 0,
-          displayCity: agency.city === "Toutes les villes du Maroc" ? "Toutes les villes du Maroc" : agency.city
-        }));
-        
-        console.log('Agences après nettoyage:', cleanedAgencies);
-        setAgencies(cleanedAgencies);
-      } catch (err) {
-        console.error('Erreur lors de la récupération des agences:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
+  const fetchAgencies = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log('Fetching agencies for city:', cityName);
+      
+      const response = await fetch(`http://localhost:5000/api/agencies?city=${encodeURIComponent(cityName)}`);
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération des agences');
       }
-    };
+      
+      const data = await response.json();
+      console.log('Données reçues du serveur:', data);
 
+      // Vérifier et nettoyer les données des agences
+      const cleanedAgencies = data.map(agency => ({
+        ...agency,
+        image: agency.image?.trim() || DEFAULT_AGENCY_IMAGE,
+        stars: parseFloat(agency.stars) || 0,
+        displayCity: agency.city === "Toutes les villes du Maroc" ? "Toutes les villes du Maroc" : agency.city
+      }));
+      
+      console.log('Agences après nettoyage:', cleanedAgencies);
+      setAgencies(cleanedAgencies);
+    } catch (err) {
+      console.error('Erreur lors de la récupération des agences:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (cityName) {
       console.log('Démarrage du chargement des agences pour:', cityName);
       fetchAgencies();
@@ -76,6 +78,14 @@ function CityAgencies() {
   const handleImageError = (e) => {
     console.log(`Erreur de chargement d'image. URL qui a échoué:`, e.target.src);
     e.target.src = DEFAULT_AGENCY_IMAGE;
+  };
+
+  const handleImageUpload = (imageUrl) => {
+    // Implementation of handleImageUpload
+  };
+
+  const handleSubmit = async (e) => {
+    // Implementation of handleSubmit
   };
 
   const renderAgencyCard = (agency) => {
@@ -98,18 +108,7 @@ function CityAgencies() {
             </div>
           </div>
           <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg">
-            <div className="flex items-center space-x-1">
-              {agency.stars > 0 ? (
-                [...Array(Math.floor(agency.stars))].map((_, index) => (
-                  <span key={index} className="text-yellow-400 text-lg">★</span>
-                ))
-              ) : (
-                <span className="text-gray-400 text-sm">Pas encore noté</span>
-              )}
-              {agency.stars % 1 !== 0 && (
-                <span className="text-yellow-400 text-lg">½</span>
-              )}
-            </div>
+            {renderStars(agency.stars)}
           </div>
         </div>
         
@@ -159,57 +158,37 @@ function CityAgencies() {
     );
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-sahara"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur</h2>
-          <p className="text-gray-600">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-5xl font-bold mb-4">Agences de voyage à {cityName}</h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Découvrez les meilleures agences de voyage à {cityName} et planifiez votre prochain voyage avec des professionnels expérimentés
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Agences à {cityName}
+          </h1>
+          <p className="text-lg text-gray-600">
+            Découvrez les meilleures agences de voyage à {cityName}
           </p>
         </div>
-      </div>
 
-      {/* Agences Grid */}
-      <div className="container mx-auto px-4 py-16">
-        {agencies.length > 0 ? (
-          <>
-            <p className="text-center text-gray-600 mb-8">
-              {agencies.length} agence{agencies.length > 1 ? 's' : ''} disponible{agencies.length > 1 ? 's' : ''} pour {cityName}
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-sahara"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center">
+            <p className="text-red-600 text-lg">
+              Une erreur est survenue lors du chargement des agences.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {agencies.map(renderAgencyCard)}
-            </div>
-          </>
+          </div>
+        ) : agencies.length === 0 ? (
+          <div className="text-center">
+            <p className="text-gray-600 text-lg">
+              Aucune agence n'est encore disponible à {cityName}.
+            </p>
+          </div>
         ) : (
-          <div className="text-center py-16 bg-white rounded-xl shadow-sm">
-            <i className="fas fa-store-alt-slash text-4xl text-gray-400 mb-4"></i>
-            <h3 className="text-2xl font-semibold text-gray-700 mb-2">
-              Aucune agence à {cityName}
-            </h3>
-            <p className="text-gray-500">
-              Aucune agence n'est encore enregistrée dans cette ville.
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {agencies.map(renderAgencyCard)}
           </div>
         )}
       </div>

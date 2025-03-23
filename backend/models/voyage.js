@@ -18,7 +18,7 @@ const voyageSchema = new mongoose.Schema({
         required: true
     },
     duration: {
-        type: String,
+        type: Number,
         required: true
     },
     image: {
@@ -43,6 +43,10 @@ const voyageSchema = new mongoose.Schema({
         required: true,
         default: 15
     },
+    activities: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Activity'
+    }],
     createdAt: {
         type: Date,
         default: Date.now

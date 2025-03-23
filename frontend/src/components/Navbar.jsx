@@ -20,22 +20,22 @@ function Navbar() {
 
         {/* Menu mobile */}
         <div className={`${isMenuOpen ? 'flex' : 'hidden'} md:hidden absolute top-full left-0 right-0 bg-white flex-col items-center space-y-4 py-6 shadow-lg`}>
-          <a href="/" className="text-gray-800 hover:text-orange-500 w-full text-center py-2">Accueil</a>
-          <a href="/voyages" className="text-gray-800 hover:text-orange-500 w-full text-center py-2">Voyages</a>
-          <a href="/activites" className="text-gray-800 hover:text-orange-500 w-full text-center py-2">Activités</a>
-          <a href="/about" className="text-gray-800 hover:text-orange-500 w-full text-center py-2">À Propos</a>
-          <a href="/contact" className="text-gray-800 hover:text-orange-500 w-full text-center py-2">Contact</a>
-          <a href="/login" className="inline-flex items-center px-6 py-3 bg-orange-500 text-white font-semibold rounded-full hover:bg-orange-600 transition-colors duration-300 transform hover:-translate-y-0.5 w-[80%] justify-center">Connexion</a>
+          <a href="/" className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2">Accueil</a>
+          <a href="/voyages" className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2">Voyages</a>
+          <a href="/activites" className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2">Activités</a>
+          <a href="/about" className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2">À Propos</a>
+          <a href="/contact" className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2">Contact</a>
+          <a href="/login" className="no-underline inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-full hover:bg-sahara/90 transition-colors duration-300 transform hover:-translate-y-0.5 w-[80%] justify-center">Connexion</a>
         </div>
 
         {/* Menu desktop */}
         <div className="hidden md:flex items-center space-x-8">
-          <a href="/" className="text-gray-800 hover:text-orange-500">Accueil</a>
-          <a href="/voyages" className="text-gray-800 hover:text-orange-500">Voyages</a>
-          <a href="/activites" className="text-gray-800 hover:text-orange-500">Activités</a>
-          <a href="/about" className="text-gray-800 hover:text-orange-500">À Propos</a>
-          <a href="/contact" className="text-gray-800 hover:text-orange-500">Contact</a>
-          <a href="/login" className="inline-flex items-center px-6 py-3 bg-orange-500 text-white font-semibold rounded-full hover:bg-orange-600 transition-colors duration-300 transform hover:-translate-y-0.5">Connexion</a>
+          <a href="/" className="no-underline text-gray-800 hover:text-sahara">Accueil</a>
+          <a href="/voyages" className="no-underline text-gray-800 hover:text-sahara">Voyages</a>
+          <a href="/activites" className="no-underline text-gray-800 hover:text-sahara">Activités</a>
+          <a href="/about" className="no-underline text-gray-800 hover:text-sahara">À Propos</a>
+          <a href="/contact" className="no-underline text-gray-800 hover:text-sahara">Contact</a>
+          <a href="/login" className="no-underline inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-full hover:bg-sahara/90 transition-colors duration-300 transform hover:-translate-y-0.5">Connexion</a>
         </div>
       </div>
     </nav>

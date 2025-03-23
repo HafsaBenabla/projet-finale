@@ -1,16 +1,72 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { Activity } from './models/activity.js';
 import { Voyage } from './models/voyage.js';
 import { Agency } from './models/agency.js';
 import { Reservation } from './models/reservation.js';
+import fs from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = 5000;
 
+// Middleware de base
 app.use(cors());
 app.use(express.json());
+
+// Création du dossier uploads s'il n'existe pas
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configuration de Multer avec plus de logs
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    console.log('Upload destination directory:', uploadDir);
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const filename = uniqueSuffix + path.extname(file.originalname);
+    console.log('Generated filename:', filename);
+    cb(null, filename);
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // Limite de 5MB
+  }
+});
+
+// Servir les fichiers statiques du dossier uploads avec CORS
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  next();
+}, express.static(path.join(__dirname, 'uploads')));
+
+// Route pour l'upload d'images
+app.post('/api/upload', upload.single('image'), (req, res) => {
+  console.log('Fichier reçu:', req.file);
+  if (!req.file) {
+    console.error('Aucun fichier n\'a été uploadé');
+    return res.status(400).json({ message: 'Aucun fichier n\'a été uploadé' });
+  }
+
+  // Construire l'URL complète de l'image
+  const imageUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
+  console.log('URL de l\'image générée:', imageUrl);
+  res.json({ imageUrl });
+});
 
 // Configuration de la connexion MongoDB avec plus de logs
 mongoose.connect('mongodb+srv://admin:admin@cluster0.bedq1.mongodb.net/maghrebxplore?retryWrites=true&w=majority&appName=Cluster0')
@@ -31,33 +87,94 @@ mongoose.connect('mongodb+srv://admin:admin@cluster0.bedq1.mongodb.net/maghrebxp
     process.exit(1); // Arrêter l'application si la connexion échoue
   });
 
-// Routes pour les activités
+// Route pour récupérer toutes les activités avec filtrage optionnel
 app.get('/api/activities', async (req, res) => {
   try {
-    const activities = await Activity.find();
-    res.json(activities);
+    const { type, category, city } = req.query;
+    const filter = {};
+
+    // Appliquer les filtres si spécifiés
+    if (type) filter.type = type;
+    if (category) filter.category = category;
+    if (city) filter.city = city;
+
+    const activities = await Activity.find(filter)
+      .populate('voyageId', 'title destination')
+      .sort({ createdAt: -1 });
+
+    // Formater les URLs des images
+    const formattedActivities = activities.map(activity => {
+      const activityObj = activity.toObject();
+      if (activityObj.image && activityObj.image.includes('/uploads/')) {
+        if (!activityObj.image.startsWith('http')) {
+          activityObj.image = `http://localhost:${PORT}${activityObj.image}`;
+        }
+      }
+      return activityObj;
+    });
+
+    res.json(formattedActivities);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Erreur lors de la récupération des activités:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 app.post('/api/activities', async (req, res) => {
-  console.log('Received activity data:', req.body);
-  const activity = new Activity(req.body);
   try {
-    console.log('Attempting to save activity:', activity);
-    const newActivity = await activity.save();
-    console.log('Activity saved successfully:', newActivity);
-    res.status(201).json(newActivity);
+    console.log('Données reçues pour la création d\'activité:', req.body);
+    
+    const activityData = { ...req.body };
+    
+    // Formatage de l'URL de l'image si nécessaire
+    if (activityData.image && activityData.image.includes('/uploads/')) {
+      if (!activityData.image.startsWith('http')) {
+        activityData.image = `http://localhost:${PORT}${activityData.image}`;
+      }
+    }
+
+    // Si c'est une activité de type voyage, vérifier que le voyage existe
+    let voyage = null;
+    if (activityData.type === 'voyage' && activityData.voyageId) {
+      console.log('Vérification du voyage:', activityData.voyageId);
+      voyage = await Voyage.findById(activityData.voyageId);
+      if (!voyage) {
+        return res.status(404).json({ error: 'Voyage non trouvé' });
+      }
+      console.log('Voyage trouvé:', voyage.title);
+    }
+
+    const activity = new Activity(activityData);
+    const savedActivity = await activity.save();
+    console.log('Activité sauvegardée:', savedActivity._id);
+
+    // Si c'est une activité de voyage, l'ajouter au voyage correspondant
+    if (savedActivity.type === 'voyage' && voyage) {
+      console.log('Ajout de l\'activité au voyage:', voyage._id);
+      
+      if (!voyage.activities.includes(savedActivity._id)) {
+        voyage.activities.push(savedActivity._id);
+        const updatedVoyage = await voyage.save();
+        
+        console.log('Voyage mis à jour avec succès');
+        console.log('Nombre d\'activités dans le voyage:', updatedVoyage.activities.length);
+      } else {
+        console.log('L\'activité est déjà associée à ce voyage');
+      }
+    }
+
+    // Formater l'URL de l'image dans la réponse
+    const activityResponse = savedActivity.toObject();
+    if (activityResponse.image && activityResponse.image.includes('/uploads/')) {
+      if (!activityResponse.image.startsWith('http')) {
+        activityResponse.image = `http://localhost:${PORT}${activityResponse.image}`;
+      }
+    }
+
+    res.status(201).json(activityResponse);
   } catch (error) {
-    console.error('Detailed error:', error);
-    res.status(400).json({ 
-      message: error.message,
-      details: error.errors ? Object.keys(error.errors).map(key => ({
-        field: key,
-        message: error.errors[key].message
-      })) : null
-    });
+    console.error('Erreur lors de la création de l\'activité:', error);
+    res.status(400).json({ error: error.message });
   }
 });
 
@@ -73,33 +190,153 @@ app.delete('/api/activities/:id', async (req, res) => {
   }
 });
 
-// Routes pour les voyages
+// Route pour récupérer tous les voyages
 app.get('/api/voyages', async (req, res) => {
   try {
-    const voyages = await Voyage.find();
-    res.json(voyages);
+    const voyages = await Voyage.find()
+      .populate({
+        path: 'activities',
+        select: 'name description price image duration maxParticipants'
+      })
+      .sort({ createdAt: -1 });
+
+    // Formater les URLs des images pour les voyages et leurs activités
+    const formattedVoyages = voyages.map(voyage => {
+      const voyageObj = voyage.toObject();
+      
+      // Formater l'URL de l'image du voyage
+      if (voyageObj.image && voyageObj.image.includes('/uploads/')) {
+        if (!voyageObj.image.startsWith('http')) {
+          voyageObj.image = `http://localhost:${PORT}${voyageObj.image}`;
+        }
+      }
+
+      // Formater les URLs des images des activités
+      if (voyageObj.activities) {
+        voyageObj.activities = voyageObj.activities.map(activity => {
+          if (activity.image && activity.image.includes('/uploads/')) {
+            if (!activity.image.startsWith('http')) {
+              activity.image = `http://localhost:${PORT}${activity.image}`;
+            }
+          }
+          return activity;
+        });
+      }
+
+      return voyageObj;
+    });
+
+    res.json(formattedVoyages);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Erreur lors de la récupération des voyages:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
+// Route pour récupérer un voyage spécifique
 app.get('/api/voyages/:id', async (req, res) => {
   try {
-    const voyage = await Voyage.findById(req.params.id);
+    console.log('Récupération du voyage avec ID:', req.params.id);
+    
+    // Récupérer le voyage avec toutes ses activités
+    const voyage = await Voyage.findById(req.params.id)
+      .populate({
+        path: 'activities',
+        model: 'Activity',
+        select: 'name description price image duration maxParticipants type city category'
+      });
+
     if (!voyage) {
-      return res.status(404).json({ message: "Voyage non trouvé" });
+      console.log('Voyage non trouvé');
+      return res.status(404).json({ error: 'Voyage non trouvé' });
     }
-    res.json(voyage);
+
+    // Vérifier également les activités directement liées à ce voyage
+    const linkedActivities = await Activity.find({ 
+      voyageId: req.params.id,
+      type: 'voyage'
+    });
+    
+    console.log('Activités trouvées via populate:', voyage.activities.length);
+    console.log('Activités trouvées via recherche directe:', linkedActivities.length);
+
+    // Fusionner les activités si nécessaire
+    const allActivityIds = new Set([
+      ...voyage.activities.map(a => a._id.toString()),
+      ...linkedActivities.map(a => a._id.toString())
+    ]);
+
+    // Formater les URLs des images
+    const voyageObj = voyage.toObject();
+    
+    // Formater l'URL de l'image du voyage
+    if (voyageObj.image && voyageObj.image.includes('/uploads/')) {
+      if (!voyageObj.image.startsWith('http')) {
+        voyageObj.image = `http://localhost:${PORT}${voyageObj.image}`;
+      }
+    }
+
+    // Fusionner et formater toutes les activités
+    const allActivities = Array.from(allActivityIds).map(id => {
+      const activity = [...voyage.activities, ...linkedActivities]
+        .find(a => a._id.toString() === id);
+      
+      if (!activity) return null;
+
+      const formattedActivity = activity.toObject ? activity.toObject() : activity;
+      
+      if (formattedActivity.image && formattedActivity.image.includes('/uploads/')) {
+        if (!formattedActivity.image.startsWith('http')) {
+          formattedActivity.image = `http://localhost:${PORT}${formattedActivity.image}`;
+        }
+      }
+      
+      return formattedActivity;
+    }).filter(Boolean);
+
+    voyageObj.activities = allActivities;
+
+    console.log('Nombre total d\'activités après fusion:', allActivities.length);
+    console.log('Détails des activités:', allActivities.map(act => ({
+      id: act._id,
+      name: act.name,
+      type: act.type
+    })));
+
+    res.json(voyageObj);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Erreur lors de la récupération du voyage:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 app.post('/api/voyages', async (req, res) => {
   try {
-    const voyage = new Voyage(req.body);
+    console.log('1. Données reçues pour l\'ajout d\'un voyage:', req.body);
+    const voyageData = { ...req.body };
+
+    // Formater l'URL de l'image si nécessaire
+    if (voyageData.image) {
+      if (voyageData.image.includes('/uploads/')) {
+        // Si l'image est déjà une URL complète, on la garde telle quelle
+        if (!voyageData.image.startsWith('http')) {
+          voyageData.image = `/uploads/${voyageData.image.split('/uploads/')[1]}`;
+        }
+      }
+      console.log('2. URL de l\'image formatée:', voyageData.image);
+    }
+
+    const voyage = new Voyage(voyageData);
     const newVoyage = await voyage.save();
-    res.status(201).json(newVoyage);
+    console.log('3. Voyage sauvegardé avec succès:', newVoyage);
+
+    // Construire l'URL complète pour l'image dans la réponse
+    const voyageResponse = newVoyage.toObject();
+    if (voyageResponse.image && voyageResponse.image.startsWith('/uploads/')) {
+      voyageResponse.image = `http://localhost:${PORT}${voyageResponse.image}`;
+    }
+
+    res.status(201).json(voyageResponse);
   } catch (error) {
     console.error('Erreur lors de la création du voyage:', error);
     res.status(400).json({ 
@@ -186,10 +423,18 @@ app.get('/api/agencies', async (req, res) => {
     
     let query = {};
     if (city) {
-      // Inclure les agences de la ville spécifique ET celles qui opèrent dans toutes les villes
+      // Gérer les différentes orthographes de Marrakech
+      let cityNames = [city];
+      if (city.toLowerCase().includes('marackech') || 
+          city.toLowerCase().includes('marakech') || 
+          city.toLowerCase().includes('marrakesh')) {
+        cityNames = ['Marrakech', 'Marackech', 'Marakech', 'Marrakesh'];
+      }
+      
+      // Recherche avec les différentes orthographes possibles
       query = {
         $or: [
-          { city: city },
+          { city: { $in: cityNames.map(name => new RegExp('^' + name + '$', 'i')) } },
           { city: "Toutes les villes du Maroc" }
         ]
       };
@@ -201,23 +446,20 @@ app.get('/api/agencies', async (req, res) => {
     console.log('Query MongoDB:', JSON.stringify(query, null, 2));
     const agencies = await Agency.find(query);
     console.log('Nombre d\'agences trouvées:', agencies.length);
-    console.log('Données des agences avant envoi:', agencies.map(agency => ({
-      id: agency._id,
-      name: agency.name,
-      city: agency.city,
-      email: agency.email
-    })));
     
-    // Assurez-vous que chaque agence a une image
-    const agenciesWithDefaultImage = agencies.map(agency => {
+    // Assurez-vous que chaque agence a une image et construisez l'URL complète
+    const agenciesWithImages = agencies.map(agency => {
       const agencyObj = agency.toObject();
       if (!agencyObj.image || agencyObj.image.trim() === '') {
         agencyObj.image = "https://images.pexels.com/photos/1537008/pexels-photo-1537008.jpeg";
+      } else if (agencyObj.image.startsWith('/uploads/')) {
+        // Construire l'URL complète pour les images uploadées
+        agencyObj.image = `http://localhost:${PORT}${agencyObj.image}`;
       }
       return agencyObj;
     });
     
-    res.json(agenciesWithDefaultImage);
+    res.json(agenciesWithImages);
   } catch (error) {
     console.error('Erreur lors de la récupération des agences:', error);
     res.status(500).json({ message: error.message });
@@ -249,6 +491,9 @@ app.post('/api/agencies', async (req, res) => {
       });
     }
 
+    // Normaliser le nom de la ville (première lettre en majuscule, reste en minuscule)
+    const normalizedCity = city.trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+
     // Vérifier si l'email existe déjà
     console.log('3. Vérification de l\'email:', email);
     const existingAgency = await Agency.findOne({ email });
@@ -277,7 +522,7 @@ app.post('/api/agencies', async (req, res) => {
     const agencyData = new Agency({
       name: name.trim(),
       address: address.trim(),
-      city: city.trim(),
+      city: normalizedCity,
       phone: phone.trim(),
       email: email.trim().toLowerCase(),
       description: description.trim(),
@@ -393,6 +638,11 @@ app.put('/api/agencies/:id', async (req, res) => {
   }
 });
 
+// Route de test
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'Server is working!' });
+});
+
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
