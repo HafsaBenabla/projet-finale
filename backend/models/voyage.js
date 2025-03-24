@@ -50,6 +50,10 @@ const voyageSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    reactions: {
+        likes: { type: Number, default: 0 },
+        dislikes: { type: Number, default: 0 }
     }
 });
 

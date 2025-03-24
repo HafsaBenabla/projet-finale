@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVoyages } from '../context/VoyagesContext';
 
@@ -12,20 +12,32 @@ const Voyages = () => {
   const [budgetFilter, setBudgetFilter] = useState('');
 
   // État pour gérer les likes et dislikes avec leurs compteurs
-  const [reactions, setReactions] = useState(
-    (voyages || []).reduce((acc, voyage) => ({
-      ...acc,
-      [voyage._id]: { like: 0, dislike: 0, userReaction: null }
-    }), {})
-  );
+  const [reactions, setReactions] = useState({});
 
-  const handleReaction = (id, type) => {
+  // Charger les réactions depuis le localStorage au montage du composant
+  useEffect(() => {
+    const savedReactions = localStorage.getItem('voyageReactions');
+    if (savedReactions) {
+      setReactions(JSON.parse(savedReactions));
+    } else if (voyages) {
+      // Initialiser les réactions si elles n'existent pas
+      const initialReactions = voyages.reduce((acc, voyage) => ({
+        ...acc,
+        [voyage._id]: { like: 0, dislike: 0, userReaction: null }
+      }), {});
+      setReactions(initialReactions);
+      localStorage.setItem('voyageReactions', JSON.stringify(initialReactions));
+    }
+  }, [voyages]);
+
+  const handleReaction = async (id, type) => {
     setReactions(prev => {
       const currentReaction = prev[id];
+      let newReactions;
       
       // Si l'utilisateur clique sur le même bouton, on annule son vote
       if (currentReaction.userReaction === type) {
-        return {
+        newReactions = {
           ...prev,
           [id]: {
             like: type === 'like' ? currentReaction.like - 1 : currentReaction.like,
@@ -34,10 +46,9 @@ const Voyages = () => {
           }
         };
       }
-      
       // Si l'utilisateur change son vote
-      if (currentReaction.userReaction) {
-        return {
+      else if (currentReaction.userReaction) {
+        newReactions = {
           ...prev,
           [id]: {
             like: type === 'like' ? currentReaction.like + 1 : currentReaction.like - (currentReaction.userReaction === 'like' ? 1 : 0),
@@ -46,16 +57,38 @@ const Voyages = () => {
           }
         };
       }
-      
       // Si c'est le premier vote de l'utilisateur
-      return {
-        ...prev,
-        [id]: {
-          like: type === 'like' ? currentReaction.like + 1 : currentReaction.like,
-          dislike: type === 'dislike' ? currentReaction.dislike + 1 : currentReaction.dislike,
-          userReaction: type
-        }
-      };
+      else {
+        newReactions = {
+          ...prev,
+          [id]: {
+            like: type === 'like' ? currentReaction.like + 1 : currentReaction.like,
+            dislike: type === 'dislike' ? currentReaction.dislike + 1 : currentReaction.dislike,
+            userReaction: type
+          }
+        };
+      }
+
+      // Sauvegarder dans le localStorage
+      localStorage.setItem('voyageReactions', JSON.stringify(newReactions));
+
+      // Envoyer la mise à jour au serveur
+      try {
+        fetch(`http://localhost:5000/api/voyages/${id}/reactions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type,
+            action: currentReaction.userReaction === type ? 'remove' : 'add'
+          })
+        });
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour des réactions:', error);
+      }
+
+      return newReactions;
     });
   };
 
