@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaMapMarkerAlt, FaClock, FaInfoCircle, FaWalking, FaCalendarCheck, FaCheck } from 'react-icons/fa';
 import ActivitySelectionCard from '../components/ActivitySelectionCard';
 import { useVoyages } from '../context/VoyagesContext';
+import { useAuth } from '../context/AuthContext';
 
 // Activités disponibles par ville
 const activitiesByCity = {
@@ -150,6 +151,7 @@ const VoyageDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { refreshVoyages } = useVoyages();
+  const { user, token, isAuthenticated } = useAuth();
   const [voyage, setVoyage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -218,32 +220,56 @@ const VoyageDetail = () => {
     e.preventDefault();
     setReservationStatus(null);
     
+    console.log('=== Début de la création de réservation ===', {
+      isAuthenticated,
+      user,
+      token: token ? 'Présent' : 'Absent'
+    });
+    
+    if (!isAuthenticated) {
+      console.log('Tentative de réservation sans authentification');
+      setReservationStatus({
+        type: 'error',
+        message: 'Veuillez vous connecter pour effectuer une réservation'
+      });
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+      return;
+    }
+    
     try {
+      console.log('=== Envoi de la requête de réservation ===', {
+        type: 'voyage',
+        voyageId: voyage._id,
+        dateReservation: formData.dateDepart,
+        userId: user.userId,
+        formData
+      });
+
       const response = await fetch('http://localhost:5000/api/reservations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
+          type: 'voyage',
           voyageId: voyage._id,
-          clientName: formData.nom,
-          email: formData.email,
-          phone: formData.telephone,
-          numberOfPersons: parseInt(formData.nombrePersonnes),
-          departureDate: formData.dateDepart,
-          selectedActivities: selectedActivities.map(activity => activity._id)
+          dateReservation: formData.dateDepart,
+          user: user.userId
         }),
       });
 
       const data = await response.json();
+      console.log('=== Réponse de la création de réservation ===', {
+        status: response.status,
+        ok: response.ok,
+        data
+      });
       
       if (response.ok) {
-        // Mettre à jour le nombre de places disponibles localement
-        setVoyage(prev => ({
-          ...prev,
-          availableSpots: data.availableSpots
-        }));
-
+        console.log('Réservation créée avec succès:', data);
         setReservationStatus({
           type: 'success',
           message: 'Réservation effectuée avec succès!'
@@ -258,20 +284,31 @@ const VoyageDetail = () => {
           dateDepart: ''
         });
         
-        // Rafraîchir les données des voyages dans le contexte
+        // Rafraîchir les données du voyage
         refreshVoyages();
         
-        // Recharger les données du voyage pour avoir les informations à jour
+        // Recharger les données du voyage
         const voyageResponse = await fetch(`http://localhost:5000/api/voyages/${voyage._id}`);
         if (voyageResponse.ok) {
           const updatedVoyage = await voyageResponse.json();
           setVoyage(updatedVoyage);
         }
+
+        // Rediriger vers la page de profil après un court délai
+        console.log('Redirection vers le profil dans 2 secondes...');
+        setTimeout(() => {
+          navigate('/profile');
+        }, 2000);
       } else {
+        console.error('Erreur lors de la création de la réservation:', data);
         throw new Error(data.message || 'Erreur lors de la réservation');
       }
     } catch (err) {
-      console.error('Error submitting reservation:', err);
+      console.error('=== Erreur détaillée lors de la création de la réservation ===', {
+        message: err.message,
+        name: err.name,
+        stack: err.stack
+      });
       setReservationStatus({
         type: 'error',
         message: err.message

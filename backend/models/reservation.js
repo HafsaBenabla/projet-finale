@@ -1,41 +1,42 @@
 import mongoose from 'mongoose';
 
 const reservationSchema = new mongoose.Schema({
-  voyageId: {
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  type: {
+    type: String,
+    enum: ['voyage', 'activite'],
+    required: true
+  },
+  voyage: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Voyage',
-    required: true
+    required: function() {
+      return this.type === 'voyage';
+    }
   },
-  clientName: {
-    type: String,
-    required: true
+  activite: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Activite',
+    required: function() {
+      return this.type === 'activite';
+    }
   },
-  email: {
-    type: String,
-    required: true
-  },
-  phone: {
-    type: String,
-    required: true
-  },
-  numberOfPersons: {
-    type: Number,
-    required: true,
-    min: 1
-  },
-  departureDate: {
-    type: Date,
-    required: true
-  },
-  dateCreated: {
+  dateReservation: {
     type: Date,
     default: Date.now
   },
-  status: {
+  statut: {
     type: String,
-    enum: ['confirmée', 'en attente', 'annulée'],
-    default: 'confirmée'
+    enum: ['confirmé', 'en_attente', 'annulé'],
+    default: 'confirmé'
   }
+}, {
+  timestamps: true
 });
 
-export const Reservation = mongoose.model('Reservation', reservationSchema);
+// Vérifier si le modèle existe déjà avant de le créer
+export const Reservation = mongoose.models.Reservation || mongoose.model('Reservation', reservationSchema);

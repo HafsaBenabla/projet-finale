@@ -1,14 +1,46 @@
 import React, { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import Logo from './Logo'
-import { FaBars, FaTimes } from 'react-icons/fa'
+import { FaBars, FaTimes, FaUser, FaSignOutAlt, FaUserCircle } from 'react-icons/fa'
+import { useAuth } from '../context/AuthContext'
 
-function Navbar() {
+const Navbar = () => {
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+
+  const handleLogout = () => {
+    logout()
+    setIsProfileOpen(false)
+    setIsMenuOpen(false)
+    navigate('/')
+  }
+
+  const handleProfileClick = () => {
+    setIsProfileOpen(!isProfileOpen)
+  }
+
+  // Style du menu profil
+  const profileMenuStyle = {
+    desktop: {
+      button: "flex items-center space-x-2 px-4 py-2 rounded-full bg-orange-50 text-orange-600 hover:bg-orange-100 transition-all duration-300",
+      menu: "absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 border border-gray-100 transition-all duration-300",
+      item: "flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200"
+    },
+    mobile: {
+      button: "flex items-center justify-center space-x-2 w-full py-3 text-orange-600 hover:bg-orange-50 transition-all duration-300",
+      menu: "absolute top-full left-0 right-0 bg-white shadow-lg py-1 border-t border-gray-100",
+      item: "flex items-center justify-center space-x-2 w-full py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200"
+    }
+  }
 
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
       <div className="w-full max-w-[1400px] mx-auto py-4 px-4 sm:px-6 flex justify-between items-center">
-        <Logo />
+        <Link to="/" className="flex-shrink-0 flex items-center">
+          <Logo />
+        </Link>
         
         {/* Menu burger pour mobile */}
         <button 
@@ -20,22 +52,155 @@ function Navbar() {
 
         {/* Menu mobile */}
         <div className={`${isMenuOpen ? 'flex' : 'hidden'} md:hidden absolute top-full left-0 right-0 bg-white flex-col items-center space-y-4 py-6 shadow-lg`}>
-          <a href="/" className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2">Accueil</a>
-          <a href="/voyages" className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2">Voyages</a>
-          <a href="/activites" className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2">Activités</a>
-          <a href="/about" className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2">À Propos</a>
-          <a href="/contact" className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2">Contact</a>
-          <a href="/login" className="no-underline inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-full hover:bg-sahara/90 transition-colors duration-300 transform hover:-translate-y-0.5 w-[80%] justify-center">Connexion</a>
+          <Link
+            to="/"
+            onClick={() => setIsMenuOpen(false)}
+            className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2"
+          >
+            Accueil
+          </Link>
+          <Link
+            to="/voyages"
+            onClick={() => setIsMenuOpen(false)}
+            className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2"
+          >
+            Voyages
+          </Link>
+          <Link
+            to="/activites"
+            onClick={() => setIsMenuOpen(false)}
+            className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2"
+          >
+            Activités
+          </Link>
+          <Link
+            to="/about"
+            onClick={() => setIsMenuOpen(false)}
+            className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2"
+          >
+            À Propos
+          </Link>
+          <Link
+            to="/contact"
+            onClick={() => setIsMenuOpen(false)}
+            className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2"
+          >
+            Contact
+          </Link>
+          {user ? (
+            <>
+              <div className="relative w-full">
+                <button
+                  onClick={handleProfileClick}
+                  className={profileMenuStyle.mobile.button}
+                >
+                  <FaUserCircle className="text-xl" />
+                  <span>{user.username}</span>
+                </button>
+                {isProfileOpen && (
+                  <div className={profileMenuStyle.mobile.menu}>
+                    <Link
+                      to="/profile"
+                      onClick={() => {
+                        setIsProfileOpen(false)
+                        setIsMenuOpen(false)
+                      }}
+                      className={profileMenuStyle.mobile.item}
+                    >
+                      <FaUser />
+                      <span>Mon Profil</span>
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className={profileMenuStyle.mobile.item}
+                    >
+                      <FaSignOutAlt />
+                      <span>Se déconnecter</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              onClick={() => setIsMenuOpen(false)}
+              className="no-underline inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-full hover:bg-sahara/90 transition-colors duration-300 transform hover:-translate-y-0.5 w-[80%] justify-center"
+            >
+              Se connecter
+            </Link>
+          )}
         </div>
 
         {/* Menu desktop */}
         <div className="hidden md:flex items-center space-x-8">
-          <a href="/" className="no-underline text-gray-800 hover:text-sahara">Accueil</a>
-          <a href="/voyages" className="no-underline text-gray-800 hover:text-sahara">Voyages</a>
-          <a href="/activites" className="no-underline text-gray-800 hover:text-sahara">Activités</a>
-          <a href="/about" className="no-underline text-gray-800 hover:text-sahara">À Propos</a>
-          <a href="/contact" className="no-underline text-gray-800 hover:text-sahara">Contact</a>
-          <a href="/login" className="no-underline inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-full hover:bg-sahara/90 transition-colors duration-300 transform hover:-translate-y-0.5">Connexion</a>
+          <Link
+            to="/"
+            className="no-underline text-gray-800 hover:text-sahara"
+          >
+            Accueil
+          </Link>
+          <Link
+            to="/voyages"
+            className="no-underline text-gray-800 hover:text-sahara"
+          >
+            Voyages
+          </Link>
+          <Link
+            to="/activites"
+            className="no-underline text-gray-800 hover:text-sahara"
+          >
+            Activités
+          </Link>
+          <Link
+            to="/about"
+            className="no-underline text-gray-800 hover:text-sahara"
+          >
+            À Propos
+          </Link>
+          <Link
+            to="/contact"
+            className="no-underline text-gray-800 hover:text-sahara"
+          >
+            Contact
+          </Link>
+          {user ? (
+            <div className="relative">
+              <button
+                onClick={handleProfileClick}
+                className={profileMenuStyle.desktop.button}
+              >
+                <FaUserCircle className="text-xl" />
+                <span>{user.username}</span>
+              </button>
+              {isProfileOpen && (
+                <div className={profileMenuStyle.desktop.menu}>
+                  <Link
+                    to="/profile"
+                    onClick={() => setIsProfileOpen(false)}
+                    className={profileMenuStyle.desktop.item}
+                  >
+                    <FaUser className="text-orange-500" />
+                    <span>Mon Profil</span>
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className={profileMenuStyle.desktop.item}
+                  >
+                    <FaSignOutAlt className="text-orange-500" />
+                    <span>Se déconnecter</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="no-underline inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-full hover:bg-sahara/90 transition-colors duration-300 transform hover:-translate-y-0.5"
+            >
+              Se connecter
+            </Link>
+          )}
         </div>
       </div>
     </nav>
