@@ -1,7 +1,166 @@
+import React, { useState, useRef } from 'react';
+import emailjs from '@emailjs/browser';
+import { IoSendSharp } from 'react-icons/io5';
 import { motion } from 'framer-motion';
-import { FaEnvelope, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaEnvelope, FaPhone, FaMapMarkerAlt, FaCheckCircle } from 'react-icons/fa';
 
-export default function Contact() {
+// ⚠️ IMPORTANT : REMPLACEZ CES VALEURS PAR VOS IDENTIFIANTS RÉELS EMAILJS ⚠️
+// Si vous ne les remplacez pas, le formulaire ne fonctionnera pas et aucun email ne sera envoyé
+const SERVICE_ID = 'service_id'; // Remplacez par votre service ID EmailJS
+const TEMPLATE_ID = 'template_id'; // Remplacez par votre template ID EmailJS
+const PUBLIC_KEY = 'public_key'; // Remplacez par votre clé publique EmailJS
+
+/*
+==================== CONFIGURATION EMAILJS ====================
+Pour que ce formulaire de contact fonctionne, vous devez suivre ces étapes:
+
+1. Créez un compte gratuit sur EmailJS: https://www.emailjs.com/
+
+2. Dans votre tableau de bord EmailJS, créez un service email:
+   - Cliquez sur "Add New Service"
+   - Sélectionnez Gmail (ou un autre fournisseur de messagerie)
+   - Connectez votre compte Gmail et suivez les instructions
+
+3. Créez un modèle d'email:
+   - Allez dans la section "Email Templates"
+   - Cliquez sur "Create New Template"
+   - Configurez le modèle comme ceci:
+     * To Name: Votre nom
+     * To Email: benablahafsa@gmail.com
+     * From Name: {{name}}
+     * Reply To: {{email}}
+     * Subject: {{subject}}
+     * Message: {{message}}
+
+4. Remplacez les constantes ci-dessus par vos propres identifiants:
+   - SERVICE_ID: Trouvé dans la section "Email Services" (ex: 'service_abc123')
+   - TEMPLATE_ID: Trouvé dans la section "Email Templates" (ex: 'template_xyz789')
+   - PUBLIC_KEY: Trouvé dans "Account" > "API Keys" (ex: 'user_pqr456')
+
+IMPORTANT: 
+- EmailJS a un plan gratuit qui permet d'envoyer 200 emails par mois.
+- DÉSACTIVEZ LA SIMULATION en passant USE_MOCK_EMAIL à false ci-dessous.
+=================================================================
+*/
+
+// Définir cette variable sur false pour envoyer de vrais emails
+const USE_MOCK_EMAIL = false; // IMPORTANT: Mettez à false après avoir configuré EmailJS
+
+const Contact = () => {
+  const formRef = useRef();
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: ''
+  });
+  const [formStatus, setFormStatus] = useState({
+    status: 'idle', // 'idle', 'submitting', 'success', 'error'
+    message: ''
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const validateForm = () => {
+    // Valider que tous les champs sont remplis
+    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+      setFormStatus({
+        status: 'error',
+        message: 'Veuillez remplir tous les champs.'
+      });
+      return false;
+    }
+
+    // Valider le format de l'email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setFormStatus({
+        status: 'error',
+        message: 'Veuillez entrer une adresse email valide.'
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Valider le formulaire avant soumission
+    if (!validateForm()) {
+      return;
+    }
+
+    setFormStatus({
+      status: 'submitting',
+      message: 'Envoi en cours...'
+    });
+
+    try {
+      if (USE_MOCK_EMAIL) {
+        // Simulation d'envoi d'email pour test
+        console.log('Simulation d\'envoi d\'email:', {
+          to: 'benablahafsa@gmail.com',
+          from: `${formData.name} <${formData.email}>`,
+          subject: formData.subject,
+          message: formData.message
+        });
+        
+        // Simuler un délai d'envoi
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Succès simulé
+        console.log('Email simulé envoyé avec succès!');
+      } else {
+        // Envoyer le formulaire réellement avec EmailJS
+        const result = await emailjs.sendForm(
+          SERVICE_ID,
+          TEMPLATE_ID,
+          formRef.current,
+          PUBLIC_KEY
+        );
+        console.log('Email envoyé avec succès!', result.text);
+      }
+      
+      // Réinitialiser le formulaire et mettre à jour le statut
+      setFormData({
+        name: '',
+        email: '',
+        subject: '',
+        message: ''
+      });
+      
+      setFormStatus({
+        status: 'success',
+        message: 'Votre message a été envoyé avec succès! Nous vous répondrons dans les plus brefs délais.'
+      });
+      
+      // Réinitialiser le statut après 5 secondes
+      setTimeout(() => {
+        setFormStatus({
+          status: 'idle',
+          message: ''
+        });
+      }, 5000);
+      
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi du message:', error);
+      
+      const errorMessage = USE_MOCK_EMAIL 
+        ? 'Erreur simulée lors de l\'envoi du message.'
+        : 'Une erreur est survenue lors de l\'envoi de votre message. Veuillez vérifier les identifiants EmailJS ou réessayer plus tard.';
+      
+      setFormStatus({
+        status: 'error',
+        message: errorMessage
+      });
+    }
+  };
+
   return (
     <div className="w-full bg-gray-50">
       {/* Hero Section */}
@@ -88,66 +247,108 @@ export default function Contact() {
               animate={{ opacity: 1, x: 0 }}
             >
               <h2 className="text-2xl font-bold mb-8 text-gray-900">Envoyez-nous un message</h2>
-              <form className="space-y-6">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                    Nom complet
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="Votre nom"
-                  />
+              
+              {formStatus.status === 'success' ? (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+                  <FaCheckCircle className="text-green-500 text-4xl mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-green-800 mb-2">Message envoyé !</h3>
+                  <p className="text-green-700">{formStatus.message}</p>
+                  <button 
+                    onClick={() => setFormStatus(prev => ({ ...prev, status: 'idle' }))}
+                    className="mt-4 px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-300"
+                  >
+                    Envoyer un autre message
+                  </button>
                 </div>
+              ) : (
+                <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+                  {formStatus.status === 'error' && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+                      {formStatus.message}
+                    </div>
+                  )}
+                  
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                      Nom complet
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      placeholder="Votre nom"
+                    />
+                  </div>
 
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="votre@email.com"
-                  />
-                </div>
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      placeholder="votre@email.com"
+                    />
+                  </div>
 
-                <div>
-                  <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
-                    Sujet
-                  </label>
-                  <input
-                    type="text"
-                    id="subject"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="Sujet de votre message"
-                  />
-                </div>
+                  <div>
+                    <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
+                      Sujet
+                    </label>
+                    <input
+                      type="text"
+                      id="subject"
+                      name="subject"
+                      value={formData.subject}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      placeholder="Sujet de votre message"
+                    />
+                  </div>
 
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
-                    Message
-                  </label>
-                  <textarea
-                    id="message"
-                    rows="5"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="Votre message..."
-                  ></textarea>
-                </div>
+                  <div>
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                      Message
+                    </label>
+                    <textarea
+                      id="message"
+                      name="message"
+                      rows="5"
+                      value={formData.message}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      placeholder="Votre message..."
+                    ></textarea>
+                  </div>
 
-                <button 
-                  type="submit" 
-                  className="w-full px-6 py-3 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors duration-300"
-                >
-                  Envoyer le message
-                </button>
-              </form>
+                  <button 
+                    type="submit"
+                    className={`w-full px-6 py-3 ${formStatus.status === 'submitting' ? 'bg-orange-400' : 'bg-orange-500'} text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors duration-300 flex justify-center items-center`}
+                    disabled={formStatus.status === 'submitting'}
+                  >
+                    {formStatus.status === 'submitting' ? (
+                      'Envoi en cours...'
+                    ) : (
+                      <>
+                        Envoyer <IoSendSharp className="send-icon" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
             </motion.div>
           </div>
         </div>
       </section>
     </div>
   );
-}
+};
+
+export default Contact;

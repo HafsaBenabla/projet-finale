@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaUser, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaPhone } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaPhone, FaTrash, FaSpinner } from 'react-icons/fa';
+import './ProfileStyles.css';
 
 const Profile = () => {
   const { user, token, isAuthenticated } = useAuth();
@@ -13,6 +14,22 @@ const Profile = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // État pour suivre les annulations en cours
+  const [cancelingReservations, setCancelingReservations] = useState([]);
+  // État pour les messages de confirmation
+  const [notification, setNotification] = useState({ message: '', type: '' });
+  // Référence pour la barre de progression
+  const progressBarRef = useRef(null);
+
+  // Effet pour animer la barre de progression lorsqu'une notification est affichée
+  useEffect(() => {
+    if (notification.message && progressBarRef.current) {
+      // Forcer un reflow pour que la transition s'applique
+      progressBarRef.current.offsetWidth;
+      // Ajouter la classe d'animation
+      progressBarRef.current.classList.add('progress-bar-animate');
+    }
+  }, [notification]);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -112,6 +129,72 @@ const Profile = () => {
     fetchReservations();
   }, [isAuthenticated, user, token, navigate]);
 
+  // Fonction pour annuler une réservation
+  const handleCancelReservation = async (reservationId, type) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir annuler cette réservation ?')) {
+      return;
+    }
+
+    // Ajouter l'ID à la liste des annulations en cours
+    setCancelingReservations(prev => [...prev, reservationId]);
+
+    try {
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      };
+
+      // Appel à l'API pour annuler la réservation
+      await axios.delete(`http://localhost:5000/api/reservations/${reservationId}`, config);
+
+      // Récupérer les détails de la réservation avant de la supprimer de l'état
+      const reservation = reservations[type].find(r => r._id === reservationId);
+      const reservationTitle = type === 'voyages' 
+        ? reservation.voyage?.title || 'ce voyage' 
+        : reservation.activite?.titre || 'cette activité';
+
+      // Mettre à jour la liste des réservations
+      setReservations(prev => ({
+        ...prev,
+        [type]: prev[type].filter(reservation => reservation._id !== reservationId)
+      }));
+
+      // Afficher un message de confirmation
+      setNotification({ 
+        message: `Votre réservation pour "${reservationTitle}" a été annulée avec succès.`, 
+        type: 'success',
+        details: `Référence de réservation: ${reservationId.substring(0, 8)}`,
+        timestamp: new Date().toLocaleTimeString()
+      });
+
+      // Effacer le message après 5 secondes
+      setTimeout(() => {
+        setNotification({ message: '', type: '', details: '', timestamp: '' });
+      }, 5000);
+
+    } catch (err) {
+      console.error('Erreur lors de l\'annulation de la réservation:', err);
+      
+      // Afficher un message d'erreur
+      setNotification({ 
+        message: 'Échec de l\'annulation de la réservation', 
+        type: 'error',
+        details: err.response?.data?.message || 'Une erreur s\'est produite lors de la communication avec le serveur',
+        timestamp: new Date().toLocaleTimeString()
+      });
+
+      // Effacer le message après 5 secondes
+      setTimeout(() => {
+        setNotification({ message: '', type: '', details: '', timestamp: '' });
+      }, 5000);
+    } finally {
+      // Retirer l'ID de la liste des annulations en cours
+      setCancelingReservations(prev => prev.filter(id => id !== reservationId));
+    }
+  };
+
   if (!isAuthenticated) {
     return null;
   }
@@ -185,6 +268,52 @@ const Profile = () => {
           </div>
         </div>
 
+        {/* Notification */}
+        {notification.message && (
+          <div 
+            className={`mb-6 p-4 rounded-lg border shadow-md relative overflow-hidden notification-enter notification-active ${
+              notification.type === 'success' 
+                ? 'bg-green-50 border-green-300 text-green-800' 
+                : 'bg-red-50 border-red-300 text-red-800'
+            }`}
+          >
+            {/* Barre de progression */}
+            <div 
+              ref={progressBarRef}
+              className={`progress-bar ${
+                notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+              }`}
+            />
+            
+            {/* Icône de notification */}
+            <div className="flex items-start">
+              <div className={`p-2 rounded-full mr-3 ${
+                notification.type === 'success' ? 'bg-green-100' : 'bg-red-100'
+              }`}>
+                {notification.type === 'success' ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1">
+                <h4 className="text-md font-semibold mb-1">
+                  {notification.type === 'success' ? 'Opération réussie' : 'Erreur'}
+                </h4>
+                <p className="mb-1">{notification.message}</p>
+                {notification.details && (
+                  <p className="text-sm opacity-80">{notification.details}</p>
+                )}
+                <p className="text-xs opacity-60 mt-2">{notification.timestamp}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Section des réservations */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h3 className="text-xl font-semibold text-gray-800 mb-6">Mes Réservations</h3>
@@ -195,7 +324,7 @@ const Profile = () => {
             {reservations.voyages.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {reservations.voyages.map((reservation) => (
-                  <div key={reservation._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
+                  <div key={reservation._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-white relative reservation-card">
                     {reservation.voyage?.image && (
                       <div className="w-full h-40 mb-4 rounded-lg overflow-hidden">
                         <img 
@@ -223,6 +352,27 @@ const Profile = () => {
                           'bg-red-100 text-red-800'}`}>
                         {reservation.statut}
                       </div>
+                      
+                      {/* Bouton d'annulation */}
+                      {reservation.statut !== 'annulé' && (
+                        <button
+                          onClick={() => handleCancelReservation(reservation._id, 'voyages')}
+                          disabled={cancelingReservations.includes(reservation._id)}
+                          className="mt-3 flex items-center justify-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm disabled:opacity-50 cancel-button"
+                        >
+                          {cancelingReservations.includes(reservation._id) ? (
+                            <>
+                              <FaSpinner className="animate-spin mr-2" />
+                              Annulation...
+                            </>
+                          ) : (
+                            <>
+                              <FaTrash className="mr-2" />
+                              Annuler la réservation
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -240,7 +390,7 @@ const Profile = () => {
             {reservations.activites.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {reservations.activites.map((reservation) => (
-                  <div key={reservation._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
+                  <div key={reservation._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-white reservation-card">
                     {reservation.activite?.image && (
                       <div className="w-full h-32 mb-4 rounded-lg overflow-hidden">
                         <img 
@@ -262,12 +412,33 @@ const Profile = () => {
                         <FaCalendarAlt className="mr-2" />
                         {new Date(reservation.dateReservation).toLocaleDateString()}
                       </p>
-                      <div className="mt-2 inline-block px-3 py-1 rounded-full text-sm font-medium
+                      <div className={`mt-2 inline-block px-3 py-1 rounded-full text-sm font-medium
                         ${reservation.statut === 'confirmé' ? 'bg-green-100 text-green-800' :
                           reservation.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'}">
+                          'bg-red-100 text-red-800'}`}>
                         {reservation.statut}
                       </div>
+                      
+                      {/* Bouton d'annulation */}
+                      {reservation.statut !== 'annulé' && (
+                        <button
+                          onClick={() => handleCancelReservation(reservation._id, 'activites')}
+                          disabled={cancelingReservations.includes(reservation._id)}
+                          className="mt-3 flex items-center justify-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm disabled:opacity-50 cancel-button"
+                        >
+                          {cancelingReservations.includes(reservation._id) ? (
+                            <>
+                              <FaSpinner className="animate-spin mr-2" />
+                              Annulation...
+                            </>
+                          ) : (
+                            <>
+                              <FaTrash className="mr-2" />
+                              Annuler la réservation
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

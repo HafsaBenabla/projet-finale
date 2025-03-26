@@ -25,6 +25,11 @@ const reservationSchema = new mongoose.Schema({
       return this.type === 'activite';
     }
   },
+  nombrePersonnes: {
+    type: Number,
+    required: true,
+    min: 1
+  },
   dateReservation: {
     type: Date,
     default: Date.now
@@ -36,6 +41,37 @@ const reservationSchema = new mongoose.Schema({
   }
 }, {
   timestamps: true
+});
+
+// Middleware pour mettre à jour les places disponibles lors de la création d'une réservation
+reservationSchema.pre('save', async function(next) {
+  if (this.isNew && this.type === 'voyage' && this.statut === 'confirmé') {
+    const voyage = await mongoose.model('Voyage').findById(this.voyage);
+    if (voyage) {
+      if (voyage.availableSpots < this.nombrePersonnes) {
+        throw new Error('Pas assez de places disponibles');
+      }
+      voyage.availableSpots -= this.nombrePersonnes;
+      await voyage.save();
+    }
+  }
+  next();
+});
+
+// Middleware pour mettre à jour les places disponibles lors de l'annulation d'une réservation
+reservationSchema.pre('findOneAndUpdate', async function(next) {
+  const update = this.getUpdate();
+  if (update.statut === 'annulé') {
+    const reservation = await this.model.findOne(this.getQuery());
+    if (reservation && reservation.type === 'voyage' && reservation.statut !== 'annulé') {
+      const voyage = await mongoose.model('Voyage').findById(reservation.voyage);
+      if (voyage) {
+        voyage.availableSpots += reservation.nombrePersonnes;
+        await voyage.save();
+      }
+    }
+  }
+  next();
 });
 
 // Vérifier si le modèle existe déjà avant de le créer

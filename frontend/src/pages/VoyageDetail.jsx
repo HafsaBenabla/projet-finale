@@ -256,8 +256,8 @@ const VoyageDetail = () => {
         body: JSON.stringify({
           type: 'voyage',
           voyageId: voyage._id,
-          dateReservation: formData.dateDepart,
-          user: user.userId
+          nombrePersonnes: parseInt(formData.nombrePersonnes, 10),
+          dateReservation: formData.dateDepart
         }),
       });
 

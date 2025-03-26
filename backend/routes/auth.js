@@ -32,9 +32,16 @@ router.post('/register', async (req, res) => {
 
     await user.save();
 
+    console.log('Création du token JWT avec les données:', {
+      _id: user._id,
+      _idType: typeof user._id,
+      _idString: user._id.toString(),
+      role: user.role
+    });
+    
     // Générer le token JWT
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { userId: user._id.toString(), role: user.role },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -76,9 +83,16 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: "Email ou mot de passe incorrect" });
     }
 
-    // Générer le token JWT
+    console.log('Connexion réussie - Création du token JWT avec les données:', {
+      _id: user._id,
+      _idType: typeof user._id,
+      _idString: user._id.toString(),
+      role: user.role
+    });
+    
+    // Générer le token JWT avec l'ID utilisateur sous forme de chaîne
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { userId: user._id.toString(), role: user.role },
       JWT_SECRET,
       { expiresIn: '24h' }
     );

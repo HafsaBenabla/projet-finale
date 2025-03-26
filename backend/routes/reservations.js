@@ -6,6 +6,241 @@ import mongoose from 'mongoose';
 
 const router = express.Router();
 
+// Créer une nouvelle réservation
+router.post('/', auth, async (req, res) => {
+  try {
+    console.log('=== Début de la création d\'une réservation ===');
+    console.log('Requête reçue:', req.body);
+    console.log('Headers de la requête:', req.headers);
+    
+    const { type, voyageId, nombrePersonnes } = req.body;
+    
+    console.log('Données extraites:', { type, voyageId, nombrePersonnes });
+
+    if (type === 'voyage') {
+      console.log('Recherche du voyage avec l\'ID:', voyageId);
+      const voyage = await Voyage.findById(voyageId);
+      
+      if (!voyage) {
+        console.log('Voyage non trouvé avec l\'ID:', voyageId);
+        return res.status(404).json({ message: 'Voyage non trouvé' });
+      }
+      
+      console.log('Voyage trouvé:', {
+        id: voyage._id,
+        title: voyage.title,
+        availableSpots: voyage.availableSpots
+      });
+      
+      if (voyage.availableSpots < nombrePersonnes) {
+        console.log('Pas assez de places disponibles:', {
+          demandé: nombrePersonnes,
+          disponible: voyage.availableSpots
+        });
+        return res.status(400).json({ message: 'Pas assez de places disponibles' });
+      }
+    }
+
+    // Debugging de l'utilisateur reçu du token
+    console.log('User dans le token:', req.user);
+    console.log('Type du userId:', typeof req.user.userId);
+    console.log('Valeur du userId:', req.user.userId);
+    
+    // Convertir l'ID utilisateur en ObjectId
+    console.log('Tentative de conversion du userId en ObjectId:', req.user.userId);
+    let userId;
+    try {
+      userId = new mongoose.Types.ObjectId(req.user.userId);
+      console.log('Conversion réussie:', userId);
+    } catch (err) {
+      console.error('Erreur lors de la conversion du userId en ObjectId:', err);
+      return res.status(400).json({ message: 'ID utilisateur invalide' });
+    }
+    
+    // Construire l'objet de réservation avec des logs
+    const reservationData = {
+      user: userId,
+      type,
+      voyage: type === 'voyage' ? voyageId : undefined,
+      activite: type === 'activite' ? req.body.activiteId : undefined,
+      nombrePersonnes,
+      statut: 'confirmé'
+    };
+    
+    console.log('Données de la réservation à créer:', reservationData);
+    
+    const reservation = new Reservation(reservationData);
+    console.log('Objet reservation créé:', reservation);
+
+    console.log('Tentative de sauvegarde de la réservation...');
+    const nouvelleReservation = await reservation.save();
+    console.log('Réservation sauvegardée avec succès:', nouvelleReservation);
+    
+    await nouvelleReservation.populate('voyage');
+    await nouvelleReservation.populate('user');
+    console.log('Réservation après population:', nouvelleReservation);
+
+    res.status(201).json(nouvelleReservation);
+  } catch (error) {
+    console.error('=== ERREUR lors de la création de réservation ===');
+    console.error('Message d\'erreur:', error.message);
+    console.error('Stack trace:', error.stack);
+    console.error('Détails de l\'erreur:', error);
+    
+    if (error.name === 'ValidationError') {
+      console.error('Erreur de validation MongoDB:');
+      for (let field in error.errors) {
+        console.error(`- Champ "${field}": ${error.errors[field].message}`);
+      }
+    }
+    
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Obtenir toutes les réservations d'un utilisateur
+router.get('/user', auth, async (req, res) => {
+  try {
+    const reservations = await Reservation.find({ user: req.user._id })
+      .populate('voyage')
+      .populate('activite')
+      .sort({ dateReservation: -1 });
+    res.json(reservations);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Annuler une réservation
+router.patch('/:id/annuler', auth, async (req, res) => {
+  try {
+    console.log('Tentative de modification du statut d\'une réservation:', {
+      reservationId: req.params.id,
+      userId: req.user.userId || req.user._id
+    });
+
+    const reservation = await Reservation.findOne({
+      _id: req.params.id,
+      user: req.user.userId || req.user._id
+    });
+
+    if (!reservation) {
+      console.log('Réservation non trouvée');
+      return res.status(404).json({ message: 'Réservation non trouvée' });
+    }
+
+    if (reservation.statut === 'annulé') {
+      console.log('La réservation est déjà annulée');
+      return res.status(400).json({ message: 'La réservation est déjà annulée' });
+    }
+
+    // Si c'est une réservation de voyage, mettre à jour le nombre de places disponibles
+    if (reservation.type === 'voyage') {
+      try {
+        // Analyser en détail l'objet réservation et les références
+        console.log('Détails complets de la réservation:', JSON.stringify(reservation, null, 2));
+        console.log('Type de la propriété voyage:', typeof reservation.voyage);
+        
+        // Identifier l'ID du voyage de différentes manières possibles
+        const voyageId = reservation.voyage ? 
+                        (typeof reservation.voyage === 'object' ? 
+                          reservation.voyage._id : reservation.voyage) : 
+                        null;
+        
+        console.log('ID du voyage extrait:', voyageId);
+        
+        if (!voyageId) {
+          console.log('Impossible de trouver l\'ID du voyage dans la réservation');
+          // Essayer de récupérer la réservation complète avec populate
+          const reservationComplete = await Reservation.findById(reservation._id)
+            .populate('voyage');
+          console.log('Réservation après populate:', reservationComplete);
+          
+          if (reservationComplete && reservationComplete.voyage) {
+            console.log('ID du voyage trouvé après populate:', 
+              typeof reservationComplete.voyage === 'object' ? 
+                reservationComplete.voyage._id : 
+                reservationComplete.voyage);
+          }
+        }
+        
+        // Trouver et mettre à jour le voyage
+        if (voyageId) {
+          console.log('Recherche du voyage avec ID:', voyageId);
+          const voyage = await Voyage.findById(voyageId);
+          
+          if (voyage) {
+            console.log('Voyage trouvé:', {
+              id: voyage._id,
+              title: voyage.title,
+              availableSpots: voyage.availableSpots,
+              maxPlaces: voyage.maxPlaces
+            });
+            
+            // Enregistrer l'état initial
+            const placesInitiales = voyage.availableSpots;
+            
+            // Incrémenter le nombre de places disponibles
+            voyage.availableSpots += reservation.nombrePersonnes;
+            
+            // Vérifier que le nombre de places disponibles ne dépasse pas le maximum
+            if (voyage.availableSpots > voyage.maxPlaces) {
+              console.log('Correction: le nombre de places dépasserait le maximum', {
+                calculé: voyage.availableSpots,
+                maximum: voyage.maxPlaces
+              });
+              voyage.availableSpots = voyage.maxPlaces;
+            }
+            
+            // Mettre à jour directement dans la base de données pour éviter les problèmes de validation
+            const updateResult = await Voyage.updateOne(
+              { _id: voyageId },
+              { $set: { availableSpots: voyage.availableSpots } }
+            );
+            
+            console.log('Résultat de la mise à jour:', updateResult);
+            console.log('Places disponibles mises à jour:', {
+              avant: placesInitiales,
+              après: voyage.availableSpots,
+              différence: voyage.availableSpots - placesInitiales,
+              personnes: reservation.nombrePersonnes
+            });
+            
+            // Vérifier que la mise à jour a bien été effectuée
+            const voyageVerif = await Voyage.findById(voyageId);
+            console.log('Vérification après mise à jour:', {
+              availableSpots: voyageVerif.availableSpots
+            });
+          } else {
+            console.log('Voyage non trouvé avec l\'ID:', voyageId);
+          }
+        } else {
+          console.log('Aucun ID de voyage valide trouvé pour mettre à jour les places');
+        }
+      } catch (error) {
+        console.error('Erreur détaillée lors de la mise à jour des places disponibles:', {
+          message: error.message,
+          stack: error.stack
+        });
+        // On continue même si la mise à jour des places échoue
+      }
+    }
+
+    // Mettre à jour le statut de la réservation
+    const reservationMiseAJour = await Reservation.findOneAndUpdate(
+      { _id: req.params.id },
+      { statut: 'annulé' },
+      { new: true }
+    ).populate('voyage');
+
+    console.log('Réservation mise à jour avec succès:', reservationMiseAJour);
+    res.json(reservationMiseAJour);
+  } catch (error) {
+    console.error('Erreur lors de l\'annulation de la réservation:', error);
+    res.status(400).json({ message: error.message });
+  }
+});
+
 // Récupérer toutes les réservations de voyages d'un utilisateur
 router.get('/voyages/:userId', auth, async (req, res) => {
   try {
@@ -30,20 +265,30 @@ router.get('/voyages/:userId', auth, async (req, res) => {
       return res.status(403).json({ message: "Vous n'êtes pas autorisé à voir ces réservations" });
     }
 
+    // Convertir l'ID utilisateur en ObjectId pour les requêtes MongoDB
+    let userObjectId;
+    try {
+      userObjectId = new mongoose.Types.ObjectId(req.params.userId);
+      console.log('ID utilisateur converti en ObjectId pour la recherche:', userObjectId);
+    } catch (err) {
+      console.error('Erreur lors de la conversion de l\'ID utilisateur:', err);
+      return res.status(400).json({ message: 'ID utilisateur invalide' });
+    }
+
     console.log('Recherche des réservations avec les critères:', {
-      user: req.params.userId,
+      user: userObjectId,
       type: 'voyage'
     });
 
     // Vérifier d'abord si l'utilisateur existe dans la base de données des réservations
     const reservationCount = await Reservation.countDocuments({
-      user: req.params.userId,
+      user: userObjectId,
       type: 'voyage'
     });
     console.log(`Nombre total de réservations trouvées: ${reservationCount}`);
 
     const reservations = await Reservation.find({
-      user: req.params.userId,
+      user: userObjectId,
       type: 'voyage'
     })
     .populate({
@@ -112,8 +357,18 @@ router.get('/activites/:userId', auth, async (req, res) => {
       return res.status(403).json({ message: "Vous n'êtes pas autorisé à voir ces réservations" });
     }
 
+    // Convertir l'ID utilisateur en ObjectId pour les requêtes MongoDB
+    let userObjectId;
+    try {
+      userObjectId = new mongoose.Types.ObjectId(req.params.userId);
+      console.log('ID utilisateur converti en ObjectId pour la recherche d\'activités:', userObjectId);
+    } catch (err) {
+      console.error('Erreur lors de la conversion de l\'ID utilisateur pour les activités:', err);
+      return res.status(400).json({ message: 'ID utilisateur invalide' });
+    }
+    
     const reservations = await Reservation.find({
-      user: req.params.userId,
+      user: userObjectId,
       type: 'activite'
     })
     .populate('activite')
@@ -135,61 +390,6 @@ router.get('/activites/:userId', auth, async (req, res) => {
   }
 });
 
-// Créer une nouvelle réservation
-router.post('/', auth, async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    console.log('Création d\'une nouvelle réservation:', {
-      userId: req.user.userId,
-      body: req.body,
-      authUser: req.user
-    });
-
-    const { type, voyageId, dateReservation } = req.body;
-
-    // Vérifier si le voyage existe
-    const voyage = await Voyage.findById(voyageId);
-    if (!voyage) {
-      throw new Error('Voyage non trouvé');
-    }
-
-    // Créer la réservation
-    const reservation = new Reservation({
-      user: req.user.userId,
-      type: 'voyage',
-      voyage: voyageId,
-      dateReservation: dateReservation || new Date(),
-      statut: 'confirmé'
-    });
-
-    console.log('Tentative de sauvegarde de la réservation:', reservation);
-    const savedReservation = await reservation.save({ session });
-    console.log('Réservation sauvegardée avec succès:', savedReservation);
-
-    // Populate the voyage details
-    await savedReservation.populate('voyage');
-
-    await session.commitTransaction();
-    res.status(201).json(savedReservation);
-  } catch (err) {
-    await session.abortTransaction();
-    console.error('Erreur lors de la création de la réservation:', {
-      message: err.message,
-      stack: err.stack,
-      userId: req.user.userId,
-      body: req.body
-    });
-    res.status(400).json({ 
-      message: "Erreur lors de la création de la réservation",
-      details: err.message 
-    });
-  } finally {
-    session.endSession();
-  }
-});
-
 // Annuler une réservation
 router.delete('/:id', auth, async (req, res) => {
   try {
@@ -204,14 +404,115 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: "Réservation non trouvée" });
     }
 
-    if (reservation.user.toString() !== req.user.userId) {
-      console.log('Tentative d\'annulation non autorisée:', {
-        reservationUserId: reservation.user.toString(),
-        requestUserId: req.user.userId
-      });
+    const reservationUserId = reservation.user.toString();
+    const tokenUserId = req.user.userId;
+    
+    console.log('Comparaison des IDs pour autorisation:', {
+      reservationUserId,
+      tokenUserId,
+      reservationUserIdType: typeof reservationUserId,
+      tokenUserIdType: typeof tokenUserId
+    });
+
+    // Vérifier si l'ID utilisateur du token correspond à l'ID utilisateur de la réservation
+    if (reservationUserId !== tokenUserId) {
+      console.log('Tentative d\'annulation non autorisée - IDs ne correspondent pas');
       return res.status(403).json({ message: "Vous n'êtes pas autorisé à annuler cette réservation" });
     }
 
+    // Si c'est une réservation de voyage, mettre à jour le nombre de places disponibles
+    if (reservation.type === 'voyage') {
+      try {
+        // Analyser en détail l'objet réservation et les références
+        console.log('Détails complets de la réservation:', JSON.stringify(reservation, null, 2));
+        console.log('Type de la propriété voyage:', typeof reservation.voyage);
+        
+        // Identifier l'ID du voyage de différentes manières possibles
+        const voyageId = reservation.voyage ? 
+                        (typeof reservation.voyage === 'object' ? 
+                          reservation.voyage._id : reservation.voyage) : 
+                        null;
+        
+        console.log('ID du voyage extrait:', voyageId);
+        
+        if (!voyageId) {
+          console.log('Impossible de trouver l\'ID du voyage dans la réservation');
+          // Essayer de récupérer la réservation complète avec populate
+          const reservationComplete = await Reservation.findById(reservation._id)
+            .populate('voyage');
+          console.log('Réservation après populate:', reservationComplete);
+          
+          if (reservationComplete && reservationComplete.voyage) {
+            console.log('ID du voyage trouvé après populate:', 
+              typeof reservationComplete.voyage === 'object' ? 
+                reservationComplete.voyage._id : 
+                reservationComplete.voyage);
+          }
+        }
+        
+        // Trouver et mettre à jour le voyage
+        if (voyageId) {
+          console.log('Recherche du voyage avec ID:', voyageId);
+          const voyage = await Voyage.findById(voyageId);
+          
+          if (voyage) {
+            console.log('Voyage trouvé:', {
+              id: voyage._id,
+              title: voyage.title,
+              availableSpots: voyage.availableSpots,
+              maxPlaces: voyage.maxPlaces
+            });
+            
+            // Enregistrer l'état initial
+            const placesInitiales = voyage.availableSpots;
+            
+            // Incrémenter le nombre de places disponibles
+            voyage.availableSpots += reservation.nombrePersonnes;
+            
+            // Vérifier que le nombre de places disponibles ne dépasse pas le maximum
+            if (voyage.availableSpots > voyage.maxPlaces) {
+              console.log('Correction: le nombre de places dépasserait le maximum', {
+                calculé: voyage.availableSpots,
+                maximum: voyage.maxPlaces
+              });
+              voyage.availableSpots = voyage.maxPlaces;
+            }
+            
+            // Mettre à jour directement dans la base de données pour éviter les problèmes de validation
+            const updateResult = await Voyage.updateOne(
+              { _id: voyageId },
+              { $set: { availableSpots: voyage.availableSpots } }
+            );
+            
+            console.log('Résultat de la mise à jour:', updateResult);
+            console.log('Places disponibles mises à jour:', {
+              avant: placesInitiales,
+              après: voyage.availableSpots,
+              différence: voyage.availableSpots - placesInitiales,
+              personnes: reservation.nombrePersonnes
+            });
+            
+            // Vérifier que la mise à jour a bien été effectuée
+            const voyageVerif = await Voyage.findById(voyageId);
+            console.log('Vérification après mise à jour:', {
+              availableSpots: voyageVerif.availableSpots
+            });
+          } else {
+            console.log('Voyage non trouvé avec l\'ID:', voyageId);
+          }
+        } else {
+          console.log('Aucun ID de voyage valide trouvé pour mettre à jour les places');
+        }
+      } catch (error) {
+        console.error('Erreur détaillée lors de la mise à jour des places disponibles:', {
+          message: error.message,
+          stack: error.stack
+        });
+        // On continue même si la mise à jour des places échoue
+      }
+    }
+    
+    // Supprimer la réservation
     await reservation.deleteOne();
     console.log('Réservation annulée avec succès');
     res.json({ message: "Réservation annulée avec succès" });
