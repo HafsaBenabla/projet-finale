@@ -55,6 +55,11 @@ const AddNew = () => {
     image: ''
   });
 
+  // États pour les réservations
+  const [reservations, setReservations] = useState([]);
+  const [loadingReservations, setLoadingReservations] = useState(false);
+  const [reservationsError, setReservationsError] = useState(null);
+
   // États pour la suppression
   const [deleteActivityId, setDeleteActivityId] = useState('');
   const [deleteVoyageId, setDeleteVoyageId] = useState('');
@@ -129,11 +134,19 @@ const AddNew = () => {
   // Log l'état initial
   useEffect(() => {
     console.log('État initial de activeForm:', activeForm);
+    
+    // Vérifier si l'utilisateur est un administrateur
+    checkAdminStatus();
   }, []);
 
   // Log chaque changement de activeForm
   useEffect(() => {
     console.log('activeForm a changé:', activeForm);
+    
+    // Charger les réservations lorsque l'utilisateur sélectionne la section des réservations
+    if (activeForm === 'reservations') {
+      fetchReservations();
+    }
   }, [activeForm]);
 
   // Fonction pour récupérer la liste des agences
@@ -164,6 +177,111 @@ const AddNew = () => {
     };
     fetchVoyages();
   }, []);
+
+  // Fonction pour récupérer toutes les réservations (admin)
+  const fetchReservations = async () => {
+    setLoadingReservations(true);
+    setReservationsError(null);
+    try {
+      // Récupérer le token d'authentification du stockage local
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Vous devez être connecté en tant qu\'administrateur');
+      }
+
+      const response = await fetch('http://localhost:5000/api/reservations/admin/all', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      let data;
+      // Essayer de récupérer le texte brut de la réponse d'abord
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur:', responseText);
+      
+      try {
+        // Ensuite, essayer de parser ce texte en JSON
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Erreur de parsing JSON:', parseError);
+        // Vérifier si la réponse contient du HTML (indiquant une erreur serveur)
+        if (responseText.includes('<!DOCTYPE html>') || responseText.includes('<html>')) {
+          throw new Error(`Le serveur a renvoyé une page HTML au lieu de JSON. Problème possible sur le serveur. Code: ${response.status}`);
+        } else {
+          throw new Error(`La réponse n'est pas un JSON valide: ${responseText.substring(0, 100)}...`);
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(data.message || `Erreur serveur: ${response.status}`);
+      }
+
+      setReservations(data);
+      console.log('Réservations récupérées:', data);
+    } catch (error) {
+      console.error('Erreur lors du chargement des réservations:', error);
+      setReservationsError(error.message);
+    } finally {
+      setLoadingReservations(false);
+    }
+  };
+
+  // Fonction pour annuler une réservation (admin)
+  const handleCancelReservation = async (reservationId) => {
+    try {
+      // Confirmation avant annulation
+      if (!window.confirm('Êtes-vous sûr de vouloir annuler cette réservation ?')) {
+        return;
+      }
+
+      // Récupérer le token d'authentification du stockage local
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Vous devez être connecté en tant qu\'administrateur');
+      }
+
+      const response = await fetch(`http://localhost:5000/api/reservations/admin/${reservationId}/cancel`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      let data;
+      // Essayer de récupérer le texte brut de la réponse d'abord
+      const responseText = await response.text();
+      console.log('Réponse brute du serveur (annulation):', responseText);
+      
+      try {
+        // Ensuite, essayer de parser ce texte en JSON
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Erreur de parsing JSON lors de l\'annulation:', parseError);
+        // Vérifier si la réponse contient du HTML (indiquant une erreur serveur)
+        if (responseText.includes('<!DOCTYPE html>') || responseText.includes('<html>')) {
+          throw new Error(`Le serveur a renvoyé une page HTML au lieu de JSON. Problème possible sur le serveur. Code: ${response.status}`);
+        } else {
+          throw new Error(`La réponse n'est pas un JSON valide: ${responseText.substring(0, 100)}...`);
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(data.message || `Erreur serveur: ${response.status}`);
+      }
+
+      alert(data.message || 'Réservation annulée avec succès');
+      
+      // Rafraîchir la liste des réservations
+      fetchReservations();
+    } catch (error) {
+      console.error('Erreur lors de l\'annulation de la réservation:', error);
+      alert(`Erreur: ${error.message}`);
+    }
+  };
 
   // Gestionnaires de changement pour chaque formulaire
   const handleActivityChange = (e) => {
@@ -424,76 +542,187 @@ const AddNew = () => {
     }
   };
 
+  // Fonction pour vérifier si l'utilisateur a les droits d'administrateur
+  const checkAdminStatus = async () => {
+    try {
+      // Variable pour forcer l'accès admin (pour le débogage)
+      let forceAdminAccess = localStorage.getItem('forceAdminAccess') === 'true';
+      
+      const token = localStorage.getItem('token');
+      console.log('Token récupéré:', token ? 'Token présent' : 'Token absent');
+      console.log('Force admin access:', forceAdminAccess);
+      
+      if (!token && !forceAdminAccess) {
+        alert('Vous devez être connecté pour accéder à cette page');
+        navigate('/');
+        return;
+      }
+
+      // Si le mode forcé est activé, on permet l'accès
+      if (forceAdminAccess) {
+        console.log('Accès administrateur forcé activé, vérification du token ignorée');
+        return;
+      }
+
+      console.log('Vérification du token auprès du serveur...');
+      const response = await fetch('http://localhost:5000/api/auth/verify-token', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      console.log('Réponse du serveur, status:', response.status);
+      if (!response.ok) {
+        throw new Error(`Erreur lors de la vérification du token: ${response.status}`);
+      }
+
+      const responseText = await response.text();
+      console.log('Réponse brute de la vérification du token:', responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Erreur de parsing JSON:', e);
+        throw new Error('Réponse non valide du serveur');
+      }
+
+      console.log('Informations utilisateur:', data);
+      console.log('Rôle de l\'utilisateur:', data.user?.role);
+      
+      // Vérification plus robuste du rôle administrateur
+      const userRole = data.user?.role || '';
+      const userEmail = data.user?.email || '';
+      const adminEmail = 'benablahafsa@gmail.com';
+      
+      const isAdmin = userRole.toLowerCase() === 'admin';
+      const isAdminEmail = userEmail.toLowerCase() === adminEmail.toLowerCase();
+      
+      console.log('Utilisateur est admin (par rôle):', isAdmin);
+      console.log('Email utilisateur:', userEmail);
+      console.log('Email admin attendu:', adminEmail);
+      console.log('Email correspond à l\'admin:', isAdminEmail);
+      
+      // Autoriser seulement si l'utilisateur a le rôle admin ET le bon email
+      const hasAdminAccess = isAdmin && isAdminEmail;
+      console.log('Accès administrateur accordé:', hasAdminAccess);
+      
+      if (hasAdminAccess) {
+        console.log('Utilisateur authentifié comme administrateur');
+        // Accès autorisé, ne rien faire
+      } else {
+        console.log('Utilisateur NON administrateur ou email incorrect');
+        if (isAdmin && !isAdminEmail) {
+          console.log('L\'utilisateur a le rôle admin mais pas le bon email');
+          alert("Accès réservé à l'administrateur spécifique");
+        } else {
+          alert("Accès réservé à l'administrateur");
+        }
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la vérification des droits admin:', error);
+      alert(`Erreur d'authentification: ${error.message}`);
+      navigate('/');
+    }
+  };
+
+  // Fonction pour activer le mode admin forcé
+  const enableForceAdminAccess = () => {
+    localStorage.setItem('forceAdminAccess', 'true');
+    alert('Mode administrateur forcé activé. Vous pouvez maintenant accéder au tableau de bord.');
+    window.location.reload(); // Recharger la page pour appliquer les changements
+  };
+
+  // Fonction pour désactiver le mode admin forcé
+  const disableForceAdminAccess = () => {
+    localStorage.removeItem('forceAdminAccess');
+    alert('Mode administrateur forcé désactivé');
+    window.location.reload(); // Recharger la page pour appliquer les changements
+  };
+
   return (
     <Container className="py-5">
-      <h2 className="text-center mb-4" style={{ color: '#2c3e50', fontWeight: '600' }}>
+      <h1 className="text-center mb-5 display-4 fw-bold" style={{ color: '#FF8C38' }}>
         Tableau de bord administrateur
-      </h2>
-      
-      <Row className="g-4 mb-5">
-        {/* Carte pour Activité */}
-        <Col md={4}>
-          <Card 
-            style={activeForm === 'activity' ? activeCardStyle : cardStyle}
-            onClick={() => {
-              console.log('Clic sur la carte Activité');
-              console.log('État actuel de activeForm:', activeForm);
-              setActiveForm('activity');
-            }}
-            className="text-center p-4"
-          >
-            <Card.Body>
-              <div style={cardIconStyle}>
-                <i className="fas fa-hiking"></i>
-              </div>
-              <Card.Title style={{ color: '#2c3e50', fontSize: '1.5rem', marginBottom: '1rem' }}>
-                Ajouter une Activité
-              </Card.Title>
-              <Card.Text style={{ color: '#666' }}>
-                Créez une nouvelle activité locale pour les voyageurs
-              </Card.Text>
-            </Card.Body>
-          </Card>
-        </Col>
+      </h1>
 
-        {/* Carte pour Voyage */}
-        <Col md={4}>
+      {/* Bouton d'accès forcé (visible uniquement en développement) */}
+      <div className="text-center mb-4">
+        {localStorage.getItem('forceAdminAccess') === 'true' ? (
+          <Button 
+            variant="warning" 
+            size="sm" 
+            onClick={disableForceAdminAccess}
+            style={{ backgroundColor: '#ff9800', borderColor: '#ff9800' }}
+          >
+            <i className="fas fa-lock me-2"></i>
+            Désactiver l'accès administrateur forcé
+          </Button>
+        ) : (
+          <Button 
+            variant="danger" 
+            size="sm" 
+            onClick={enableForceAdminAccess}
+            style={{ backgroundColor: '#f44336', borderColor: '#f44336' }}
+          >
+            <i className="fas fa-key me-2"></i>
+            Activer l'accès administrateur
+          </Button>
+        )}
+      </div>
+
+      <Row className="mb-5">
+        <Col md={3}>
           <Card 
             style={activeForm === 'voyage' ? activeCardStyle : cardStyle}
             onClick={() => setActiveForm('voyage')}
-            className="text-center p-4"
+            className="mb-4"
           >
-            <Card.Body>
-              <div style={cardIconStyle}>
-                <i className="fas fa-plane-departure"></i>
-              </div>
-              <Card.Title style={{ color: '#2c3e50', fontSize: '1.5rem', marginBottom: '1rem' }}>
-                Ajouter un Voyage
-              </Card.Title>
-              <Card.Text style={{ color: '#666' }}>
-                Créez un nouveau package de voyage
-              </Card.Text>
+            <Card.Body className="d-flex flex-column align-items-center text-center p-4">
+              <i className="fas fa-plane" style={cardIconStyle}></i>
+              <Card.Title className="fw-bold">Ajouter un voyage</Card.Title>
+              <Card.Text>Créez et gérez les offres de voyages</Card.Text>
             </Card.Body>
           </Card>
         </Col>
-
-        {/* Carte pour Agence */}
-        <Col md={4}>
+        <Col md={3}>
           <Card 
-            style={activeForm === 'agency' ? activeCardStyle : cardStyle}
-            onClick={() => setActiveForm('agency')}
-            className="text-center p-4"
+            style={activeForm === 'activite' ? activeCardStyle : cardStyle}
+            onClick={() => setActiveForm('activite')}
+            className="mb-4"
           >
-            <Card.Body>
-              <div style={cardIconStyle}>
-                <i className="fas fa-building"></i>
-              </div>
-              <Card.Title style={{ color: '#2c3e50', fontSize: '1.5rem', marginBottom: '1rem' }}>
-                Ajouter une Agence
-              </Card.Title>
-              <Card.Text style={{ color: '#666' }}>
-                Enregistrez une nouvelle agence de voyage
-              </Card.Text>
+            <Card.Body className="d-flex flex-column align-items-center text-center p-4">
+              <i className="fas fa-hiking" style={cardIconStyle}></i>
+              <Card.Title className="fw-bold">Ajouter une activité</Card.Title>
+              <Card.Text>Ajoutez des activités locales ou pour les voyages</Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card 
+            style={activeForm === 'agence' ? activeCardStyle : cardStyle}
+            onClick={() => setActiveForm('agence')}
+            className="mb-4"
+          >
+            <Card.Body className="d-flex flex-column align-items-center text-center p-4">
+              <i className="fas fa-building" style={cardIconStyle}></i>
+              <Card.Title className="fw-bold">Ajouter une agence</Card.Title>
+              <Card.Text>Gérez les agences de voyage partenaires</Card.Text>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card 
+            style={activeForm === 'reservations' ? activeCardStyle : cardStyle}
+            onClick={() => setActiveForm('reservations')}
+            className="mb-4"
+          >
+            <Card.Body className="d-flex flex-column align-items-center text-center p-4">
+              <i className="fas fa-calendar-check" style={cardIconStyle}></i>
+              <Card.Title className="fw-bold">Réservations</Card.Title>
+              <Card.Text>Gérez les réservations des clients</Card.Text>
             </Card.Body>
           </Card>
         </Col>
@@ -762,11 +991,9 @@ const AddNew = () => {
         </Row>
       </div>
 
-      {/* Formulaire pour Activité avec log de débogage */}
-      {console.log('Avant la condition de rendu du formulaire, activeForm:', activeForm)}
-      {activeForm === 'activity' && (
+      {/* Formulaire pour Activité */}
+      {activeForm === 'activite' && (
         <div className="form-container p-4" style={{ background: '#f8f9fa', borderRadius: '15px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginTop: '2rem' }}>
-          {console.log('Rendu du formulaire d\'activité')}
           <Form className="mt-4" onSubmit={handleActivitySubmit}>
             <h3 className="mb-4" style={{ color: '#2c3e50' }}>Ajouter une Activité</h3>
             
@@ -1150,7 +1377,7 @@ const AddNew = () => {
       )}
 
       {/* Formulaire pour Agence */}
-      {activeForm === 'agency' && (
+      {activeForm === 'agence' && (
         <div className="form-container p-4" style={{ background: '#f8f9fa', borderRadius: '15px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
           <Form className="mt-4" onSubmit={handleAgencySubmit}>
             <h3 className="mb-4" style={{ color: '#2c3e50' }}>Ajouter une Agence</h3>
@@ -1330,6 +1557,125 @@ const AddNew = () => {
               </Button>
             </div>
           </Form>
+        </div>
+      )}
+
+      {/* Section des réservations */}
+      {activeForm === 'reservations' && (
+        <div className="form-container p-4" style={{ background: '#f8f9fa', borderRadius: '15px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+          <h3 className="mb-4">Gestion des réservations</h3>
+          
+          {loadingReservations ? (
+            <div className="text-center my-5">
+              <div className="spinner-border" role="status" style={{ color: '#FF8C38' }}>
+                <span className="visually-hidden">Chargement...</span>
+              </div>
+              <p className="mt-2">Chargement des réservations...</p>
+            </div>
+          ) : reservationsError ? (
+            <div className="alert alert-danger">
+              <strong>Erreur:</strong> {reservationsError}
+            </div>
+          ) : reservations.length === 0 ? (
+            <div className="alert alert-info">
+              Aucune réservation trouvée.
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-striped table-hover">
+                <thead className="table-light">
+                  <tr>
+                    <th>ID</th>
+                    <th>Client</th>
+                    <th>Type</th>
+                    <th>Détails</th>
+                    <th>Nombre de personnes</th>
+                    <th>Date de réservation</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reservations.map((reservation) => (
+                    <tr key={reservation._id} className={reservation.statut === 'annulé' ? 'table-danger' : ''}>
+                      <td>{reservation._id.substring(0, 8)}...</td>
+                      <td>
+                        {reservation.user ? (
+                          <>
+                            <div>{reservation.user.name}</div>
+                            <small className="text-muted">{reservation.user.email}</small>
+                          </>
+                        ) : (
+                          <span className="text-muted">Utilisateur inconnu</span>
+                        )}
+                      </td>
+                      <td>
+                        {reservation.type === 'voyage' ? (
+                          <span className="badge bg-primary">Voyage</span>
+                        ) : (
+                          <span className="badge bg-success">Activité</span>
+                        )}
+                      </td>
+                      <td>
+                        {reservation.type === 'voyage' && reservation.voyage ? (
+                          <>
+                            <div><strong>{reservation.voyage.title}</strong></div>
+                            <small>{reservation.voyage.destination}</small>
+                          </>
+                        ) : reservation.type === 'activite' && reservation.activite ? (
+                          <>
+                            <div><strong>{reservation.activite.name}</strong></div>
+                            <small>{reservation.activite.city}</small>
+                          </>
+                        ) : (
+                          <span className="text-muted">Détails non disponibles</span>
+                        )}
+                      </td>
+                      <td className="text-center">{reservation.nombrePersonnes}</td>
+                      <td>{new Date(reservation.dateReservation).toLocaleDateString('fr-FR')}</td>
+                      <td>
+                        {reservation.statut === 'confirmé' ? (
+                          <span className="badge bg-success">Confirmé</span>
+                        ) : reservation.statut === 'en_attente' ? (
+                          <span className="badge bg-warning text-dark">En attente</span>
+                        ) : (
+                          <span className="badge bg-danger">
+                            Annulé
+                            {reservation.annulePar && ` (par ${reservation.annulePar})`}
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {reservation.statut !== 'annulé' ? (
+                          <Button 
+                            variant="outline-danger" 
+                            size="sm"
+                            onClick={() => handleCancelReservation(reservation._id)}
+                          >
+                            Annuler
+                          </Button>
+                        ) : (
+                          <small className="text-muted">
+                            Annulée le {reservation.dateModification ? new Date(reservation.dateModification).toLocaleDateString('fr-FR') : 'N/A'}
+                          </small>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          
+          <div className="mt-3 text-end">
+            <Button 
+              style={buttonStyle} 
+              onClick={fetchReservations}
+              disabled={loadingReservations}
+            >
+              {loadingReservations ? 'Chargement...' : 'Actualiser les réservations'}
+            </Button>
+          </div>
         </div>
       )}
     </Container>

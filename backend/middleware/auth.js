@@ -80,7 +80,14 @@ export const adminAuth = async (req, res, next) => {
       role: decoded.role
     });
 
-    if (decoded.role !== 'admin') {
+    // Vérification plus robuste du rôle admin (insensible à la casse)
+    const userRole = decoded.role || '';
+    const isAdmin = userRole.toLowerCase() === 'admin';
+    
+    console.log('Rôle brut:', userRole);
+    console.log('Est admin:', isAdmin);
+    
+    if (!isAdmin) {
       console.log('Tentative d\'accès administrateur non autorisée');
       return res.status(403).json({ 
         message: "Accès non autorisé. Droits d'administrateur requis.",

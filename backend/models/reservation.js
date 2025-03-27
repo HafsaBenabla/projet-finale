@@ -38,6 +38,15 @@ const reservationSchema = new mongoose.Schema({
     type: String,
     enum: ['confirmé', 'en_attente', 'annulé'],
     default: 'confirmé'
+  },
+  annulePar: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: null
+  },
+  dateModification: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true
