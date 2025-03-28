@@ -139,33 +139,43 @@ const Profile = () => {
     setCancelingReservations(prev => [...prev, reservationId]);
 
     try {
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      };
+      console.log('Tentative d\'annulation de la réservation avec axios.patch:', reservationId);
 
-      // Appel à l'API pour annuler la réservation
-      await axios.delete(`http://localhost:5000/api/reservations/${reservationId}`, config);
+      // Utiliser axios.patch avec la route "/:id/annuler" dont nous savons qu'elle est fonctionnelle
+      const response = await axios.patch(
+        `http://localhost:5000/api/reservations/${reservationId}/annuler`, 
+        {}, // Corps vide
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      console.log('Réservation annulée avec succès:', response.data);
 
       // Récupérer les détails de la réservation avant de la supprimer de l'état
       const reservation = reservations[type].find(r => r._id === reservationId);
-      const reservationTitle = type === 'voyages' 
-        ? reservation.voyage?.title || 'ce voyage' 
-        : reservation.activite?.titre || 'cette activité';
+      
+      // Fallback au cas où la réservation n'existe pas dans l'état local
+      const reservationTitle = reservation 
+        ? (type === 'voyages' 
+            ? reservation.voyage?.title || 'ce voyage' 
+            : reservation.activite?.titre || 'cette activité')
+        : 'cette réservation';
 
-      // Mettre à jour la liste des réservations
+      // Mettre à jour la liste des réservations en la retirant localement
       setReservations(prev => ({
         ...prev,
-        [type]: prev[type].filter(reservation => reservation._id !== reservationId)
+        [type]: prev[type].filter(r => r._id !== reservationId)
       }));
 
       // Afficher un message de confirmation
       setNotification({ 
         message: `Votre réservation pour "${reservationTitle}" a été annulée avec succès.`, 
         type: 'success',
-        details: `Référence de réservation: ${reservationId.substring(0, 8)}`,
+        details: 'La réservation a été supprimée et les places ont été libérées.',
         timestamp: new Date().toLocaleTimeString()
       });
 
@@ -175,20 +185,33 @@ const Profile = () => {
       }, 5000);
 
     } catch (err) {
-      console.error('Erreur lors de l\'annulation de la réservation:', err);
+      console.error('Erreur lors de l\'annulation:', err);
       
-      // Afficher un message d'erreur
+      let errorMessage = 'Échec de l\'annulation de la réservation';
+      let errorDetails = '';
+      
+      if (err.message.includes('Network Error') || err.message.includes('Failed to fetch')) {
+        errorMessage = 'Impossible de se connecter au serveur';
+        errorDetails = 'Vérifiez que le serveur backend est en cours d\'exécution.';
+      } else if (err.response) {
+        errorMessage = `Erreur ${err.response.status}`;
+        errorDetails = err.response.data?.message || 'Erreur lors du traitement de la demande.';
+      } else {
+        errorDetails = err.message;
+      }
+      
+      // Afficher une notification d'erreur
       setNotification({ 
-        message: 'Échec de l\'annulation de la réservation', 
+        message: errorMessage, 
         type: 'error',
-        details: err.response?.data?.message || 'Une erreur s\'est produite lors de la communication avec le serveur',
+        details: errorDetails,
         timestamp: new Date().toLocaleTimeString()
       });
 
-      // Effacer le message après 5 secondes
+      // Effacer le message après 8 secondes
       setTimeout(() => {
         setNotification({ message: '', type: '', details: '', timestamp: '' });
-      }, 5000);
+      }, 8000);
     } finally {
       // Retirer l'ID de la liste des annulations en cours
       setCancelingReservations(prev => prev.filter(id => id !== reservationId));

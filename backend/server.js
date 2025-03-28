@@ -25,7 +25,7 @@ const PORT = 5000;
 // Configuration CORS détaillée
 app.use(cors({
   origin: true, // Permet toutes les origines en développement
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
   credentials: true,
   optionsSuccessStatus: 200

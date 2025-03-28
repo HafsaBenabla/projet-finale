@@ -393,41 +393,52 @@ router.get('/activites/:userId', auth, async (req, res) => {
 // Annuler une réservation
 router.delete('/:id', auth, async (req, res) => {
   try {
-    console.log('Tentative d\'annulation de réservation:', {
+    console.log('=== DÉBUT DE LA SUPPRESSION DE RÉSERVATION ===');
+    console.log('Tentative de suppression de la réservation:', {
       reservationId: req.params.id,
-      userId: req.user.userId
+      userId: req.user.userId || req.user._id,
+      method: req.method,
+      url: req.originalUrl
     });
 
+    // Rechercher la réservation avec l'ID spécifié
     const reservation = await Reservation.findById(req.params.id);
     
     if (!reservation) {
+      console.log('Réservation non trouvée avec l\'ID:', req.params.id);
       return res.status(404).json({ message: "Réservation non trouvée" });
     }
 
+    console.log('Réservation trouvée:', {
+      id: reservation._id,
+      type: reservation.type,
+      user: reservation.user,
+      voyage: reservation.voyage,
+      nombrePersonnes: reservation.nombrePersonnes
+    });
+
+    // Pour compatibilité, accepter à la fois userId et _id
     const reservationUserId = reservation.user.toString();
-    const tokenUserId = req.user.userId;
+    const tokenUserId = req.user.userId || req.user._id;
     
     console.log('Comparaison des IDs pour autorisation:', {
       reservationUserId,
       tokenUserId,
-      reservationUserIdType: typeof reservationUserId,
-      tokenUserIdType: typeof tokenUserId
+      match: reservationUserId === tokenUserId.toString()
     });
 
-    // Vérifier si l'ID utilisateur du token correspond à l'ID utilisateur de la réservation
-    if (reservationUserId !== tokenUserId) {
-      console.log('Tentative d\'annulation non autorisée - IDs ne correspondent pas');
-      return res.status(403).json({ message: "Vous n'êtes pas autorisé à annuler cette réservation" });
+    // Vérifier l'autorisation (utilisateur ou administrateur)
+    const isAdmin = req.user.role === 'admin';
+    if (reservationUserId !== tokenUserId.toString() && !isAdmin) {
+      console.log('Tentative de suppression non autorisée - IDs ne correspondent pas');
+      return res.status(403).json({ message: "Vous n'êtes pas autorisé à supprimer cette réservation" });
     }
 
     // Si c'est une réservation de voyage, mettre à jour le nombre de places disponibles
     if (reservation.type === 'voyage') {
       try {
-        // Analyser en détail l'objet réservation et les références
-        console.log('Détails complets de la réservation:', JSON.stringify(reservation, null, 2));
-        console.log('Type de la propriété voyage:', typeof reservation.voyage);
-        
-        // Identifier l'ID du voyage de différentes manières possibles
+        console.log('Réservation de type voyage, mise à jour des places...');
+        // Identifier l'ID du voyage
         const voyageId = reservation.voyage ? 
                         (typeof reservation.voyage === 'object' ? 
                           reservation.voyage._id : reservation.voyage) : 
@@ -435,39 +446,22 @@ router.delete('/:id', auth, async (req, res) => {
         
         console.log('ID du voyage extrait:', voyageId);
         
-        if (!voyageId) {
-          console.log('Impossible de trouver l\'ID du voyage dans la réservation');
-          // Essayer de récupérer la réservation complète avec populate
-          const reservationComplete = await Reservation.findById(reservation._id)
-            .populate('voyage');
-          console.log('Réservation après populate:', reservationComplete);
-          
-          if (reservationComplete && reservationComplete.voyage) {
-            console.log('ID du voyage trouvé après populate:', 
-              typeof reservationComplete.voyage === 'object' ? 
-                reservationComplete.voyage._id : 
-                reservationComplete.voyage);
-          }
-        }
-        
-        // Trouver et mettre à jour le voyage
         if (voyageId) {
+          // Trouver et mettre à jour le voyage
           console.log('Recherche du voyage avec ID:', voyageId);
           const voyage = await Voyage.findById(voyageId);
           
           if (voyage) {
             console.log('Voyage trouvé:', {
-              id: voyage._id,
               title: voyage.title,
               availableSpots: voyage.availableSpots,
               maxPlaces: voyage.maxPlaces
             });
             
-            // Enregistrer l'état initial
+            // Calculer le nouveau nombre de places disponibles
             const placesInitiales = voyage.availableSpots;
-            
-            // Incrémenter le nombre de places disponibles
-            voyage.availableSpots += reservation.nombrePersonnes;
+            const nombrePersonnes = reservation.nombrePersonnes || 1; // Par défaut 1 si non spécifié
+            voyage.availableSpots += nombrePersonnes;
             
             // Vérifier que le nombre de places disponibles ne dépasse pas le maximum
             if (voyage.availableSpots > voyage.maxPlaces) {
@@ -478,52 +472,62 @@ router.delete('/:id', auth, async (req, res) => {
               voyage.availableSpots = voyage.maxPlaces;
             }
             
-            // Mettre à jour directement dans la base de données pour éviter les problèmes de validation
+            // Mettre à jour le voyage directement
             const updateResult = await Voyage.updateOne(
               { _id: voyageId },
               { $set: { availableSpots: voyage.availableSpots } }
             );
             
-            console.log('Résultat de la mise à jour:', updateResult);
-            console.log('Places disponibles mises à jour:', {
+            console.log('Résultat de la mise à jour des places:', {
+              acknowledged: updateResult.acknowledged,
+              modifiedCount: updateResult.modifiedCount,
               avant: placesInitiales,
               après: voyage.availableSpots,
-              différence: voyage.availableSpots - placesInitiales,
-              personnes: reservation.nombrePersonnes
-            });
-            
-            // Vérifier que la mise à jour a bien été effectuée
-            const voyageVerif = await Voyage.findById(voyageId);
-            console.log('Vérification après mise à jour:', {
-              availableSpots: voyageVerif.availableSpots
+              différence: voyage.availableSpots - placesInitiales
             });
           } else {
             console.log('Voyage non trouvé avec l\'ID:', voyageId);
           }
         } else {
-          console.log('Aucun ID de voyage valide trouvé pour mettre à jour les places');
+          console.log('Aucun ID de voyage valide trouvé');
         }
       } catch (error) {
-        console.error('Erreur détaillée lors de la mise à jour des places disponibles:', {
+        console.error('Erreur lors de la mise à jour des places disponibles:', {
           message: error.message,
           stack: error.stack
         });
-        // On continue même si la mise à jour des places échoue
+        // Continuer malgré l'erreur
       }
     }
     
     // Supprimer la réservation
-    await reservation.deleteOne();
-    console.log('Réservation annulée avec succès');
-    res.json({ message: "Réservation annulée avec succès" });
+    const deleteResult = await Reservation.deleteOne({ _id: req.params.id });
+    
+    console.log('Résultat de la suppression:', {
+      acknowledged: deleteResult.acknowledged,
+      deletedCount: deleteResult.deletedCount
+    });
+    
+    if (deleteResult.deletedCount === 0) {
+      console.log('Échec de la suppression - aucune réservation supprimée');
+      return res.status(500).json({ message: "Échec de la suppression de la réservation" });
+    }
+    
+    console.log('=== FIN DE LA SUPPRESSION DE RÉSERVATION (SUCCÈS) ===');
+    res.json({ 
+      message: "Réservation supprimée avec succès",
+      reservationId: req.params.id,
+      voyageId: reservation.voyage,
+      nombrePlacesLibérées: reservation.nombrePersonnes || 1
+    });
   } catch (err) {
-    console.error('Erreur lors de l\'annulation de la réservation:', {
+    console.error('=== ERREUR LORS DE LA SUPPRESSION DE RÉSERVATION ===', {
       message: err.message,
       stack: err.stack,
       reservationId: req.params.id,
-      userId: req.user.userId
+      userId: req.user?.userId || req.user?._id
     });
-    res.status(500).json({ message: "Erreur lors de l'annulation de la réservation" });
+    res.status(500).json({ message: "Erreur lors de la suppression de la réservation" });
   }
 });
 
