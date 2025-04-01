@@ -84,3 +84,50 @@
 /* Styles pour faire fonctionner le design actuel */
 /* Ces styles sont déjà dans TailwindCSS, mais ils sont inclus ici pour assurer la compatibilité */
 /* si jamais certaines classes TailwindCSS ne sont pas appliquées correctement */ 
+
+/* Media Queries pour Mobile */
+@media screen and (max-width: 640px) {
+  .content-contact {
+    padding: 0 0.75rem;
+  }
+
+  .contact-container {
+    padding: 1rem 0;
+  }
+
+  .contact-form {
+    gap: 1rem;
+  }
+
+  .form-control {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+  }
+
+  .submit-btn {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+  }
+
+  .alert {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* Media Queries pour les très petits écrans */
+@media screen and (max-width: 380px) {
+  .content-contact {
+    padding: 0 0.5rem;
+  }
+
+  .form-control {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .submit-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
+  }
+}

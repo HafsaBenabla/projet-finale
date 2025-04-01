@@ -17,6 +17,11 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile'
 import CityAgencies from './pages/CityAgencies'
+import AddActivity from './pages/AddActivity'
+import ActivitiesManagement from './pages/ActivitiesManagement'
+import VoyagesManagement from './pages/VoyagesManagement'
+import AgenciesManagement from './pages/AgenciesManagement'
+import ReservationsManagement from './pages/ReservationsManagement'
 import { VoyagesProvider } from './context/VoyagesContext'
 import { AuthProvider } from './context/AuthContext'
 
@@ -44,6 +49,11 @@ const App = () => {
                 <Route path="/register" element={<Register />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/city/:cityName" element={<CityAgencies />} />
+                <Route path="/ajouter-activite" element={<AddActivity />} />
+                <Route path="/gestion-activites" element={<ActivitiesManagement />} />
+                <Route path="/admin/voyages" element={<VoyagesManagement />} />
+                <Route path="/admin/agencies" element={<AgenciesManagement />} />
+                <Route path="/admin/reservations" element={<ReservationsManagement />} />
               </Routes>
             </main>
             <Footer />

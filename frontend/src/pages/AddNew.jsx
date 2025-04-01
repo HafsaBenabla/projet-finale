@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Card, Row, Col, Form, Button } from 'react-bootstrap';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ImageUploader from '../components/ImageUploader';
+import { FaCog, FaPlane, FaBuilding, FaMap, FaListAlt, FaCalendarCheck, FaCalendarAlt, FaPlus } from 'react-icons/fa';
 
 const AddNew = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeForm, setActiveForm] = useState(null);
   const [error, setError] = useState(null);
   const [agencies, setAgencies] = useState([]);
@@ -452,8 +454,9 @@ const AddNew = () => {
 
       console.log('Réponse agence:', response.data);
       
-      if (response.data.agency) {
-        console.log('Agence sauvegardée avec succès:', response.data.agency);
+      if (response.data.agency || response.data) {
+        const savedAgency = response.data.agency || response.data;
+        console.log('Agence sauvegardée avec succès:', savedAgency);
         alert('Agence ajoutée avec succès!');
         
         // Réinitialiser le formulaire
@@ -468,7 +471,7 @@ const AddNew = () => {
           image: ''
         });
         
-        navigate('/');
+        navigate('/admin/agencies');
       } else {
         throw new Error('Erreur lors de la sauvegarde de l\'agence');
       }
@@ -642,357 +645,131 @@ const AddNew = () => {
     window.location.reload(); // Recharger la page pour appliquer les changements
   };
 
+  // Naviguer vers la page de gestion des activités
+  const goToActivitiesManagement = () => {
+    navigate('/gestion-activites');
+  };
+
+  // Naviguer vers la page de gestion des voyages
+  const goToVoyagesManagement = () => {
+    navigate('/admin/voyages');
+  };
+
+  // Naviguer vers la page de gestion des agences
+  const goToAgenciesManagement = () => {
+    navigate('/admin/agencies');
+  };
+
+  // Naviguer vers la page de gestion des réservations
+  const goToReservationsManagement = () => {
+    navigate('/admin/reservations');
+  };
+
+  // Activez le formulaire approprié si spécifié dans l'état de navigation
+  useEffect(() => {
+    if (location.state?.activateForm) {
+      console.log('Activation du formulaire:', location.state.activateForm);
+      setActiveForm(location.state.activateForm);
+      // Nettoyez l'état pour éviter de réactiver le formulaire lors des navigations ultérieures
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location, navigate]);
+
   return (
     <Container className="py-5">
-      <h1 className="text-center mb-5 display-4 fw-bold" style={{ color: '#FF8C38' }}>
-        Tableau de bord administrateur
-      </h1>
-
-      {/* Bouton d'accès forcé (visible uniquement en développement) */}
-      <div className="text-center mb-4">
-        {localStorage.getItem('forceAdminAccess') === 'true' ? (
-          <Button 
-            variant="warning" 
-            size="sm" 
-            onClick={disableForceAdminAccess}
-            style={{ backgroundColor: '#ff9800', borderColor: '#ff9800' }}
-          >
-            <i className="fas fa-lock me-2"></i>
-            Désactiver l'accès administrateur forcé
-          </Button>
-        ) : (
-          <Button 
-            variant="danger" 
-            size="sm" 
-            onClick={enableForceAdminAccess}
-            style={{ backgroundColor: '#f44336', borderColor: '#f44336' }}
-          >
-            <i className="fas fa-key me-2"></i>
-            Activer l'accès administrateur
-          </Button>
-        )}
-      </div>
-
+      <h2 className="text-center mb-5 font-bold text-orange-600 text-3xl">Tableau de Bord <span className="text-gray-800">Administratif</span></h2>
+      
+      {/* Section de gestion avec trois cartes */}
       <Row className="mb-5">
-        <Col md={3}>
+        <Col md={3} className="mb-4">
           <Card 
-            style={activeForm === 'voyage' ? activeCardStyle : cardStyle}
-            onClick={() => setActiveForm('voyage')}
-            className="mb-4"
+            className="h-100 shadow border-0 rounded-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-1"
+            onClick={goToActivitiesManagement}
           >
-            <Card.Body className="d-flex flex-column align-items-center text-center p-4">
-              <i className="fas fa-plane" style={cardIconStyle}></i>
-              <Card.Title className="fw-bold">Ajouter un voyage</Card.Title>
-              <Card.Text>Créez et gérez les offres de voyages</Card.Text>
+            <div className="bg-gradient-to-r from-orange-400 to-amber-500 text-white p-4 text-center">
+              <FaMap className="text-5xl mb-2 mx-auto" />
+              <h3 className="text-xl font-bold">Gestion des Activités</h3>
+            </div>
+            <Card.Body className="bg-orange-50">
+              <p className="text-gray-700 mb-4">
+                Consultez, ajoutez, modifiez ou supprimez des activités pour les voyages et destinations locales.
+              </p>
+              <div className="d-flex align-items-center text-orange-600">
+                <FaListAlt className="me-2" />
+                <span>Voir toutes les activités</span>
+              </div>
             </Card.Body>
           </Card>
         </Col>
-        <Col md={3}>
+        
+        <Col md={3} className="mb-4">
           <Card 
-            style={activeForm === 'activite' ? activeCardStyle : cardStyle}
-            onClick={() => setActiveForm('activite')}
-            className="mb-4"
+            className="h-100 shadow border-0 rounded-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-1"
+            onClick={goToVoyagesManagement}
           >
-            <Card.Body className="d-flex flex-column align-items-center text-center p-4">
-              <i className="fas fa-hiking" style={cardIconStyle}></i>
-              <Card.Title className="fw-bold">Ajouter une activité</Card.Title>
-              <Card.Text>Ajoutez des activités locales ou pour les voyages</Card.Text>
+            <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 text-center">
+              <FaPlane className="text-5xl mb-2 mx-auto" />
+              <h3 className="text-xl font-bold">Gestion des Voyages</h3>
+            </div>
+            <Card.Body className="bg-orange-50">
+              <p className="text-gray-700 mb-4">
+                Consultez, ajoutez, modifiez ou supprimez des voyages, circuits et packages touristiques.
+              </p>
+              <div className="d-flex align-items-center text-orange-600">
+                <FaListAlt className="me-2" />
+                <span>Voir tous les voyages</span>
+              </div>
             </Card.Body>
           </Card>
         </Col>
-        <Col md={3}>
+        
+        <Col md={3} className="mb-4">
           <Card 
-            style={activeForm === 'agence' ? activeCardStyle : cardStyle}
-            onClick={() => setActiveForm('agence')}
-            className="mb-4"
+            className="h-100 shadow border-0 rounded-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-1"
+            onClick={goToAgenciesManagement}
           >
-            <Card.Body className="d-flex flex-column align-items-center text-center p-4">
-              <i className="fas fa-building" style={cardIconStyle}></i>
-              <Card.Title className="fw-bold">Ajouter une agence</Card.Title>
-              <Card.Text>Gérez les agences de voyage partenaires</Card.Text>
+            <div className="bg-gradient-to-r from-orange-600 to-red-500 text-white p-4 text-center">
+              <FaBuilding className="text-5xl mb-2 mx-auto" />
+              <h3 className="text-xl font-bold">Gestion des Agences</h3>
+            </div>
+            <Card.Body className="bg-orange-50">
+              <p className="text-gray-700 mb-4">
+                Consultez, ajoutez, modifiez ou supprimez des agences partenaires et leurs informations.
+              </p>
+              <div className="d-flex align-items-center justify-content-between">
+                <div className="d-flex align-items-center text-orange-600">
+                  <FaListAlt className="me-2" />
+                  <span>Voir toutes les agences</span>
+                </div>
+              </div>
             </Card.Body>
           </Card>
         </Col>
-        <Col md={3}>
+        
+        <Col md={3} className="mb-4">
           <Card 
-            style={activeForm === 'reservations' ? activeCardStyle : cardStyle}
-            onClick={() => setActiveForm('reservations')}
-            className="mb-4"
+            className="h-100 shadow border-0 rounded-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-1"
+            onClick={goToReservationsManagement}
           >
-            <Card.Body className="d-flex flex-column align-items-center text-center p-4">
-              <i className="fas fa-calendar-check" style={cardIconStyle}></i>
-              <Card.Title className="fw-bold">Réservations</Card.Title>
-              <Card.Text>Gérez les réservations des clients</Card.Text>
+            <div className="bg-gradient-to-r from-red-500 to-amber-600 text-white p-4 text-center">
+              <FaCalendarCheck className="text-5xl mb-2 mx-auto" />
+              <h3 className="text-xl font-bold">Gestion des Réservations</h3>
+            </div>
+            <Card.Body className="bg-orange-50">
+              <p className="text-gray-700 mb-4">
+                Consultez et gérez les réservations d'activités et de voyages des clients.
+              </p>
+              <div className="d-flex align-items-center text-orange-600">
+                <FaListAlt className="me-2" />
+                <span>Voir toutes les réservations</span>
+              </div>
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
-      <div className="deletion-section py-5" style={{ background: '#f8f9fa', borderRadius: '20px', marginTop: '2rem', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)' }}>
-        <h2 className="text-center mb-4" style={{ color: '#dc3545', fontWeight: '600', fontSize: '2rem' }}>
-          <i className="fas fa-shield-alt me-2"></i>
-          Zone de Suppression
-        </h2>
-        <p className="text-center text-muted mb-5" style={{ maxWidth: '600px', margin: '0 auto' }}>
-          Cette zone permet de supprimer des éléments de la base de données. Attention, cette action est irréversible.
-        </p>
-
-        <Row className="g-4 mb-5">
-          {/* Carte pour Supprimer Activité */}
-          <Col md={4}>
-            <Card 
-              style={{
-                ...cardStyle,
-                border: activeForm === 'delete-activity' ? '2px solid #dc3545' : '1px solid rgba(220, 53, 69, 0.2)',
-                transform: activeForm === 'delete-activity' ? 'translateY(-5px)' : 'none',
-                transition: 'all 0.3s ease'
-              }}
-              onClick={() => setActiveForm('delete-activity')}
-              className="text-center p-4 h-100"
-            >
-              <Card.Body>
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '50%',
-                  background: 'rgba(220, 53, 69, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 1rem'
-                }}>
-                  <i className="fas fa-hiking" style={{ fontSize: '1.5rem', color: '#dc3545' }}></i>
-                </div>
-                <Card.Title style={{ color: '#dc3545', fontSize: '1.3rem', marginBottom: '1rem' }}>
-                  Supprimer une Activité
-                </Card.Title>
-                <Card.Text style={{ color: '#6c757d', fontSize: '0.9rem' }}>
-                  Suppression sécurisée d'une activité existante
-                </Card.Text>
-              </Card.Body>
-            </Card>
-          </Col>
-
-          {/* Carte pour Supprimer Voyage */}
-          <Col md={4}>
-            <Card 
-              style={{
-                ...cardStyle,
-                border: activeForm === 'delete-voyage' ? '2px solid #dc3545' : '1px solid rgba(220, 53, 69, 0.2)',
-                transform: activeForm === 'delete-voyage' ? 'translateY(-5px)' : 'none',
-                transition: 'all 0.3s ease'
-              }}
-              onClick={() => setActiveForm('delete-voyage')}
-              className="text-center p-4 h-100"
-            >
-              <Card.Body>
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '50%',
-                  background: 'rgba(220, 53, 69, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 1rem'
-                }}>
-                  <i className="fas fa-plane-departure" style={{ fontSize: '1.5rem', color: '#dc3545' }}></i>
-                </div>
-                <Card.Title style={{ color: '#dc3545', fontSize: '1.3rem', marginBottom: '1rem' }}>
-                  Supprimer un Voyage
-                </Card.Title>
-                <Card.Text style={{ color: '#6c757d', fontSize: '0.9rem' }}>
-                  Suppression sécurisée d'un voyage existant
-                </Card.Text>
-              </Card.Body>
-            </Card>
-          </Col>
-
-          {/* Carte pour Supprimer Agence */}
-          <Col md={4}>
-            <Card 
-              style={{
-                ...cardStyle,
-                border: activeForm === 'delete-agency' ? '2px solid #dc3545' : '1px solid rgba(220, 53, 69, 0.2)',
-                transform: activeForm === 'delete-agency' ? 'translateY(-5px)' : 'none',
-                transition: 'all 0.3s ease'
-              }}
-              onClick={() => setActiveForm('delete-agency')}
-              className="text-center p-4 h-100"
-            >
-              <Card.Body>
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '50%',
-                  background: 'rgba(220, 53, 69, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 1rem'
-                }}>
-                  <i className="fas fa-building" style={{ fontSize: '1.5rem', color: '#dc3545' }}></i>
-                </div>
-                <Card.Title style={{ color: '#dc3545', fontSize: '1.3rem', marginBottom: '1rem' }}>
-                  Supprimer une Agence
-                </Card.Title>
-                <Card.Text style={{ color: '#6c757d', fontSize: '0.9rem' }}>
-                  Suppression sécurisée d'une agence existante
-                </Card.Text>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-
-        {/* Formulaires de suppression simplifiés */}
-        <Row className="justify-content-center mt-4">
-          <Col md={6}>
-            {activeForm === 'delete-activity' && (
-              <Card style={{
-                background: 'white',
-                borderRadius: '15px',
-                boxShadow: '0 4px 6px rgba(220, 53, 69, 0.1)',
-                border: '1px solid rgba(220, 53, 69, 0.2)'
-              }}>
-                <Card.Body className="p-4">
-                  <Form onSubmit={handleActivityDelete}>
-                    <Form.Group className="mb-3">
-                      <Form.Label style={{ color: '#dc3545', fontWeight: '500', fontSize: '1.1rem' }}>
-                        ID de l'activité à supprimer
-                      </Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={deleteActivityId}
-                        onChange={(e) => setDeleteActivityId(e.target.value)}
-                        required
-                        style={{ 
-                          borderRadius: '8px',
-                          border: '1px solid rgba(220, 53, 69, 0.3)',
-                          padding: '0.75rem',
-                          fontSize: '1rem'
-                        }}
-                        placeholder="Entrez l'ID de l'activité"
-                      />
-                    </Form.Group>
-                    <div className="d-flex justify-content-end">
-                      <Button 
-                        type="submit"
-                        style={{
-                          backgroundColor: '#dc3545',
-                          border: 'none',
-                          padding: '0.75rem 1.5rem',
-                          borderRadius: '8px',
-                          transition: 'all 0.3s ease'
-                        }}
-                      >
-                        <i className="fas fa-trash-alt me-2"></i>
-                        Supprimer l'activité
-                      </Button>
-                    </div>
-                  </Form>
-                </Card.Body>
-              </Card>
-            )}
-
-            {activeForm === 'delete-voyage' && (
-              <Card style={{
-                background: 'white',
-                borderRadius: '15px',
-                boxShadow: '0 4px 6px rgba(220, 53, 69, 0.1)',
-                border: '1px solid rgba(220, 53, 69, 0.2)'
-              }}>
-                <Card.Body className="p-4">
-                  <Form onSubmit={handleVoyageDelete}>
-                    <Form.Group className="mb-3">
-                      <Form.Label style={{ color: '#dc3545', fontWeight: '500', fontSize: '1.1rem' }}>
-                        ID du voyage à supprimer
-                      </Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={deleteVoyageId}
-                        onChange={(e) => setDeleteVoyageId(e.target.value)}
-                        required
-                        style={{ 
-                          borderRadius: '8px',
-                          border: '1px solid rgba(220, 53, 69, 0.3)',
-                          padding: '0.75rem',
-                          fontSize: '1rem'
-                        }}
-                        placeholder="Entrez l'ID du voyage"
-                      />
-                    </Form.Group>
-                    <div className="d-flex justify-content-end">
-                      <Button 
-                        type="submit"
-                        style={{
-                          backgroundColor: '#dc3545',
-                          border: 'none',
-                          padding: '0.75rem 1.5rem',
-                          borderRadius: '8px',
-                          transition: 'all 0.3s ease'
-                        }}
-                      >
-                        <i className="fas fa-trash-alt me-2"></i>
-                        Supprimer le voyage
-                      </Button>
-                    </div>
-                  </Form>
-                </Card.Body>
-              </Card>
-            )}
-
-            {activeForm === 'delete-agency' && (
-              <Card style={{
-                background: 'white',
-                borderRadius: '15px',
-                boxShadow: '0 4px 6px rgba(220, 53, 69, 0.1)',
-                border: '1px solid rgba(220, 53, 69, 0.2)'
-              }}>
-                <Card.Body className="p-4">
-                  <Form onSubmit={handleAgencyDelete}>
-                    <Form.Group className="mb-3">
-                      <Form.Label style={{ color: '#dc3545', fontWeight: '500', fontSize: '1.1rem' }}>
-                        ID de l'agence à supprimer
-                      </Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={deleteAgencyId}
-                        onChange={(e) => setDeleteAgencyId(e.target.value)}
-                        required
-                        style={{ 
-                          borderRadius: '8px',
-                          border: '1px solid rgba(220, 53, 69, 0.3)',
-                          padding: '0.75rem',
-                          fontSize: '1rem'
-                        }}
-                        placeholder="Entrez l'ID de l'agence"
-                      />
-                    </Form.Group>
-                    <div className="d-flex justify-content-end">
-                      <Button 
-                        type="submit"
-                        style={{
-                          backgroundColor: '#dc3545',
-                          border: 'none',
-                          padding: '0.75rem 1.5rem',
-                          borderRadius: '8px',
-                          transition: 'all 0.3s ease'
-                        }}
-                      >
-                        <i className="fas fa-trash-alt me-2"></i>
-                        Supprimer l'agence
-                      </Button>
-                    </div>
-                  </Form>
-                </Card.Body>
-              </Card>
-            )}
-          </Col>
-        </Row>
-      </div>
-
       {/* Formulaire pour Activité */}
-      {activeForm === 'activite' && (
+      {activeForm === 'activity' && (
         <div className="form-container p-4" style={{ background: '#f8f9fa', borderRadius: '15px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginTop: '2rem' }}>
           <Form className="mt-4" onSubmit={handleActivitySubmit}>
             <h3 className="mb-4" style={{ color: '#2c3e50' }}>Ajouter une Activité</h3>
@@ -1377,7 +1154,7 @@ const AddNew = () => {
       )}
 
       {/* Formulaire pour Agence */}
-      {activeForm === 'agence' && (
+      {activeForm === 'agency' && (
         <div className="form-container p-4" style={{ background: '#f8f9fa', borderRadius: '15px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
           <Form className="mt-4" onSubmit={handleAgencySubmit}>
             <h3 className="mb-4" style={{ color: '#2c3e50' }}>Ajouter une Agence</h3>

@@ -105,11 +105,11 @@ const Home = () => {
         <div className="absolute inset-0 bg-black/50" />
         <div className="w-full max-w-[1400px] mx-auto px-4 relative h-full flex flex-col items-center justify-center text-white">
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold text-center mb-4 sm:mb-6 tracking-tight">
-            Le Sahara Marocain
+            Le Maroc Authentique
             <span className="block mt-2 text-orange-400">Vous Attend</span>
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl text-center mb-8 sm:mb-12 max-w-3xl px-4">
-            Découvrez la magie des dunes dorées et vivez une aventure inoubliable
+            Découvrez toutes les merveilles du Maroc, des montagnes aux plages, des médinas aux déserts
           </p>
 
           {/* Search Bar */}

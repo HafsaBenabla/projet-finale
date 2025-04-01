@@ -12,6 +12,54 @@
   transition: opacity 0.3s ease-out, transform 0.3s ease-out;
 }
 
+/* Animation pour la modale de téléphone */
+.phone-modal-backdrop {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.phone-modal-content {
+  animation: slideIn 0.3s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Utilitaire de troncation de texte - pour responsivité */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Classe pour animer la barre de progression */
 .progress-bar {
   position: absolute;
@@ -28,23 +76,451 @@
 
 /* Effet hover sur les cartes de réservation */
 .reservation-card {
-  transition: all 0.2s ease-in-out;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #f0f0f0;
 }
 
 .reservation-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.15), 0 6px 10px -4px rgba(0, 0, 0, 0.1);
+  border-color: #fed7aa;
 }
 
 /* Animation pour le bouton d'annulation */
 .cancel-button {
-  transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
+  transition: all 0.25s ease-in-out;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
 }
 
 .cancel-button:hover:not(:disabled) {
   transform: scale(1.03);
+  background-color: #fee2e2;
 }
 
 .cancel-button:active:not(:disabled) {
   transform: scale(0.98);
+}
+
+/* Style pour la section d'en-tête */
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.025em;
+}
+
+/* Animation pour la photo de profil */
+.flex-shrink-0 .rounded-full {
+  transition: all 0.4s ease;
+  position: relative;
+}
+
+.flex-shrink-0 .rounded-full:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 25px -5px rgba(249, 115, 22, 0.3), 0 8px 10px -6px rgba(249, 115, 22, 0.2);
+}
+
+/* Effet de bordure dégradée pour les cartes */
+.bg-white {
+  position: relative;
+}
+
+.bg-white.rounded-lg::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  height: 3px;
+  background: linear-gradient(to right, #f97316, #fdba74);
+  border-radius: 8px 8px 0 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.bg-white.rounded-lg:hover::before {
+  opacity: 1;
+}
+
+/* Animation pour les badges de statut */
+.rounded-full.text-sm.font-medium {
+  transition: all 0.3s ease;
+}
+
+.rounded-full.text-sm.font-medium:hover {
+  transform: scale(1.08);
+}
+
+/* Animation de chargement */
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+.animate-spin {
+  animation: breathe 2s infinite ease-in-out, spin 1s linear infinite;
+}
+
+/* Style pour les info-bulles */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(249, 115, 22, 0.95);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  z-index: 10;
+  pointer-events: none;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+[data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Styles pour les cartes d'administration */
+.admin-card {
+  transition: all 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+.admin-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.admin-card .w-16.h-16 {
+  transition: all 0.4s ease;
+}
+
+.admin-card:hover .w-16.h-16 {
+  transform: scale(1.1);
+}
+
+/* Animation pour les modales d'administration */
+.admin-modal-backdrop {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.admin-modal-content {
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Animation pour les boutons d'action dans les modales */
+.admin-modal-content button {
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-modal-content button.text-blue-500,
+.admin-modal-content button.text-yellow-500,
+.admin-modal-content button.text-red-500 {
+  transition: all 0.2s ease-in-out;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.admin-modal-content button.text-blue-500:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+  transform: translateY(-2px);
+}
+
+.admin-modal-content button.text-yellow-500:hover {
+  background-color: rgba(245, 158, 11, 0.1);
+  transform: translateY(-2px);
+}
+
+.admin-modal-content button.text-red-500:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Styles pour les tableaux d'administration */
+.admin-table {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.admin-table thead th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+  color: #4b5563;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.admin-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.admin-table tbody td {
+  padding: 0.75rem 1rem;
+  color: #1f2937;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-table .actions-cell {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* Amélioration de l'expérience utilisateur pour les tables scrollables */
+.overflow-auto {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.overflow-auto::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.overflow-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 20px;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.7);
+}
+
+/* =============== STYLES RESPONSIVE POUR MOBILE =============== */
+
+/* Ajustements généraux pour les petits écrans */
+@media (max-width: 640px) {
+  .min-h-screen {
+    padding-top: 12px;
+    padding-left: 8px; 
+    padding-right: 8px;
+  }
+  
+  /* Réduire l'espacement entre les sections */
+  .mb-6 {
+    margin-bottom: 1rem;
+  }
+  
+  /* Adapter l'en-tête pour mobile */
+  .mb-6.py-4.px-6.bg-gradient-to-r {
+    padding: 0.75rem 1rem;
+  }
+  
+  /* Titre plus petit sur mobile */
+  .text-2xl {
+    font-size: 1.25rem;
+  }
+  
+  /* Ajuster la taille de la photo de profil */
+  .w-36.h-36 {
+    width: 5rem;
+    height: 5rem;
+  }
+  
+  /* Adapter la taille des icônes dans la photo de profil */
+  .w-16.h-16 {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  /* Améliorer l'affichage du badge de statut */
+  .rounded-full.text-sm {
+    display: inline-block;
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+  
+  /* Adapter les boutons d'annulation */
+  .cancel-button {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem;
+    margin-top: 0.75rem;
+  }
+  
+  /* Adapter les infobulles pour le mobile */
+  [data-tooltip]::after {
+    white-space: normal;
+    width: 200px;
+    text-align: center;
+  }
+  
+  /* Ajuster les cartes de réservation sur mobile */
+  .reservation-card {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Empêcher l'écrasement des petits écrans par les longs textes */
+  .reservation-card p {
+    max-width: 100%;
+    overflow-wrap: break-word;
+  }
+  
+  /* Ajustements pour les cartes d'administration sur mobile */
+  .admin-card {
+    margin-bottom: 1rem;
+  }
+  
+  .admin-card:hover {
+    transform: translateY(-4px);
+  }
+  
+  /* Adaptations des tableaux admin pour mobile */
+  .admin-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+  }
+  
+  .admin-table th,
+  .admin-table td {
+    min-width: 100px;
+    white-space: nowrap;
+  }
+  
+  .admin-modal-content {
+    max-width: 95%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+}
+
+/* Ajustements spécifiques pour les très petits écrans (iPhone SE, etc.) */
+@media (max-width: 375px) {
+  /* Réduire davantage les espacements */
+  .p-6 {
+    padding: 1rem;
+  }
+  
+  /* Adapter l'en-tête */
+  .flex.justify-between.items-center {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  /* Adapter les cartes de réservation */
+  .reservation-card {
+    padding: 0.75rem;
+  }
+  
+  /* Réduire la hauteur des images de voyage */
+  .h-40.mb-4 {
+    height: 8rem;
+  }
+  
+  /* Réduire la hauteur des images d'activité */
+  .h-32.mb-4 {
+    height: 7rem;
+  }
+  
+  /* Réduire la taille des icônes d'administration sur les très petits écrans */
+  .admin-card .w-16.h-16 {
+    width: 3rem;
+    height: 3rem;
+  }
+  
+  /* Ajuster le padding des cellules de tableaux sur petit écran */
+  .admin-table td,
+  .admin-table th {
+    padding: 0.5rem;
+  }
+}
+
+/* Ajustements pour modale téléphone sur mobile */
+@media (max-width: 640px) {
+  .phone-modal-content,
+  .admin-modal-content {
+    width: 95%;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+  
+  /* Adapter les boutons dans la modale */
+  .phone-modal-content .flex.justify-end.space-x-3,
+  .admin-modal-content .flex.justify-end.space-x-3 {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .phone-modal-content .flex.justify-end.space-x-3 button,
+  .admin-modal-content .flex.justify-end.space-x-3 button {
+    width: 100%;
+    margin: 0;
+  }
+}
+
+/* Ajustements pour la barre d'assistance client */
+@media (max-width: 640px) {
+  .flex.justify-center.gap-3 {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .flex.justify-center.gap-3 button {
+    width: 100%;
+  }
+}
+
+/* Correction du débordement d'écran sur mobile */
+@media (max-width: 640px) {
+  body, html {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  
+  /* Amélioration des performances d'animation sur mobile */
+  .reservation-card:hover,
+  .admin-card:hover {
+    transform: translateY(-2px);
+  }
 } 

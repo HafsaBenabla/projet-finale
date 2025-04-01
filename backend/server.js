@@ -14,6 +14,8 @@ import authRoutes from './routes/auth.js';
 import reservationsRoutes from './routes/reservations.js';
 import voyagesRoutes from './routes/voyages.js';
 import contactRoutes from './routes/contact.js';
+import usersRoutes from './routes/users.js';
+import activitiesRoutes from './routes/activities.js';
 import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -48,6 +50,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/reservations', reservationsRoutes);
 app.use('/api/voyages', voyagesRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/activities', activitiesRoutes);
 
 // Création du dossier uploads s'il n'existe pas
 const uploadDir = path.join(__dirname, 'uploads');
@@ -114,109 +118,6 @@ mongoose.connect('mongodb+srv://admin:admin@cluster0.bedq1.mongodb.net/maghrebxp
     console.error('Error connecting to MongoDB:', err);
     process.exit(1); // Arrêter l'application si la connexion échoue
   });
-
-// Route pour récupérer toutes les activités avec filtrage optionnel
-app.get('/api/activities', async (req, res) => {
-  try {
-    const { type, category, city } = req.query;
-    const filter = {};
-
-    // Appliquer les filtres si spécifiés
-    if (type) filter.type = type;
-    if (category) filter.category = category;
-    if (city) filter.city = city;
-
-    const activities = await Activity.find(filter)
-      .populate('voyageId', 'title destination')
-      .sort({ createdAt: -1 });
-
-    // Formater les URLs des images
-    const formattedActivities = activities.map(activity => {
-      const activityObj = activity.toObject();
-      if (activityObj.image && activityObj.image.includes('/uploads/')) {
-        if (!activityObj.image.startsWith('http')) {
-          activityObj.image = `http://localhost:${PORT}${activityObj.image}`;
-        }
-      }
-      return activityObj;
-    });
-
-    res.json(formattedActivities);
-  } catch (error) {
-    console.error('Erreur lors de la récupération des activités:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post('/api/activities', async (req, res) => {
-  try {
-    console.log('Données reçues pour la création d\'activité:', req.body);
-    
-    const activityData = { ...req.body };
-    
-    // Formatage de l'URL de l'image si nécessaire
-    if (activityData.image && activityData.image.includes('/uploads/')) {
-      if (!activityData.image.startsWith('http')) {
-        activityData.image = `http://localhost:${PORT}${activityData.image}`;
-      }
-    }
-
-    // Si c'est une activité de type voyage, vérifier que le voyage existe
-    let voyage = null;
-    if (activityData.type === 'voyage' && activityData.voyageId) {
-      console.log('Vérification du voyage:', activityData.voyageId);
-      voyage = await Voyage.findById(activityData.voyageId);
-      if (!voyage) {
-        return res.status(404).json({ error: 'Voyage non trouvé' });
-      }
-      console.log('Voyage trouvé:', voyage.title);
-    }
-
-    const activity = new Activity(activityData);
-    const savedActivity = await activity.save();
-    console.log('Activité sauvegardée:', savedActivity._id);
-
-    // Si c'est une activité de voyage, l'ajouter au voyage correspondant
-    if (savedActivity.type === 'voyage' && voyage) {
-      console.log('Ajout de l\'activité au voyage:', voyage._id);
-      
-      if (!voyage.activities.includes(savedActivity._id)) {
-        voyage.activities.push(savedActivity._id);
-        const updatedVoyage = await voyage.save();
-        
-        console.log('Voyage mis à jour avec succès');
-        console.log('Nombre d\'activités dans le voyage:', updatedVoyage.activities.length);
-      } else {
-        console.log('L\'activité est déjà associée à ce voyage');
-      }
-    }
-
-    // Formater l'URL de l'image dans la réponse
-    const activityResponse = savedActivity.toObject();
-    if (activityResponse.image && activityResponse.image.includes('/uploads/')) {
-      if (!activityResponse.image.startsWith('http')) {
-        activityResponse.image = `http://localhost:${PORT}${activityResponse.image}`;
-      }
-    }
-
-    res.status(201).json(activityResponse);
-  } catch (error) {
-    console.error('Erreur lors de la création de l\'activité:', error);
-    res.status(400).json({ error: error.message });
-  }
-});
-
-app.delete('/api/activities/:id', async (req, res) => {
-  try {
-    const activity = await Activity.findByIdAndDelete(req.params.id);
-    if (!activity) {
-      return res.status(404).json({ message: "Activité non trouvée" });
-    }
-    res.json({ message: "Activité supprimée avec succès" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
 
 // Route pour récupérer tous les voyages
 app.get('/api/voyages', async (req, res) => {

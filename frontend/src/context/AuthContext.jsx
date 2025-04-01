@@ -82,6 +82,22 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
   };
 
+  // Fonction pour mettre à jour les informations de l'utilisateur
+  const updateUserProfile = (updatedUserData) => {
+    console.log('Mise à jour du profil utilisateur:', updatedUserData);
+    
+    // S'assurer que userId est préservé
+    const updatedUser = {
+      ...updatedUserData,
+      userId: updatedUserData.userId || user?.userId
+    };
+    
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    
+    return updatedUser;
+  };
+
   // Exposer l'état d'authentification pour le débogage
   useEffect(() => {
     console.log('État d\'authentification mis à jour:', {
@@ -102,7 +118,8 @@ export const AuthProvider = ({ children }) => {
       login, 
       logout, 
       loading,
-      isAuthenticated: !!user && !!token 
+      isAuthenticated: !!user && !!token,
+      updateUserProfile
     }}>
       {children}
     </AuthContext.Provider>
