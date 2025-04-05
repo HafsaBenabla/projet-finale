@@ -34,6 +34,10 @@ const voyageSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    hebergement: {
+        type: String,
+        required: false
+    },
     maxPlaces: {
         type: Number,
         required: true,

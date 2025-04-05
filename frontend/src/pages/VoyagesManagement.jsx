@@ -29,7 +29,8 @@ const VoyagesManagement = () => {
     departureDate: '',
     returnDate: '',
     included: [],
-    notIncluded: []
+    notIncluded: [],
+    hebergement: ''
   });
   
   // Liste des villes disponibles
@@ -124,15 +125,44 @@ const VoyagesManagement = () => {
         return;
       }
 
+      // Vérifier si l'agence est sélectionnée
+      if (!voyageData.agence) {
+        setFormError('Veuillez sélectionner une agence');
+        return;
+      }
+
+      // Trouver l'objet agence complet à partir du nom sélectionné
+      const selectedAgency = agencies.find(agency => agency.name === voyageData.agence);
+      
+      if (!selectedAgency) {
+        setFormError('Agence introuvable, veuillez en sélectionner une autre');
+        return;
+      }
+
       const voyagePayload = {
         ...voyageData,
         price: Number(voyageData.price),
         duration: Number(voyageData.duration),
-        availableSpots: Number(voyageData.availableSpots)
+        availableSpots: Number(voyageData.availableSpots),
+        // Ajouter les champs nécessaires pour le modèle Voyage
+        agencyId: selectedAgency._id,
+        agencyName: selectedAgency.name
       };
 
+      // Récupérer le token d'authentification du stockage local
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setFormError("Vous devez être connecté pour ajouter un voyage");
+        return;
+      }
+
       console.log('Envoi des données voyage:', voyagePayload);
-      const response = await axios.post('http://localhost:5000/api/voyages', voyagePayload);
+      const response = await axios.post('http://localhost:5000/api/voyages', voyagePayload, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       
       console.log('Réponse voyage:', response.data);
       
@@ -152,7 +182,8 @@ const VoyagesManagement = () => {
           departureDate: '',
           returnDate: '',
           included: [],
-          notIncluded: []
+          notIncluded: [],
+          hebergement: ''
         });
         
         // Fermer le formulaire et rafraîchir la liste
@@ -164,7 +195,9 @@ const VoyagesManagement = () => {
       let errorMessage = 'Erreur lors de l\'ajout du voyage';
       
       if (error.response) {
-        if (error.response.headers['content-type']?.includes('application/json')) {
+        if (error.response.status === 401) {
+          errorMessage = 'Authentification requise. Veuillez vous reconnecter.';
+        } else if (error.response.headers['content-type']?.includes('application/json')) {
           errorMessage = error.response.data.message || errorMessage;
         } else {
           errorMessage = 'Le serveur a retourné une réponse invalide';
@@ -306,7 +339,23 @@ const VoyagesManagement = () => {
                     </Form.Select>
                   </Form.Group>
                 </Col>
-                <Col md={3}>
+                <Col md={6}>
+                  <Form.Group className="mb-4">
+                    <Form.Label>Hébergement</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="hebergement"
+                      value={voyageData.hebergement}
+                      onChange={handleVoyageChange}
+                      className="rounded-lg"
+                      placeholder="Nom et type d'hébergement (ex: Hôtel Atlas 5*, Riad traditionnel)"
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row>
+                <Col md={6}>
                   <Form.Group className="mb-4">
                     <Form.Label>Date de départ</Form.Label>
                     <Form.Control
@@ -318,7 +367,7 @@ const VoyagesManagement = () => {
                     />
                   </Form.Group>
                 </Col>
-                <Col md={3}>
+                <Col md={6}>
                   <Form.Group className="mb-4">
                     <Form.Label>Date de retour</Form.Label>
                     <Form.Control

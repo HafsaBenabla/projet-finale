@@ -42,7 +42,8 @@ const AddNew = () => {
     departureDate: '',
     returnDate: '',
     included: [],
-    notIncluded: []
+    notIncluded: [],
+    hebergement: ''
   });
 
   // États pour le formulaire d'agence
@@ -395,7 +396,44 @@ const AddNew = () => {
         return;
       }
 
-      const response = await axios.post('http://localhost:5000/api/voyages', voyageData);
+      // Vérifier si l'agence est sélectionnée
+      if (!voyageData.agence) {
+        setError('Veuillez sélectionner une agence');
+        return;
+      }
+
+      // Trouver l'objet agence complet à partir du nom sélectionné
+      const selectedAgency = agencies.find(agency => agency.name === voyageData.agence);
+      
+      if (!selectedAgency) {
+        setError('Agence introuvable, veuillez en sélectionner une autre');
+        return;
+      }
+
+      // Créer l'objet à envoyer au serveur
+      const voyagePayload = {
+        ...voyageData,
+        price: Number(voyageData.price || 0),
+        duration: Number(voyageData.duration || 1),
+        availableSpots: Number(voyageData.availableSpots || 10),
+        // Ajouter les champs nécessaires pour le modèle Voyage
+        agencyId: selectedAgency._id,
+        agencyName: selectedAgency.name
+      };
+
+      // Récupérer le token d'authentification du stockage local
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError("Vous devez être connecté pour ajouter un voyage");
+        return;
+      }
+
+      const response = await axios.post('http://localhost:5000/api/voyages', voyagePayload, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       
       // Vérification du type de contenu
       const contentType = response.headers['content-type'];
@@ -412,7 +450,9 @@ const AddNew = () => {
       
       if (error.response) {
         // La requête a été faite et le serveur a répondu avec un code d'état non-2xx
-        if (error.response.headers['content-type']?.includes('application/json')) {
+        if (error.response.status === 401) {
+          errorMessage = 'Authentification requise. Veuillez vous reconnecter.';
+        } else if (error.response.headers['content-type']?.includes('application/json')) {
           errorMessage = error.response.data.message || errorMessage;
         } else {
           errorMessage = 'Le serveur a retourné une réponse invalide';
@@ -1041,6 +1081,49 @@ const AddNew = () => {
                       </option>
                     ))}
                   </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={12}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Hébergement</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="hebergement"
+                    value={voyageData.hebergement}
+                    onChange={handleVoyageChange}
+                    style={{ borderRadius: '8px' }}
+                    placeholder="Nom et type d'hébergement (ex: Hôtel Atlas 5*, Riad traditionnel, etc.)"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Date de départ</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="departureDate"
+                    value={voyageData.departureDate}
+                    onChange={handleVoyageChange}
+                    style={{ borderRadius: '8px' }}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Date de retour</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="returnDate"
+                    value={voyageData.returnDate}
+                    onChange={handleVoyageChange}
+                    style={{ borderRadius: '8px' }}
+                  />
                 </Form.Group>
               </Col>
             </Row>

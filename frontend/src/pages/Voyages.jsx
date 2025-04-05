@@ -146,9 +146,13 @@ const Voyages = () => {
               <div key={voyage._id} className="bg-white rounded-xl shadow-lg overflow-hidden transform transition duration-500 hover:scale-105">
                 <div className="relative h-48 overflow-hidden group">
                   <img 
-                    src={voyage.image} 
+                    src={voyage.image.startsWith('http') ? voyage.image : `http://localhost:5000${voyage.image}`} 
                     alt={voyage.title}
                     className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-110"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://via.placeholder.com/400x300?text=Image+non+disponible';
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </div>
@@ -158,7 +162,7 @@ const Voyages = () => {
                       {voyage.destination}
                     </span>
                     <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
-                      {voyage.duration}
+                      {voyage.duration} jours
                     </span>
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">{voyage.title}</h3>
