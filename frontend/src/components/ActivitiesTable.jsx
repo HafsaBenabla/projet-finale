@@ -5,6 +5,13 @@ const ActivitiesTable = ({ onEdit, onDelete }) => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const refreshActivities = () => {
+    setLoading(true);
+    setError(null);
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   useEffect(() => {
     const fetchActivities = async () => {
@@ -34,7 +41,7 @@ const ActivitiesTable = ({ onEdit, onDelete }) => {
     };
 
     fetchActivities();
-  }, []);
+  }, [refreshTrigger]);
 
   if (loading) {
     return (
@@ -51,13 +58,7 @@ const ActivitiesTable = ({ onEdit, onDelete }) => {
         <p>{error}</p>
         <div className="mt-3">
           <button 
-            onClick={() => {
-              setLoading(true);
-              setError(null);
-              setTimeout(() => {
-                window.location.reload();
-              }, 500);
-            }}
+            onClick={refreshActivities}
             className="bg-sahara text-white px-3 py-1 rounded text-sm hover:bg-sahara/90"
           >
             Réessayer
@@ -69,6 +70,22 @@ const ActivitiesTable = ({ onEdit, onDelete }) => {
 
   return (
     <div className="overflow-x-auto">
+      {/* Info du nombre d'activités et bouton d'actualisation */}
+      <div className="mb-4 p-3 bg-gray-100 rounded-lg">
+        <div className="flex justify-between items-center">
+          <div>
+            <p>Nombre d'activités: <span className="font-semibold">{activities.length}</span></p>
+          </div>
+          <button 
+            onClick={refreshActivities} 
+            className="bg-sahara text-white px-3 py-1 rounded flex items-center text-sm"
+          >
+            <FaSpinner className={`mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </button>
+        </div>
+      </div>
+      
       <table className="min-w-full bg-white rounded-lg overflow-hidden shadow-lg">
         <thead className="bg-gray-100">
           <tr>

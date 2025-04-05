@@ -21,7 +21,7 @@ const ActivitesHome = () => {
 
       {/* Cards Section */}
       <div className="container mx-auto px-4 py-16">
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {/* Travel Activities Card */}
           <div 
             className="group relative overflow-hidden rounded-2xl shadow-xl cursor-pointer transform transition-all duration-500 hover:-translate-y-2"
@@ -81,39 +81,6 @@ const ActivitesHome = () => {
                     </span>
                     <span className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full text-sm">
                       <FaUsers /> Petits groupes
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Activities Management Card */}
-          <div 
-            className="group relative overflow-hidden rounded-2xl shadow-xl cursor-pointer transform transition-all duration-500 hover:-translate-y-2"
-            onClick={() => navigate('/gestion-activites')}
-          >
-            <div className="h-[400px]">
-              <img 
-                src="https://i.pinimg.com/474x/76/8e/5c/768e5c9bea0c2ef8b3db221174c3cd33.jpg"
-                alt="Gestion des Activités"
-                className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent">
-                <div className="absolute bottom-0 p-8 text-white">
-                  <div className="flex items-center gap-3 mb-4">
-                    <FaCog className="text-2xl" />
-                    <h3 className="text-2xl font-bold">Gestion des Activités</h3>
-                  </div>
-                  <p className="text-lg mb-6 opacity-90">
-                    Ajoutez, modifiez ou supprimez des activités pour personnaliser votre catalogue d'offres
-                  </p>
-                  <div className="flex flex-wrap gap-4">
-                    <span className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full text-sm">
-                      <FaCog /> Administration
-                    </span>
-                    <span className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full text-sm">
-                      <FaUsers /> Gestion complète
                     </span>
                   </div>
                 </div>

@@ -15,65 +15,11 @@ const ReservationsManagement = () => {
   const [confirmCancel, setConfirmCancel] = useState(null);
 
   useEffect(() => {
-    checkAdminStatus();
+    // La vérification d'administrateur est désormais gérée par le composant AdminRoute
     fetchReservations();
   }, []);
 
-  // Vérifier si l'utilisateur est un administrateur
-  const checkAdminStatus = async () => {
-    try {
-      // Variable pour forcer l'accès admin (pour le débogage)
-      let forceAdminAccess = localStorage.getItem('forceAdminAccess') === 'true';
-      
-      const token = localStorage.getItem('token');
-      console.log('Token récupéré:', token ? 'Token présent' : 'Token absent');
-      console.log('Force admin access:', forceAdminAccess);
-      
-      if (!token && !forceAdminAccess) {
-        alert('Vous devez être connecté pour accéder à cette page');
-        navigate('/');
-        return;
-      }
-
-      // Si le mode forcé est activé, on permet l'accès
-      if (forceAdminAccess) {
-        console.log('Accès administrateur forcé activé, vérification du token ignorée');
-        return;
-      }
-
-      console.log('Vérification du token auprès du serveur...');
-      const response = await fetch('http://localhost:5000/api/auth/verify-token', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erreur lors de la vérification du token: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      const userRole = data.user?.role || '';
-      const userEmail = data.user?.email || '';
-      const adminEmail = 'benablahafsa@gmail.com';
-      
-      const isAdmin = userRole.toLowerCase() === 'admin';
-      const isAdminEmail = userEmail.toLowerCase() === adminEmail.toLowerCase();
-      
-      const hasAdminAccess = isAdmin && isAdminEmail;
-      
-      if (!hasAdminAccess) {
-        alert("Accès réservé à l'administrateur");
-        navigate('/');
-      }
-    } catch (error) {
-      console.error('Erreur lors de la vérification des droits admin:', error);
-      alert(`Erreur d'authentification: ${error.message}`);
-      navigate('/');
-    }
-  };
+  // La fonction checkAdminStatus n'est plus nécessaire car gérée par AdminRoute
 
   // Fetch all reservations
   const fetchReservations = async () => {

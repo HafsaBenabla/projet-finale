@@ -1,6 +1,7 @@
 import express from 'express';
 import { Voyage } from '../models/voyage.js';
 import { auth } from '../middleware/auth.js';
+import mongoose from 'mongoose';
 
 const router = express.Router();
 
@@ -161,6 +162,28 @@ router.get('/:id/reaction', async (req, res) => {
     } catch (error) {
         console.error('Erreur lors de la récupération des réactions:', error);
         res.status(400).json({ message: error.message });
+    }
+});
+
+// Route pour obtenir les voyages par agence
+router.get('/by-agency/:agencyId', async (req, res) => {
+    try {
+        const { agencyId } = req.params;
+        
+        if (!mongoose.Types.ObjectId.isValid(agencyId)) {
+            return res.status(400).json({ message: 'ID d\'agence invalide' });
+        }
+
+        const voyages = await Voyage.find({ agencyId }).populate('activities');
+        
+        if (!voyages || voyages.length === 0) {
+            return res.status(404).json({ message: 'Aucun voyage trouvé pour cette agence' });
+        }
+        
+        res.json(voyages);
+    } catch (error) {
+        console.error('Erreur lors de la récupération des voyages par agence:', error);
+        res.status(500).json({ message: error.message });
     }
 });
 

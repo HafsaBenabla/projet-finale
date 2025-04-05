@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Rediriger si déjà connecté
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('Login: Utilisateur déjà connecté, redirection vers la page d\'accueil');
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,10 +33,10 @@ const Login = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    console.log('Tentative de connexion avec:', formData);
+    console.log('Login: Tentative de connexion avec:', formData);
 
     try {
-      console.log('Envoi de la requête au serveur...');
+      console.log('Login: Envoi de la requête au serveur...');
       const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: {
@@ -38,25 +46,49 @@ const Login = () => {
         body: JSON.stringify(formData)
       });
 
-      console.log('Réponse reçue:', {
+      console.log('Login: Réponse reçue:', {
         status: response.status,
         statusText: response.statusText
       });
 
       const data = await response.json();
-      console.log('Données reçues:', data);
+      console.log('Login: Données reçues:', data);
 
       if (!response.ok) {
         throw new Error(data.message || 'Erreur lors de la connexion');
       }
 
-      console.log('Connexion réussie, données utilisateur:', data.user);
+      console.log('Login: Connexion réussie, données utilisateur:', data.user);
+      
+      // Vérifier si les données utilisateur sont complètes
+      if (!data.user || !data.token) {
+        console.error('Login: Données de connexion incomplètes:', { user: data.user, token: data.token ? 'présent' : 'absent' });
+        throw new Error('Données d\'authentification incomplètes');
+      }
+      
+      // Vérifier si c'est un administrateur
+      const adminEmail = 'benablahafsa@gmail.com';
+      const isAdmin = data.user.email.toLowerCase() === adminEmail.toLowerCase();
+      console.log('Login: Vérification administrateur:', { 
+        userEmail: data.user.email,
+        adminEmail,
+        isAdmin
+      });
+      
       // Utiliser la fonction login du contexte
       login(data.user, data.token);
-      console.log('État de connexion mis à jour, redirection...');
-      navigate('/');
+      console.log('Login: État de connexion mis à jour, redirection...');
+      
+      // Rediriger vers la page d'accueil (ou dashboard pour admin)
+      if (isAdmin) {
+        console.log('Login: Redirection vers le dashboard (utilisateur admin)');
+        navigate('/admin/dashboard');
+      } else {
+        console.log('Login: Redirection vers la page d\'accueil (utilisateur standard)');
+        navigate('/');
+      }
     } catch (error) {
-      console.error('Erreur détaillée lors de la connexion:', error);
+      console.error('Login: Erreur détaillée lors de la connexion:', error);
       setError(error.message || 'Une erreur est survenue lors de la connexion');
     } finally {
       setLoading(false);
@@ -66,34 +98,46 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">
-          <span className="block text-orange-600 mb-1">Bienvenue</span>
-          <span className="block">Connectez-vous</span>
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Connexion
         </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Ou{' '}
+          <Link to="/register" className="font-medium text-sahara hover:text-sahara/90">
+            créez un nouveau compte
+          </Link>
+        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          {error && (
-            <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-              <span className="block sm:inline">{error}</span>
-            </div>
-          )}
-
           <form className="space-y-6" onSubmit={handleSubmit}>
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+                <div className="flex">
+                  <div className="ml-3">
+                    <p className="text-sm text-red-700">
+                      {error}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
+                Adresse e-mail
               </label>
               <div className="mt-1">
                 <input
                   id="email"
                   name="email"
                   type="email"
+                  autoComplete="email"
                   required
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                   value={formData.email}
                   onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-sahara focus:border-sahara sm:text-sm"
                 />
               </div>
             </div>
@@ -107,10 +151,11 @@ const Login = () => {
                   id="password"
                   name="password"
                   type="password"
+                  autoComplete="current-password"
                   required
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-orange-500 focus:border-orange-500"
                   value={formData.password}
                   onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-sahara focus:border-sahara sm:text-sm"
                 />
               </div>
             </div>
@@ -119,25 +164,18 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sahara hover:bg-sahara/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sahara ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                {loading ? 'Connexion en cours...' : 'Se connecter'}
+                {loading ? (
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : null}
+                Se connecter
               </button>
             </div>
           </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Pas encore de compte?{' '}
-                  <Link to="/register" className="font-medium text-orange-600 hover:text-orange-500">
-                    S'inscrire
-                  </Link>
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

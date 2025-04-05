@@ -352,6 +352,10 @@ app.get('/api/agencies', async (req, res) => {
     
     let query = {};
     if (city) {
+      // Si une ville spécifique est demandée, on cherche:
+      // 1. Les agences spécifiquement pour cette ville
+      // 2. Les agences qui sont dans "Toutes les villes du Maroc"
+      
       // Gérer les différentes orthographes de Marrakech
       let cityNames = [city];
       if (city.toLowerCase().includes('marackech') || 
@@ -361,13 +365,15 @@ app.get('/api/agencies', async (req, res) => {
       }
       
       // Recherche avec les différentes orthographes possibles
+      // ou les agences qui sont dans "Toutes les villes du Maroc"
       query = {
         $or: [
           { city: { $in: cityNames.map(name => new RegExp('^' + name + '$', 'i')) } },
-          { city: "Toutes les villes du Maroc" }
+          { city: { $regex: /^toutes les villes du maroc$/i } }
         ]
       };
     }
+    
     if (email) {
       query.email = email;
     }
@@ -564,6 +570,35 @@ app.put('/api/agencies/:id', async (req, res) => {
       });
     }
     res.status(500).json({ message: 'Erreur lors de la mise à jour de l\'agence' });
+  }
+});
+
+// Route pour récupérer une agence par son ID
+app.get('/api/agencies/:id', async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'ID d\'agence invalide' });
+    }
+    
+    const agency = await Agency.findById(req.params.id);
+    
+    if (!agency) {
+      return res.status(404).json({ message: 'Agence non trouvée' });
+    }
+    
+    // S'assurer que l'agence a une image
+    const agencyObj = agency.toObject();
+    if (!agencyObj.image || agencyObj.image.trim() === '') {
+      agencyObj.image = "https://images.pexels.com/photos/1537008/pexels-photo-1537008.jpeg";
+    } else if (agencyObj.image.startsWith('/uploads/')) {
+      // Construire l'URL complète pour les images uploadées
+      agencyObj.image = `http://localhost:${PORT}${agencyObj.image}`;
+    }
+    
+    res.json(agencyObj);
+  } catch (error) {
+    console.error('Erreur lors de la récupération de l\'agence:', error);
+    res.status(500).json({ message: error.message });
   }
 });
 

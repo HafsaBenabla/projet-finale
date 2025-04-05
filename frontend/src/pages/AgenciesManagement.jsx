@@ -302,7 +302,7 @@ const AgenciesManagement = () => {
                       className="rounded-lg"
                     >
                       <option value="">Sélectionnez une ville</option>
-                      <option value="Toutes les villes du Maroc">Toutes les villes du Maroc</option>
+                      <option value="Toutes les villes du Maroc">Toutes les villes du Maroc (visible partout)</option>
                       <option disabled>──────────</option>
                       {availableCities.map(city => (
                         <option key={city} value={city}>{city}</option>

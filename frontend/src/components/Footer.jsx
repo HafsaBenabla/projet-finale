@@ -1,5 +1,5 @@
 import React from 'react'
-import { FaFacebook, FaTwitter, FaInstagram, FaCcVisa, FaCcMastercard, FaCcPaypal, FaMapMarkerAlt, FaPhone, FaEnvelope } from 'react-icons/fa'
+import { FaFacebook, FaTwitter, FaInstagram, FaMapMarkerAlt, FaPhone, FaEnvelope, FaUniversity, FaLock } from 'react-icons/fa'
 import Logo from './Logo'
 
 function Footer() {
@@ -50,14 +50,19 @@ function Footer() {
 
           {/* Paiement */}
           <div className="space-y-4 sm:space-y-6">
-            <h4 className="text-lg sm:text-xl font-semibold">Paiement sécurisé</h4>
-            <p className="text-sm sm:text-base text-gray-400 mb-4">
-              Nous acceptons plusieurs moyens de paiement pour votre confort et votre sécurité
+            <h4 className="text-lg sm:text-xl font-semibold">Modalités de paiement</h4>
+            <p className="text-sm sm:text-base text-gray-400 mb-2">
+              Le paiement s'effectue exclusivement par virement bancaire
             </p>
-            <div className="flex space-x-4 sm:space-x-6">
-              <FaCcVisa className="text-3xl sm:text-4xl text-gray-400" />
-              <FaCcMastercard className="text-3xl sm:text-4xl text-gray-400" />
-              <FaCcPaypal className="text-3xl sm:text-4xl text-gray-400" />
+            <div className="space-y-3">
+              <div className="flex items-center space-x-3">
+                <FaUniversity className="text-2xl sm:text-3xl text-sahara" />
+                <p className="text-sm text-gray-400">Virement bancaire sécurisé</p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <FaLock className="text-xl sm:text-2xl text-sahara" />
+                <p className="text-sm text-gray-400">Les informations bancaires vous seront communiquées après réservation</p>
+              </div>
             </div>
           </div>
         </div>
@@ -68,10 +73,10 @@ function Footer() {
             <p className="text-xs sm:text-sm text-gray-400">
               &copy; {new Date().getFullYear()} MaghrebXplore. Tous droits réservés.
             </p>
-            <div className="flex flex-wrap justify-center sm:justify-end gap-4 sm:space-x-6 text-xs sm:text-sm text-gray-400">
-              <a href="#" className="hover:text-white transition-colors">Mentions légales</a>
-              <a href="#" className="hover:text-white transition-colors">Politique de confidentialité</a>
-              <a href="#" className="hover:text-white transition-colors">CGV</a>
+            <div className="flex flex-wrap justify-center sm:justify-end gap-4 sm:space-x-6 text-xs sm:text-sm">
+              <a href="#" className="text-gray-400 hover:text-sahara no-underline transition-colors duration-300">Mentions légales</a>
+              <a href="#" className="text-gray-400 hover:text-sahara no-underline transition-colors duration-300">Politique de confidentialité</a>
+              <a href="#" className="text-gray-400 hover:text-sahara no-underline transition-colors duration-300">CGV</a>
             </div>
           </div>
         </div>

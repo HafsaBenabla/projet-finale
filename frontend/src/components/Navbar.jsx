@@ -11,7 +11,14 @@ const Navbar = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
 
   // Vérifier si l'utilisateur est administrateur (email spécifique)
-  const isAdmin = user?.email && user.email.toLowerCase() === 'benablahafsa@gmail.com'
+  const adminEmail = 'benablahafsa@gmail.com'
+  const isAdmin = user?.email && user.email.toLowerCase() === adminEmail.toLowerCase()
+  
+  console.log('Navbar: Vérification administrateur:', { 
+    userEmail: user?.email, 
+    adminEmail, 
+    isAdmin 
+  })
 
   const handleLogout = () => {
     logout()
@@ -81,6 +88,13 @@ const Navbar = () => {
             className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2 text-base font-medium"
           >
             Activités
+          </Link>
+          <Link
+            to="/city/Toutes les villes du Maroc"
+            onClick={() => setIsMenuOpen(false)}
+            className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2 text-base font-medium"
+          >
+            Agences
           </Link>
           <Link
             to="/about"
@@ -173,6 +187,12 @@ const Navbar = () => {
             className="no-underline text-gray-800 hover:text-sahara text-base font-medium px-1"
           >
             Activités
+          </Link>
+          <Link
+            to="/city/Toutes les villes du Maroc"
+            className="no-underline text-gray-800 hover:text-sahara text-base font-medium px-1"
+          >
+            Agences
           </Link>
           <Link
             to="/about"

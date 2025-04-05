@@ -17,13 +17,16 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile'
 import CityAgencies from './pages/CityAgencies'
+import AgencyVoyages from './pages/AgencyVoyages'
 import AddActivity from './pages/AddActivity'
 import ActivitiesManagement from './pages/ActivitiesManagement'
 import VoyagesManagement from './pages/VoyagesManagement'
 import AgenciesManagement from './pages/AgenciesManagement'
 import ReservationsManagement from './pages/ReservationsManagement'
+import AdminDashboard from './pages/AdminDashboard'
 import { VoyagesProvider } from './context/VoyagesContext'
 import { AuthProvider } from './context/AuthContext'
+import AdminRoute from './components/AdminRoute'
 
 const App = () => {
   return (
@@ -42,18 +45,45 @@ const App = () => {
                 <Route path="/activites-voyages" element={<ActivitesVoyages />} />
                 <Route path="/activites-locales" element={<ActivitesLocales />} />
                 <Route path="/activities/:id" element={<ActivityDetail />} />
-                <Route path="/admin/dashboard" element={<AddNew />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/city/:cityName" element={<CityAgencies />} />
+                <Route path="/agency-voyages/:agencyId" element={<AgencyVoyages />} />
                 <Route path="/ajouter-activite" element={<AddActivity />} />
                 <Route path="/gestion-activites" element={<ActivitiesManagement />} />
-                <Route path="/admin/voyages" element={<VoyagesManagement />} />
-                <Route path="/admin/agencies" element={<AgenciesManagement />} />
-                <Route path="/admin/reservations" element={<ReservationsManagement />} />
+                <Route path="/admin/dashboard" element={
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/add" element={
+                  <AdminRoute>
+                    <AddNew />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/activities" element={
+                  <AdminRoute>
+                    <ActivitiesManagement />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/voyages" element={
+                  <AdminRoute>
+                    <VoyagesManagement />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/agencies" element={
+                  <AdminRoute>
+                    <AgenciesManagement />
+                  </AdminRoute>
+                } />
+                <Route path="/admin/reservations" element={
+                  <AdminRoute>
+                    <ReservationsManagement />
+                  </AdminRoute>
+                } />
               </Routes>
             </main>
             <Footer />

@@ -133,23 +133,27 @@ const AddNew = () => {
     transition: 'all 0.3s ease'
   };
 
-  // Log l'état initial
-  useEffect(() => {
-    console.log('État initial de activeForm:', activeForm);
-    
-    // Vérifier si l'utilisateur est un administrateur
-    checkAdminStatus();
-  }, []);
+  // États pour la gestion des fichiers
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [resetDisabled, setResetDisabled] = useState(true);
 
-  // Log chaque changement de activeForm
+  // Activer le bouton de réinitialisation après avoir choisi des fichiers
   useEffect(() => {
-    console.log('activeForm a changé:', activeForm);
-    
-    // Charger les réservations lorsque l'utilisateur sélectionne la section des réservations
-    if (activeForm === 'reservations') {
-      fetchReservations();
+    if (selectedFiles.length > 0) {
+      setResetDisabled(false);
+    } else {
+      setResetDisabled(true);
     }
-  }, [activeForm]);
+  }, [selectedFiles]);
+
+  // Vérifier les autorisations d'administrateur au chargement
+  useEffect(() => {
+    // Le contrôle d'accès est maintenant géré par le composant AdminRoute
+    // Charger les données nécessaires au dashboard
+    fetchAgencies();
+    fetchVoyages();
+    fetchReservations();
+  }, []);
 
   // Fonction pour récupérer la liste des agences
   useEffect(() => {
@@ -546,103 +550,22 @@ const AddNew = () => {
   };
 
   // Fonction pour vérifier si l'utilisateur a les droits d'administrateur
+  // Cette fonction peut être supprimée car le contrôle est fait par AdminRoute
   const checkAdminStatus = async () => {
-    try {
-      // Variable pour forcer l'accès admin (pour le débogage)
-      let forceAdminAccess = localStorage.getItem('forceAdminAccess') === 'true';
-      
-      const token = localStorage.getItem('token');
-      console.log('Token récupéré:', token ? 'Token présent' : 'Token absent');
-      console.log('Force admin access:', forceAdminAccess);
-      
-      if (!token && !forceAdminAccess) {
-        alert('Vous devez être connecté pour accéder à cette page');
-        navigate('/');
-        return;
-      }
-
-      // Si le mode forcé est activé, on permet l'accès
-      if (forceAdminAccess) {
-        console.log('Accès administrateur forcé activé, vérification du token ignorée');
-        return;
-      }
-
-      console.log('Vérification du token auprès du serveur...');
-      const response = await fetch('http://localhost:5000/api/auth/verify-token', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
-        }
-      });
-
-      console.log('Réponse du serveur, status:', response.status);
-      if (!response.ok) {
-        throw new Error(`Erreur lors de la vérification du token: ${response.status}`);
-      }
-
-      const responseText = await response.text();
-      console.log('Réponse brute de la vérification du token:', responseText);
-      
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Erreur de parsing JSON:', e);
-        throw new Error('Réponse non valide du serveur');
-      }
-
-      console.log('Informations utilisateur:', data);
-      console.log('Rôle de l\'utilisateur:', data.user?.role);
-      
-      // Vérification plus robuste du rôle administrateur
-      const userRole = data.user?.role || '';
-      const userEmail = data.user?.email || '';
-      const adminEmail = 'benablahafsa@gmail.com';
-      
-      const isAdmin = userRole.toLowerCase() === 'admin';
-      const isAdminEmail = userEmail.toLowerCase() === adminEmail.toLowerCase();
-      
-      console.log('Utilisateur est admin (par rôle):', isAdmin);
-      console.log('Email utilisateur:', userEmail);
-      console.log('Email admin attendu:', adminEmail);
-      console.log('Email correspond à l\'admin:', isAdminEmail);
-      
-      // Autoriser seulement si l'utilisateur a le rôle admin ET le bon email
-      const hasAdminAccess = isAdmin && isAdminEmail;
-      console.log('Accès administrateur accordé:', hasAdminAccess);
-      
-      if (hasAdminAccess) {
-        console.log('Utilisateur authentifié comme administrateur');
-        // Accès autorisé, ne rien faire
-      } else {
-        console.log('Utilisateur NON administrateur ou email incorrect');
-        if (isAdmin && !isAdminEmail) {
-          console.log('L\'utilisateur a le rôle admin mais pas le bon email');
-          alert("Accès réservé à l'administrateur spécifique");
-        } else {
-          alert("Accès réservé à l'administrateur");
-        }
-        navigate('/');
-      }
-    } catch (error) {
-      console.error('Erreur lors de la vérification des droits admin:', error);
-      alert(`Erreur d'authentification: ${error.message}`);
-      navigate('/');
-    }
+    // Le contrôle d'accès est maintenant géré par le composant AdminRoute
+    console.log('Vérification des droits admin désactivée - gérée par AdminRoute');
   };
 
   // Fonction pour activer le mode admin forcé
   const enableForceAdminAccess = () => {
-    localStorage.setItem('forceAdminAccess', 'true');
-    alert('Mode administrateur forcé activé. Vous pouvez maintenant accéder au tableau de bord.');
-    window.location.reload(); // Recharger la page pour appliquer les changements
+    // Mode admin forcé n'est plus nécessaire car la vérification est gérée par AdminRoute
+    console.log('Mode admin forcé désactivé - utiliser le système de connexion normal');
   };
 
   // Fonction pour désactiver le mode admin forcé
   const disableForceAdminAccess = () => {
-    localStorage.removeItem('forceAdminAccess');
-    alert('Mode administrateur forcé désactivé');
-    window.location.reload(); // Recharger la page pour appliquer les changements
+    // Mode admin forcé n'est plus nécessaire car la vérification est gérée par AdminRoute
+    console.log('Mode admin forcé désactivé - utiliser le système de connexion normal');
   };
 
   // Naviguer vers la page de gestion des activités
@@ -1198,7 +1121,7 @@ const AddNew = () => {
                     className="focus:border-sahara focus:ring-1 focus:ring-sahara"
                   >
                     <option value="">Sélectionnez une ville</option>
-                    <option value="Toutes les villes du Maroc">Toutes les villes du Maroc</option>
+                    <option value="Toutes les villes du Maroc">Toutes les villes du Maroc (visible partout)</option>
                     <option disabled>──────────</option>
                     {availableCities.map(city => (
                       <option key={city} value={city}>{city}</option>

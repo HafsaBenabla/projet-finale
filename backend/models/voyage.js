@@ -25,6 +25,15 @@ const voyageSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    agencyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Agency',
+        required: true
+    },
+    agencyName: {
+        type: String,
+        required: true
+    },
     maxPlaces: {
         type: Number,
         required: true,
