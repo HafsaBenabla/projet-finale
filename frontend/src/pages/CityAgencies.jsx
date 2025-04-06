@@ -110,6 +110,11 @@ function CityAgencies() {
     }
   };
 
+  // Navigation vers la page des voyages de l'agence
+  const navigateToAgencyVoyages = (agencyId, agencyName) => {
+    navigate(`/voyages?agencyId=${agencyId}&agencyName=${encodeURIComponent(agencyName)}`);
+  };
+
   // Navigation vers la page de détail d'un voyage
   const navigateToVoyage = (voyageId) => {
     navigate(`/voyage/${voyageId}`);
@@ -205,7 +210,7 @@ function CityAgencies() {
             <div>
               {!isLoading && voyages.length === 0 && !agencyVoyages[agency._id] && (
                 <button 
-                  onClick={() => fetchAgencyVoyages(agency._id)}
+                  onClick={() => navigateToAgencyVoyages(agency._id, agency.name)}
                   className="w-full py-3.5 text-sm bg-orange-500 text-white uppercase tracking-widest font-light hover:bg-orange-600 transition-all flex items-center justify-center shadow-sm hover:shadow-md border border-orange-600/50 rounded-lg"
                 >
                   Découvrir les voyages <FaAngleRight className="ml-2" size={12} />
@@ -223,6 +228,12 @@ function CityAgencies() {
                   <p className="text-gray-400 text-sm py-1 font-light italic">
                     Aucun voyage disponible pour le moment
                   </p>
+                  <button 
+                    onClick={() => navigateToAgencyVoyages(agency._id, agency.name)}
+                    className="mt-3 px-4 py-2 bg-orange-100 text-orange-600 text-xs font-light hover:bg-orange-200 transition-all rounded-lg"
+                  >
+                    Rechercher dans tous les voyages
+                  </button>
                 </div>
               )}
               
@@ -248,18 +259,14 @@ function CityAgencies() {
                           <div className="mb-2">
                             <h5 className="font-light text-base mb-1 truncate group-hover/voyage:text-orange-500 transition-colors">{voyage.title}</h5>
                             <div className="flex items-center text-sm text-gray-500 mb-2">
-                              <FaMapMarkerAlt className="mr-1" size={10} />
-                              <span className="truncate">{voyage.destination}</span>
+                              <span className="bg-orange-100 px-2 py-0.5 rounded-full text-orange-700 text-xs font-medium">{voyage.destination}</span>
+                              {voyage.duration && (
+                                <span className="ml-2 text-xs text-gray-400">{voyage.duration} jours</span>
+                              )}
                             </div>
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center text-sm text-gray-500">
-                                <FaClock className="mr-1" size={10} />
-                                <span>{voyage.duration} jours</span>
-                              </div>
-                              <div className="text-orange-500 font-medium text-base tracking-wider">
-                                {voyage.price.toLocaleString()} DH
-                              </div>
-                            </div>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-orange-500">{voyage.price ? `${voyage.price.toLocaleString()} DH` : 'Sur demande'}</span>
                           </div>
                         </div>
                       </div>
@@ -268,10 +275,10 @@ function CityAgencies() {
                   
                   {voyages.length > 2 && (
                     <button 
-                      onClick={() => navigate(`/agency-voyages/${agency._id}`)}
-                      className="w-full mt-5 py-3.5 text-sm bg-orange-500 text-white uppercase tracking-widest font-light hover:bg-orange-600 transition-all flex items-center justify-center shadow-sm hover:shadow-md border border-orange-600/50 rounded-lg"
+                      onClick={() => navigateToAgencyVoyages(agency._id, agency.name)}
+                      className="w-full mt-5 py-2.5 bg-orange-100 text-orange-600 text-sm font-light hover:bg-orange-200 transition-all flex items-center justify-center rounded-lg"
                     >
-                      Tous les voyages ({voyages.length}) <FaChevronRight className="ml-2" size={12} />
+                      Voir tous les voyages ({voyages.length}) <FaChevronRight className="ml-2" size={10} />
                     </button>
                   )}
                 </>

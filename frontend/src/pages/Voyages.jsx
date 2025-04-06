@@ -1,16 +1,24 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useVoyages } from '../context/VoyagesContext';
-import { FaThumbsUp, FaRegThumbsUp, FaThumbsDown, FaRegThumbsDown } from 'react-icons/fa';
+import { FaThumbsUp, FaRegThumbsUp, FaThumbsDown, FaRegThumbsDown, FaBuilding } from 'react-icons/fa';
 
 const Voyages = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { voyages, loading, error } = useVoyages();
+  
+  // Récupérer l'ID de l'agence depuis les paramètres d'URL si présent
+  const queryParams = new URLSearchParams(location.search);
+  const agencyIdParam = queryParams.get('agencyId');
+  const agencyNameParam = queryParams.get('agencyName');
   
   // État pour les filtres
   const [destinationFilter, setDestinationFilter] = useState('');
   const [durationFilter, setDurationFilter] = useState('');
   const [budgetFilter, setBudgetFilter] = useState('');
+  const [agencyFilter, setAgencyFilter] = useState(agencyIdParam || '');
+  const [agencyName, setAgencyName] = useState(agencyNameParam || '');
 
   // État pour gérer les likes et dislikes
   const [reactions, setReactions] = useState({});
@@ -22,6 +30,13 @@ const Voyages = () => {
       setReactions(JSON.parse(storedReactions));
     }
   }, []);
+
+  // Définir le filtre d'agence si présent dans l'URL
+  useEffect(() => {
+    if (agencyIdParam) {
+      setAgencyFilter(agencyIdParam);
+    }
+  }, [agencyIdParam]);
 
   // Gérer le clic sur le bouton like ou dislike
   const handleReaction = (voyageId, type) => {
@@ -58,15 +73,23 @@ const Voyages = () => {
     return [...new Set((voyages || []).map(voyage => voyage.destination))];
   }, [voyages]);
 
+  // Effacer le filtre d'agence
+  const clearAgencyFilter = () => {
+    setAgencyFilter('');
+    setAgencyName('');
+    navigate('/voyages');
+  };
+
   // Filtrage des voyages
   const filteredVoyages = useMemo(() => {
     return (voyages || []).filter(voyage => {
       const matchDestination = !destinationFilter || voyage.destination === destinationFilter;
       const matchDuration = !durationFilter || voyage.duration === durationFilter;
       const matchBudget = !budgetFilter || voyage.budget === budgetFilter;
-      return matchDestination && matchDuration && matchBudget;
+      const matchAgency = !agencyFilter || voyage.agencyId === agencyFilter;
+      return matchDestination && matchDuration && matchBudget && matchAgency;
     });
-  }, [destinationFilter, durationFilter, budgetFilter, voyages]);
+  }, [destinationFilter, durationFilter, budgetFilter, agencyFilter, voyages]);
 
   if (loading) {
     return (
@@ -93,7 +116,17 @@ const Voyages = () => {
       <div className="bg-gray-50 py-12">
         <div className="container mx-auto px-4">
           <h1 className="text-4xl font-bold text-gray-900">Nos Voyages</h1>
-          <p className="mt-4 text-xl text-gray-600">Découvrez nos circuits et séjours organisés</p>
+          <p className="mt-4 text-xl text-gray-600">
+            {agencyFilter ? `Voyages organisés par ${agencyName}` : 'Découvrez nos circuits et séjours organisés'}
+          </p>
+          {agencyFilter && (
+            <button 
+              onClick={clearAgencyFilter}
+              className="mt-4 px-4 py-2 bg-sahara text-white rounded-lg hover:bg-sahara/90 transition-colors"
+            >
+              Voir tous les voyages
+            </button>
+          )}
         </div>
       </div>
 
@@ -101,6 +134,12 @@ const Voyages = () => {
       <div className="border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-wrap gap-4">
+            {agencyFilter && (
+              <div className="px-4 py-2 bg-sahara/10 text-sahara rounded-lg flex items-center">
+                <FaBuilding className="mr-2" />
+                <span>Agence: {agencyName}</span>
+              </div>
+            )}
             <select 
               className="px-4 py-2 border rounded-lg text-gray-700"
               value={destinationFilter}
@@ -137,113 +176,120 @@ const Voyages = () => {
 
       {/* Voyages Grid */}
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredVoyages.map((voyage) => {
-            // Obtenir l'état des réactions pour ce voyage
-            const voyageReactions = reactions[voyage._id] || { liked: false, disliked: false };
-            
-            return (
-              <div key={voyage._id} className="bg-white rounded-xl shadow-lg overflow-hidden transform transition duration-500 hover:scale-105">
-                <div className="relative h-48 overflow-hidden group">
-                  <img 
-                    src={voyage.image.startsWith('http') ? voyage.image : `http://localhost:5000${voyage.image}`} 
-                    alt={voyage.title}
-                    className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-110"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = 'https://via.placeholder.com/400x300?text=Image+non+disponible';
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </div>
-                <div className="p-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="px-3 py-1 bg-sahara/10 text-sahara rounded-full text-sm font-medium">
-                      {voyage.destination}
-                    </span>
-                    <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
-                      {voyage.duration} jours
-                    </span>
+        {filteredVoyages.length === 0 ? (
+          <div className="text-center py-12">
+            <h3 className="text-2xl text-gray-600 mb-4">Aucun voyage ne correspond à vos critères</h3>
+            <p className="text-gray-500">Veuillez modifier vos filtres ou revenir plus tard.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredVoyages.map((voyage) => {
+              // Obtenir l'état des réactions pour ce voyage
+              const voyageReactions = reactions[voyage._id] || { liked: false, disliked: false };
+              
+              return (
+                <div key={voyage._id} className="bg-white rounded-xl shadow-lg overflow-hidden transform transition duration-500 hover:scale-105">
+                  <div className="relative h-48 overflow-hidden group">
+                    <img 
+                      src={voyage.image.startsWith('http') ? voyage.image : `http://localhost:5000${voyage.image}`} 
+                      alt={voyage.title}
+                      className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-110"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://via.placeholder.com/400x300?text=Image+non+disponible';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{voyage.title}</h3>
-                  <p className="text-gray-600 line-clamp-2">{voyage.description}</p>
-                  
-                  <div className="mt-4 flex items-center justify-between">
-                    <div className="text-2xl font-bold text-sahara">
-                      {voyage.price.toLocaleString()} MAD
+                  <div className="p-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="px-3 py-1 bg-sahara/10 text-sahara rounded-full text-sm font-medium">
+                        {voyage.destination}
+                      </span>
+                      <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
+                        {voyage.duration} jours
+                      </span>
                     </div>
-                    <div className={`text-sm ${voyage.availableSpots < 5 ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
-                      {voyage.availableSpots === 0 ? (
-                        'Complet'
-                      ) : voyage.availableSpots < 5 ? (
-                        `Plus que ${voyage.availableSpots} places !`
-                      ) : (
-                        `${voyage.availableSpots} places disponibles`
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-[100px]">
-                      {/* Bouton Like */}
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleReaction(voyage._id, 'like');
-                        }}
-                        className={`flex items-center justify-center gap-1 p-1.5 rounded-lg transition-all duration-300 w-12 ${
-                          voyageReactions.liked
-                            ? 'text-orange-500 hover:text-orange-600' 
-                            : 'text-gray-400 hover:text-orange-500'
-                        }`}
-                        aria-label={voyageReactions.liked ? "Je n'aime plus" : "J'aime"}
-                      >
-                        {voyageReactions.liked ? (
-                          <FaThumbsUp className="h-5 w-5 transition-transform duration-300 transform scale-110" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{voyage.title}</h3>
+                    <p className="text-gray-600 line-clamp-2">{voyage.description}</p>
+                    
+                    <div className="mt-4 flex items-center justify-between">
+                      <div className="text-2xl font-bold text-sahara">
+                        {voyage.price.toLocaleString()} MAD
+                      </div>
+                      <div className={`text-sm ${voyage.availableSpots < 5 ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
+                        {voyage.availableSpots === 0 ? (
+                          'Complet'
+                        ) : voyage.availableSpots < 5 ? (
+                          `Plus que ${voyage.availableSpots} places !`
                         ) : (
-                          <FaRegThumbsUp className="h-5 w-5 transition-transform duration-300" />
+                          `${voyage.availableSpots} places disponibles`
                         )}
-                        <span className="font-medium text-sm w-3 text-center">
-                          {voyageReactions.liked ? 1 : 0}
-                        </span>
-                      </button>
-
-                      {/* Bouton Dislike */}
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleReaction(voyage._id, 'dislike');
-                        }}
-                        className={`flex items-center justify-center gap-1 p-1.5 rounded-lg transition-all duration-300 w-12 ${
-                          voyageReactions.disliked
-                            ? 'text-red-500 hover:text-red-600' 
-                            : 'text-gray-400 hover:text-red-500'
-                        }`}
-                        aria-label={voyageReactions.disliked ? "Retirer le dislike" : "Je n'aime pas"}
-                      >
-                        {voyageReactions.disliked ? (
-                          <FaThumbsDown className="h-5 w-5 transition-transform duration-300 transform scale-110" />
-                        ) : (
-                          <FaRegThumbsDown className="h-5 w-5 transition-transform duration-300" />
-                        )}
-                        <span className="font-medium text-sm w-3 text-center">
-                          {voyageReactions.disliked ? 1 : 0}
-                        </span>
-                      </button>
+                      </div>
                     </div>
 
-                    <button 
-                      onClick={() => navigate(`/voyage/${voyage._id}`)}
-                      className="px-6 py-2 bg-sahara text-white rounded-full font-medium hover:bg-sahara/90 transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-sahara focus:ring-offset-2"
-                    >
-                      Plus de détails
-                    </button>
+                    <div className="mt-6 flex items-center justify-between">
+                      <div className="flex items-center gap-3 min-w-[100px]">
+                        {/* Bouton Like */}
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReaction(voyage._id, 'like');
+                          }}
+                          className={`flex items-center justify-center gap-1 p-1.5 rounded-lg transition-all duration-300 w-12 ${
+                            voyageReactions.liked
+                              ? 'text-orange-500 hover:text-orange-600' 
+                              : 'text-gray-400 hover:text-orange-500'
+                          }`}
+                          aria-label={voyageReactions.liked ? "Je n'aime plus" : "J'aime"}
+                        >
+                          {voyageReactions.liked ? (
+                            <FaThumbsUp className="h-5 w-5 transition-transform duration-300 transform scale-110" />
+                          ) : (
+                            <FaRegThumbsUp className="h-5 w-5 transition-transform duration-300" />
+                          )}
+                          <span className="font-medium text-sm w-3 text-center">
+                            {voyageReactions.liked ? 1 : 0}
+                          </span>
+                        </button>
+
+                        {/* Bouton Dislike */}
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleReaction(voyage._id, 'dislike');
+                          }}
+                          className={`flex items-center justify-center gap-1 p-1.5 rounded-lg transition-all duration-300 w-12 ${
+                            voyageReactions.disliked
+                              ? 'text-red-500 hover:text-red-600' 
+                              : 'text-gray-400 hover:text-red-500'
+                          }`}
+                          aria-label={voyageReactions.disliked ? "Retirer le dislike" : "Je n'aime pas"}
+                        >
+                          {voyageReactions.disliked ? (
+                            <FaThumbsDown className="h-5 w-5 transition-transform duration-300 transform scale-110" />
+                          ) : (
+                            <FaRegThumbsDown className="h-5 w-5 transition-transform duration-300" />
+                          )}
+                          <span className="font-medium text-sm w-3 text-center">
+                            {voyageReactions.disliked ? 1 : 0}
+                          </span>
+                        </button>
+                      </div>
+
+                      <button 
+                        onClick={() => navigate(`/voyage/${voyage._id}`)}
+                        className="px-6 py-2 bg-sahara text-white rounded-full font-medium hover:bg-sahara/90 transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-sahara focus:ring-offset-2"
+                      >
+                        Plus de détails
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
