@@ -6,225 +6,169 @@ export const AuthProvider = ({ children }) => {
   // Définition de l'email administrateur pour toute l'application
   const ADMIN_EMAIL = 'benablahafsa@gmail.com';
   
-  const [user, setUser] = useState(() => {
-    try {
-      const storedUser = localStorage.getItem('user');
-      console.log('AuthProvider: Tentative de récupération de l\'utilisateur depuis localStorage:', storedUser);
-      if (!storedUser) return null;
-      
-      const parsedUser = JSON.parse(storedUser);
-      console.log('AuthProvider: Utilisateur parsé:', parsedUser);
-      
-      // Vérifier si l'utilisateur est administrateur
-      if (parsedUser && parsedUser.email) {
-        const isAdmin = parsedUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-        console.log('AuthProvider: Vérification admin:', { 
-          email: parsedUser.email, 
-          adminEmail: ADMIN_EMAIL,
-          isAdmin 
-        });
-        
-        // Ajouter la propriété isAdmin à l'objet utilisateur
-        return { ...parsedUser, isAdmin };
-      }
-      
-      return parsedUser;
-    } catch (error) {
-      console.error('AuthProvider: Erreur lors de la récupération de l\'utilisateur depuis localStorage:', error);
-      localStorage.removeItem('user'); // Nettoyer en cas d'erreur
-      return null;
-    }
-  });
-  const [token, setToken] = useState(() => localStorage.getItem('token'));
+  // États initiaux simplifiés
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    // Vérifier si un token est présent dans le localStorage
-    const token = localStorage.getItem('token');
-    console.log('AuthProvider: Token de connexion:', token ? 'présent' : 'absent');
-    return !!token && !!user;
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authError, setAuthError] = useState(null);
 
-  // Vérifier le token et l'utilisateur au chargement
+  // Initialisation au chargement du composant
   useEffect(() => {
-    const verifyAuth = async () => {
+    const initializeAuth = async () => {
       try {
+        // Récupérer token et user depuis localStorage
         const storedToken = localStorage.getItem('token');
-        console.log('AuthProvider: Vérification du token:', storedToken ? 'présent' : 'absent');
+        const storedUser = localStorage.getItem('user');
         
-        if (storedToken) {
-          // Vérifier la validité du token avec le backend
-          console.log('AuthProvider: Tentative de vérification du token avec le backend...');
-          const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/verify-token`, {
-            headers: {
-              'Authorization': `Bearer ${storedToken}`
-            }
-          });
-
-          if (response.ok) {
-            const { user: userData } = await response.json();
-            console.log('AuthProvider: Utilisateur authentifié:', userData);
-            
-            // Mapper l'ID utilisateur
-            const mappedUser = {
-              ...userData,
-              userId: userData.id // Mapper id vers userId
-            };
-            
-            // Vérifier si l'utilisateur est administrateur
-            const isAdmin = userData.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-            console.log('AuthProvider: Vérification admin:', { 
-              email: userData.email, 
-              adminEmail: ADMIN_EMAIL,
-              isAdmin 
-            });
-            
-            // Ajouter la propriété isAdmin à l'objet utilisateur
-            const userWithAdmin = { ...mappedUser, isAdmin };
-            
-            setUser(userWithAdmin);
-            setToken(storedToken);
-            localStorage.setItem('user', JSON.stringify(userWithAdmin));
-            localStorage.setItem('token', storedToken);
-            console.log('AuthProvider: Authentification vérifiée avec succès', { userWithAdmin });
-            setIsAuthenticated(true);
-          } else {
-            console.log('AuthProvider: Token invalide, déconnexion...');
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            setUser(null);
-            setToken(null);
-            setIsAuthenticated(false);
-          }
-        } else {
-          console.log('AuthProvider: Aucun token trouvé dans le localStorage');
-          setUser(null);
-          setToken(null);
-          setIsAuthenticated(false);
+        console.log('AuthProvider: Initialisation de l\'authentification');
+        
+        if (!storedToken || !storedUser) {
+          console.log('AuthProvider: Aucune donnée d\'authentification trouvée');
+          setLoading(false);
+          return;
+        }
+        
+        try {
+          // Vérifier si les données utilisateur sont valides
+          const parsedUser = JSON.parse(storedUser);
+          
+          // Vérifier le statut admin
+          const isAdmin = parsedUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+          
+          // Mettre à jour l'état avec les données stockées
+          setToken(storedToken);
+          setUser({ ...parsedUser, isAdmin });
+          setIsAuthenticated(true);
+          
+          console.log('AuthProvider: Authentification initialisée depuis localStorage');
+          
+          // Vérifier avec le backend en arrière-plan (ne bloque pas le chargement)
+          validateTokenWithBackend(storedToken);
+        } catch (error) {
+          console.error('AuthProvider: Erreur de parsing des données utilisateur:', error);
+          resetAuthState();
         }
       } catch (error) {
-        console.error('AuthProvider: Erreur lors de la vérification du token:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setUser(null);
-        setToken(null);
-        setIsAuthenticated(false);
+        console.error('AuthProvider: Erreur lors de l\'initialisation:', error);
+        resetAuthState();
       } finally {
         setLoading(false);
       }
     };
-
-    verifyAuth();
+    
+    initializeAuth();
   }, []);
+  
+  // Fonction pour valider le token avec le backend
+  const validateTokenWithBackend = async (token) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/verify-token`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        console.log('AuthProvider: Token invalide selon le backend');
+        resetAuthState();
+        return;
+      }
+      
+      const { user: userData } = await response.json();
+      
+      // Vérifier si l'utilisateur est administrateur
+      const isAdmin = userData.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      
+      // Mettre à jour avec les données fraîches du backend
+      const updatedUser = { 
+        ...userData, 
+        isAdmin,
+        userId: userData.id || userData._id
+      };
+      
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      console.log('AuthProvider: Token validé avec le backend');
+    } catch (error) {
+      console.error('AuthProvider: Erreur lors de la validation du token:', error);
+      // On ne réinitialise pas l'état en cas d'erreur de connexion pour permettre
+      // à l'application de fonctionner même hors ligne
+    }
+  };
+  
+  // Fonction pour réinitialiser l'état d'authentification
+  const resetAuthState = () => {
+    setUser(null);
+    setToken(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  };
 
   const login = (userData, newToken) => {
-    console.log('AuthProvider: Login appelé avec:', { userData, token: newToken });
-    
     if (!userData || !newToken) {
-      console.error('AuthProvider: Tentative de connexion avec des données invalides:', { userData, newToken });
+      console.error('AuthProvider: Données de connexion invalides');
       return;
     }
     
     try {
-      // Vérifier si l'utilisateur est administrateur
-      const isAdmin = userData.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-      console.log('AuthProvider: Vérification admin lors de la connexion:', { 
-        email: userData.email, 
-        adminEmail: ADMIN_EMAIL,
-        isAdmin 
-      });
+      // Vérifier le statut admin
+      const isAdmin = userData.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       
-      // Ajouter la propriété isAdmin et userId à l'objet utilisateur
-      const userWithAdmin = { 
+      // Normaliser les données utilisateur
+      const normalizedUser = { 
         ...userData, 
         isAdmin,
-        userId: userData._id || userData.id // Normaliser l'ID
+        userId: userData._id || userData.id || userData.userId
       };
       
-      console.log('AuthProvider: Stockage des données utilisateur:', userWithAdmin);
-      setUser(userWithAdmin);
+      // Mettre à jour l'état
+      setUser(normalizedUser);
       setToken(newToken);
+      setIsAuthenticated(true);
+      setAuthError(null);
       
-      // Stocker dans localStorage
-      localStorage.setItem('user', JSON.stringify(userWithAdmin));
+      // Sauvegarder dans localStorage
+      localStorage.setItem('user', JSON.stringify(normalizedUser));
       localStorage.setItem('token', newToken);
       
       console.log('AuthProvider: Utilisateur connecté avec succès');
-      setIsAuthenticated(true);
-      setAuthError(null);
     } catch (error) {
       console.error('AuthProvider: Erreur lors de la connexion:', error);
-      setAuthError(error.message);
+      setAuthError('Erreur lors de la connexion');
     }
   };
 
   const logout = () => {
-    console.log('AuthProvider: Logout appelé');
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    console.log('AuthProvider: Utilisateur déconnecté avec succès');
-    setIsAuthenticated(false);
-    setAuthError(null);
+    console.log('AuthProvider: Déconnexion');
+    resetAuthState();
   };
 
   // Fonction pour mettre à jour les informations de l'utilisateur
   const updateUserProfile = (updatedUserData) => {
-    console.log('AuthProvider: Mise à jour du profil utilisateur:', updatedUserData);
-    
-    if (!updatedUserData) {
-      throw new Error('Données utilisateur manquantes pour la mise à jour');
+    try {
+      if (!user || !updatedUserData) {
+        throw new Error('Données utilisateur manquantes');
+      }
+      
+      // Préserver les propriétés importantes
+      const updatedUser = {
+        ...updatedUserData,
+        userId: user.userId || user._id || user.id,
+        isAdmin: updatedUserData.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+      };
+      
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      return updatedUser;
+    } catch (error) {
+      console.error('AuthProvider: Erreur lors de la mise à jour du profil:', error);
+      throw error;
     }
-    
-    // Conserver l'ID et le statut admin
-    const userId = user?.userId || user?._id || user?.id;
-    const isAdmin = user?.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-    
-    // Mettre à jour l'utilisateur avec les nouvelles données tout en préservant userId et isAdmin
-    const updatedUser = {
-      ...updatedUserData,
-      userId,
-      isAdmin
-    };
-    
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    
-    console.log('AuthProvider: Profil utilisateur mis à jour:', updatedUser);
-    return updatedUser;
   };
-
-  // Exposer l'état d'authentification pour le débogage
-  useEffect(() => {
-    const authState = {
-      isAuthenticated,
-      user: user ? { 
-        ...user, 
-        email: user.email,
-        isAdmin: user.isAdmin 
-      } : null,
-      hasToken: !!token
-    };
-    
-    console.log('AuthProvider: État d\'authentification mis à jour:', authState);
-    
-    // Vérifier si les données utilisateur sont cohérentes
-    if (!!token && !user) {
-      console.warn('AuthProvider: Incohérence détectée - Token présent mais utilisateur absent');
-    }
-    if (!token && isAuthenticated) {
-      console.warn('AuthProvider: INCOHÉRENCE - Authentifié mais token absent');
-      setIsAuthenticated(false);
-    }
-  }, [isAuthenticated, user, token]);
-
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-      <p className="ml-3">Chargement de l'authentification...</p>
-    </div>;
-  }
 
   return (
     <AuthContext.Provider value={{ 
@@ -236,9 +180,17 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated,
       authError,
       updateUserProfile,
-      isAdmin: user?.isAdmin || false
+      isAdmin: user?.isAdmin || false,
+      adminEmail: ADMIN_EMAIL
     }}>
-      {children}
+      {loading ? (
+        <div className="flex items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+          <p className="ml-3">Chargement...</p>
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 };
@@ -246,7 +198,7 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth doit être utilisé à l\'intérieur d\'un AuthProvider');
   }
   return context;
 }; 

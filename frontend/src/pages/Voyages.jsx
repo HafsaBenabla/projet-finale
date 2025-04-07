@@ -2,35 +2,40 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useVoyages } from '../context/VoyagesContext';
 import { useAuth } from '../context/AuthContext';
-import { FaBuilding, FaCalendarAlt, FaUsers, FaMapMarkerAlt } from 'react-icons/fa';
-import VoyageReactionPanel from '../components/VoyageReactionPanel';
+import { FaBuilding, FaCalendarAlt, FaUsers, FaMapMarkerAlt, FaSync } from 'react-icons/fa';
+import VoyageCard from '../components/VoyageCard';
 
 const Voyages = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { voyages, loading, error } = useVoyages();
-  
-  // Récupérer les paramètres d'URL
-  const queryParams = new URLSearchParams(location.search);
-  const agencyIdParam = queryParams.get('agencyId');
-  const agencyNameParam = queryParams.get('agencyName');
-  const destinationParam = queryParams.get('destination');
-  const dateParam = queryParams.get('date');
-  const travelersParam = queryParams.get('travelers');
+  const { voyages, loading, error, refreshVoyages, lastFetchTime } = useVoyages();
   
   // État pour les filtres
-  const [destinationFilter, setDestinationFilter] = useState(destinationParam || '');
+  const [destinationFilter, setDestinationFilter] = useState('');
   const [durationFilter, setDurationFilter] = useState('');
   const [budgetFilter, setBudgetFilter] = useState('');
-  const [agencyFilter, setAgencyFilter] = useState(agencyIdParam || '');
-  const [agencyName, setAgencyName] = useState(agencyNameParam || '');
-  const [dateFilter, setDateFilter] = useState(dateParam || '');
-  const [travelersFilter, setTravelersFilter] = useState(travelersParam || '');
+  const [agencyFilter, setAgencyFilter] = useState('');
+  const [agencyName, setAgencyName] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [travelersFilter, setTravelersFilter] = useState('');
 
   // Définir les filtres si présents dans l'URL
   useEffect(() => {
+    // Récupérer les paramètres d'URL à chaque changement de location
+    const params = new URLSearchParams(location.search);
+    const agencyIdParam = params.get('agencyId');
+    const agencyNameParam = params.get('agencyName');
+    const destinationParam = params.get('destination');
+    const dateParam = params.get('date');
+    const travelersParam = params.get('travelers');
+    const durationParam = params.get('duration');
+    const budgetParam = params.get('budget');
+    
     if (agencyIdParam) {
       setAgencyFilter(agencyIdParam);
+    }
+    if (agencyNameParam) {
+      setAgencyName(agencyNameParam);
     }
     if (destinationParam) {
       setDestinationFilter(destinationParam);
@@ -41,7 +46,28 @@ const Voyages = () => {
     if (travelersParam) {
       setTravelersFilter(travelersParam);
     }
-  }, [agencyIdParam, destinationParam, dateParam, travelersParam]);
+    if (durationParam) {
+      setDurationFilter(durationParam);
+    }
+    if (budgetParam) {
+      setBudgetFilter(budgetParam);
+    }
+  }, [location.search]);
+
+  // Effect pour rafraîchir les données lorsque l'utilisateur visite la page
+  useEffect(() => {
+    console.log('Page Voyages montée - Vérification des données récentes');
+    
+    // Rafraîchir les données au montage du composant
+    const currentTime = Date.now();
+    const timeSinceLastFetch = currentTime - lastFetchTime;
+    const REFRESH_INTERVAL = 2 * 60 * 1000; // 2 minutes
+    
+    if (timeSinceLastFetch > REFRESH_INTERVAL) {
+      console.log('Données trop anciennes, rafraîchissement automatique');
+      refreshVoyages();
+    }
+  }, [refreshVoyages, lastFetchTime]);
 
   // Modifier les queryParams lors du changement de filtre
   const updateFilters = (name, value) => {
@@ -73,6 +99,16 @@ const Voyages = () => {
     updateFilters('budget', budget);
   };
 
+  const handleDateChange = (date) => {
+    setDateFilter(date);
+    updateFilters('date', date);
+  };
+
+  const handleTravelersChange = (travelers) => {
+    setTravelersFilter(travelers);
+    updateFilters('travelers', travelers);
+  };
+
   const handleClearAgency = () => {
     setAgencyFilter('');
     setAgencyName('');
@@ -81,19 +117,27 @@ const Voyages = () => {
   };
 
   const handleClearAllFilters = () => {
-    setDestinationFilter('');
-    setDurationFilter('');
-    setBudgetFilter('');
-    setAgencyFilter('');
-    setAgencyName('');
-    setDateFilter('');
-    setTravelersFilter('');
+    handleDestinationChange('');
+    handleDurationChange('');
+    handleBudgetChange('');
+    handleClearAgency();
+    handleDateChange('');
+    handleTravelersChange('');
+    // Rediriger vers la page de base sans paramètres
     navigate('/voyages');
+  };
+  
+  // Gestionnaire pour forcer un rafraîchissement manuel
+  const handleManualRefresh = () => {
+    console.log('Rafraîchissement manuel des voyages');
+    refreshVoyages();
   };
 
   // Filtrer les voyages en fonction des filtres sélectionnés
   const filteredVoyages = useMemo(() => {
     if (!voyages) return [];
+    
+    console.log(`Filtrage des voyages (${voyages.length} voyages, lastFetchTime: ${new Date(lastFetchTime).toLocaleTimeString()})`);
     
     return voyages.filter(voyage => {
       // Filtre par destination
@@ -141,22 +185,63 @@ const Voyages = () => {
       
       return true;
     });
-  }, [voyages, destinationFilter, durationFilter, budgetFilter, agencyFilter, dateFilter, travelersFilter]);
+  }, [voyages, destinationFilter, durationFilter, budgetFilter, agencyFilter, dateFilter, travelersFilter, lastFetchTime]);
 
-  if (loading) {
+  // Utiliser useEffect pour afficher les voyages même en cours de chargement
+  useEffect(() => {
+    console.log(`Page Voyages - Chargement: ${loading}, Erreur: ${error ? 'Oui' : 'Non'}, Voyages: ${voyages.length}, Dernier chargement: ${new Date(lastFetchTime).toLocaleTimeString()}`);
+    if (location.search) {
+      console.log('Paramètres d\'URL détectés:', location.search);
+    }
+  }, [loading, error, voyages, location.search, lastFetchTime]);
+
+  // Afficher immédiatement les voyages filtrés si disponibles, même en cours de chargement
+  const showFilteredVoyages = useMemo(() => {
+    return voyages.length > 0;
+  }, [voyages]);
+
+  // Composant de rendu condititionnel pour les voyages
+  const renderVoyages = () => {
+    if (filteredVoyages.length === 0) {
+      return (
+        <div className="text-center py-16">
+          <h3 className="text-2xl text-gray-600 mb-4">Aucun voyage ne correspond à vos critères</h3>
+          <p className="text-gray-500">Veuillez modifier vos filtres ou revenir plus tard.</p>
+        </div>
+      );
+    }
+
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-sahara"></div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {filteredVoyages.map((voyage) => (
+          <VoyageCard key={voyage._id + '-' + lastFetchTime} voyage={voyage} />
+        ))}
+      </div>
+    );
+  };
+
+  // Interface utilisateur avec gestion des états
+  if (loading && !showFilteredVoyages) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-sahara mb-4"></div>
+        <p className="text-gray-600 text-lg">Chargement des voyages...</p>
       </div>
     );
   }
 
-  if (error) {
+  if (error && voyages.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur</h2>
-          <p className="text-gray-600">{error}</p>
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <div className="text-center max-w-lg px-4">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur de chargement</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-sahara text-white rounded-full font-medium hover:bg-sahara/90"
+          >
+            Réessayer
+          </button>
         </div>
       </div>
     );
@@ -177,6 +262,25 @@ const Voyages = () => {
                 {filteredVoyages.length} résultat{filteredVoyages.length !== 1 ? 's' : ''}
               </p>
             </div>
+
+            {/* Bouton de rafraîchissement manuel */}
+            <button
+              onClick={handleManualRefresh}
+              className="flex items-center px-3 py-1 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors"
+              title="Rafraîchir les données"
+              disabled={loading}
+            >
+              <FaSync className={`mr-1 ${loading ? 'animate-spin' : ''}`} />
+              <span className="text-sm">Rafraîchir</span>
+            </button>
+
+            {/* Affichage indicateur de chargement si données en cours de rafraîchissement */}
+            {loading && (
+              <div className="flex items-center text-gray-500 mr-2">
+                <div className="animate-spin w-4 h-4 border-2 border-gray-300 border-t-orange-500 rounded-full mr-2"></div>
+                <span className="text-sm">Actualisation...</span>
+              </div>
+            )}
 
             {/* Affichage des filtres actifs */}
             <div className="flex flex-wrap gap-2 items-center">
@@ -237,8 +341,7 @@ const Voyages = () => {
                       <FaCalendarAlt className="mr-1" /> {new Date(dateFilter).toLocaleDateString()}
                       <button 
                         onClick={() => {
-                          setDateFilter('');
-                          updateFilters('date', '');
+                          handleDateChange('');
                         }} 
                         className="ml-1 text-gray-500 hover:text-gray-700"
                       >
@@ -252,8 +355,7 @@ const Voyages = () => {
                       <FaUsers className="mr-1" /> {travelersFilter} voyageur(s)
                       <button 
                         onClick={() => {
-                          setTravelersFilter('');
-                          updateFilters('travelers', '');
+                          handleTravelersChange('');
                         }} 
                         className="ml-1 text-gray-500 hover:text-gray-700"
                       >
@@ -311,69 +413,32 @@ const Voyages = () => {
         </div>
       </div>
 
-      {/* Voyages Grid */}
+      {/* Voyages Grid avec gestion des erreurs */}
       <div className="container mx-auto px-4 py-12">
-        {filteredVoyages.length === 0 ? (
-          <div className="text-center py-12">
-            <h3 className="text-2xl text-gray-600 mb-4">Aucun voyage ne correspond à vos critères</h3>
-            <p className="text-gray-500">Veuillez modifier vos filtres ou revenir plus tard.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredVoyages.map((voyage) => (
-              <div 
-                key={voyage._id} 
-                className="bg-white rounded-xl shadow-lg overflow-hidden transform transition duration-500 hover:scale-105"
-                onClick={() => navigate(`/voyage/${voyage._id}`)}
-              >
-                <div className="relative h-48 overflow-hidden group">
-                  <img 
-                    src={voyage.image.startsWith('http') ? voyage.image : `http://localhost:5000${voyage.image}`} 
-                    alt={voyage.title}
-                    className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-110"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = 'https://via.placeholder.com/400x300?text=Image+non+disponible';
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </div>
-                
-                <div className="p-6">
-                  <h3 className="text-xl font-bold mb-2 text-gray-900">{voyage.title}</h3>
-                  <div className="flex items-center text-gray-600 mb-3">
-                    <FaMapMarkerAlt className="mr-2 text-orange-500" />
-                    <span>{voyage.destination}</span>
-                  </div>
-                  
-                  <p className="text-gray-600 mb-4 line-clamp-2">
-                    {voyage.description}
-                  </p>
-                  
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-lg font-bold text-orange-600">{voyage.price} DH</span>
-                    <span className="text-sm text-gray-500">{voyage.duration} jour{voyage.duration > 1 ? 's' : ''}</span>
-                  </div>
-                  
-                  <div className="mt-6 flex items-center justify-between">
-                    {/* Composant de réactions */}
-                    <VoyageReactionPanel voyageId={voyage._id} />
-
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/voyage/${voyage._id}`);
-                      }}
-                      className="px-6 py-2 bg-sahara text-white rounded-full font-medium hover:bg-sahara/90 transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-sahara focus:ring-offset-2"
-                    >
-                      Plus de détails
-                    </button>
-                  </div>
-                </div>
+        {error && (
+          <div className="bg-orange-50 border-l-4 border-orange-500 p-4 mb-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 text-orange-500">
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-9v4a1 1 0 11-2 0v-4a1 1 0 112 0zm0-4a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+                </svg>
               </div>
-            ))}
+              <div className="ml-3">
+                <p className="text-sm text-orange-700">
+                  Affichage des données en cache. {error}
+                  <button 
+                    onClick={() => window.location.reload()} 
+                    className="ml-2 font-medium underline"
+                  >
+                    Réessayer
+                  </button>
+                </p>
+              </div>
+            </div>
           </div>
         )}
+        
+        {renderVoyages()}
       </div>
     </div>
   );

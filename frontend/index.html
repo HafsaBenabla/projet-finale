@@ -1,11 +1,23 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    <title>Vite + React</title>
+    <title>Plateforme de Voyage</title>
+    <script>
+      // Script simplifié pour gérer les routes SPA
+      (function() {
+        // Si l'application est en mode développement, récupérer les outils React Developer
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          const script = document.createElement('script');
+          script.src = 'https://unpkg.com/react-refresh@0.14.0/babel.min.js';
+          script.async = true;
+          document.head.appendChild(script);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

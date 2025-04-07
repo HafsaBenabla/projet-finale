@@ -5,8 +5,10 @@ import axios from 'axios';
 import { Form, Button, Row, Col } from 'react-bootstrap';
 import ImageUploader from '../components/ImageUploader';
 import EditVoyageForm from '../components/EditVoyageForm';
+import { useVoyages } from '../context/VoyagesContext';
 
 const VoyagesManagement = () => {
+  const { refreshVoyages, clearCache } = useVoyages();
   const [voyages, setVoyages] = useState([]);
   const [agencies, setAgencies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -151,6 +153,11 @@ const VoyagesManagement = () => {
     // Mettre à jour la liste des voyages après une édition réussie
     console.log('Voyage mis à jour avec succès:', updatedVoyage);
     alert('Voyage mis à jour avec succès!');
+    
+    // Forcer un rafraîchissement du contexte global pour mettre à jour toutes les cartes
+    clearCache();
+    
+    // Rafraîchir la liste des voyages dans ce composant
     setRefreshTrigger(prev => prev + 1);
   };
 
@@ -168,6 +175,9 @@ const VoyagesManagement = () => {
       if (!response.ok) {
         throw new Error('Erreur lors de la suppression du voyage');
       }
+      
+      // Forcer un rafraîchissement du contexte global pour mettre à jour toutes les cartes
+      clearCache();
 
       setRefreshTrigger(prev => prev + 1);
       setShowDeleteConfirm(false);

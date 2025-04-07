@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaMapMarkerAlt, FaClock, FaInfoCircle, FaWalking, FaCalendarCheck, FaCheck } from 'react-icons/fa';
+import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaMapMarkerAlt, FaClock, FaInfoCircle, FaWalking, FaCalendarCheck, FaCheck, FaBuilding } from 'react-icons/fa';
 import ActivitySelectionCard from '../components/ActivitySelectionCard';
 import { useVoyages } from '../context/VoyagesContext';
 import { useAuth } from '../context/AuthContext';
@@ -385,6 +385,160 @@ const VoyageDetail = () => {
               <p className="text-gray-600 leading-relaxed text-lg">{voyage.description}</p>
             </div>
 
+            {/* Nouvelle Section: Détails du Voyage (Hébergement, Dates) */}
+            <div className="bg-white rounded-2xl shadow-lg p-8">
+              <h2 className="text-3xl font-semibold mb-6 text-gray-800 flex items-center gap-3">
+                <FaBuilding className="text-sahara" />
+                Détails du séjour
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Détails d'hébergement */}
+                <div className="bg-sahara/10 rounded-xl p-6">
+                  <h3 className="text-xl font-semibold mb-3 text-sahara">Hébergement</h3>
+                  {voyage.hebergement ? (
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-4">
+                        {voyage.hebergementImage && (
+                          <img 
+                            src={voyage.hebergementImage?.startsWith('http') 
+                              ? voyage.hebergementImage 
+                              : `http://localhost:5000${voyage.hebergementImage}`} 
+                            alt={voyage.hebergement}
+                            className="w-20 h-20 object-cover rounded-lg"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg';
+                            }}
+                          />
+                        )}
+                        <div>
+                          <h4 className="font-medium text-gray-900">{voyage.hebergement}</h4>
+                          <p className="text-sm text-gray-600 mt-1">{voyage.typeHebergement || 'Hébergement standard'}</p>
+                        </div>
+                      </div>
+                      {voyage.descriptionHebergement && (
+                        <p className="text-gray-700 text-sm">{voyage.descriptionHebergement}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-gray-600">Information sur l'hébergement non disponible</p>
+                  )}
+                </div>
+                
+                {/* Dates et durée */}
+                <div className="bg-sahara/5 rounded-xl p-6">
+                  <h3 className="text-xl font-semibold mb-3 text-sahara">Dates et durée</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-sahara/20 p-2 rounded-full">
+                        <FaCalendarAlt className="text-sahara" />
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-500">Durée</span>
+                        <p className="font-medium">{voyage.duration} jour{voyage.duration > 1 ? 's' : ''}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <div className="bg-sahara/20 p-2 rounded-full">
+                        <FaCalendarAlt className="text-sahara" />
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-500">Départ</span>
+                        <p className="font-medium">
+                          {voyage.departureDate 
+                            ? new Date(voyage.departureDate).toLocaleDateString('fr-FR', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric'
+                              })
+                            : 'Départs flexibles'}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {voyage.returnDate && (
+                      <div className="flex items-center gap-2">
+                        <div className="bg-sahara/20 p-2 rounded-full">
+                          <FaCalendarAlt className="text-sahara" />
+                        </div>
+                        <div>
+                          <span className="text-sm text-gray-500">Retour</span>
+                          <p className="font-medium">
+                            {new Date(voyage.returnDate).toLocaleDateString('fr-FR', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {voyage.availableSpots && (
+                      <div className="mt-4 pt-3 border-t border-sahara/20">
+                        <div className="flex items-center gap-2">
+                          <div className="bg-sahara/20 p-2 rounded-full">
+                            <FaUsers className="text-sahara" />
+                          </div>
+                          <div>
+                            <span className="font-medium">{voyage.availableSpots} place{voyage.availableSpots > 1 ? 's' : ''} disponible{voyage.availableSpots > 1 ? 's' : ''}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Inclusions et exclusions */}
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Ce qui est inclus */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-3 text-gray-800">Ce qui est inclus</h3>
+                  <ul className="space-y-2">
+                    {voyage.inclusions && voyage.inclusions.length > 0 ? (
+                      voyage.inclusions.map((inclusion, index) => (
+                        <li key={index} className="flex items-center gap-2">
+                          <FaCheck className="text-sahara flex-shrink-0" />
+                          <span className="text-gray-700">{inclusion}</span>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-gray-600">Transport, hébergement et guide inclus.</li>
+                    )}
+                  </ul>
+                </div>
+                
+                {/* Ce qui n'est pas inclus */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-3 text-gray-800">Non inclus</h3>
+                  <ul className="space-y-2">
+                    {voyage.exclusions && voyage.exclusions.length > 0 ? (
+                      voyage.exclusions.map((exclusion, index) => (
+                        <li key={index} className="flex items-center gap-2 text-gray-600">
+                          <span className="text-sahara font-bold">×</span>
+                          <span>{exclusion}</span>
+                        </li>
+                      ))
+                    ) : (
+                      <>
+                        <li className="flex items-center gap-2 text-gray-600">
+                          <span className="text-sahara font-bold">×</span>
+                          <span>Dépenses personnelles</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-gray-600">
+                          <span className="text-sahara font-bold">×</span>
+                          <span>Pourboires</span>
+                        </li>
+                      </>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
             {/* Section Likes et Dislikes */}
             <div className="bg-white rounded-2xl shadow-lg p-8">
               <div className="flex justify-between items-center">
@@ -480,20 +634,20 @@ const VoyageDetail = () => {
               </h2>
               <ul className="space-y-4">
                 <li className="flex items-center gap-3">
-                  <div className="bg-green-100 p-2 rounded-full">
-                    <FaCalendarAlt className="text-green-600" />
+                  <div className="bg-sahara/20 p-2 rounded-full">
+                    <FaCalendarAlt className="text-sahara" />
                   </div>
                   <span className="text-gray-700">Annulation gratuite jusqu'à 48h avant le départ</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <div className="bg-green-100 p-2 rounded-full">
-                    <FaUsers className="text-green-600" />
+                  <div className="bg-sahara/20 p-2 rounded-full">
+                    <FaUsers className="text-sahara" />
                   </div>
                   <span className="text-gray-700">Guide professionnel inclus</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <div className="bg-green-100 p-2 rounded-full">
-                    <FaMapMarkerAlt className="text-green-600" />
+                  <div className="bg-sahara/20 p-2 rounded-full">
+                    <FaMapMarkerAlt className="text-sahara" />
                   </div>
                   <span className="text-gray-700">Transport depuis votre hôtel</span>
                 </li>

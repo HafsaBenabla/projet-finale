@@ -10,27 +10,9 @@ const debugReactionMiddleware = (req, res, next) => {
     console.log('====== DEBUG RÉACTION ======');
     console.log('Méthode:', req.method);
     console.log('URL:', req.originalUrl);
-    console.log('Headers:', req.headers);
-    console.log('Body:', req.body);
-    console.log('Params:', req.params);
-    console.log('User:', req.user);
+    console.log('Auth:', !!req.headers.authorization || !!req.headers['user-id']);
+    console.log('Params ID:', req.params.id);
     console.log('===========================');
-    
-    // Capture la méthode send originale
-    const originalSend = res.send;
-    
-    // Remplace la méthode send pour intercepter les réponses
-    res.send = function (body) {
-        console.log('====== RÉPONSE RÉACTION ======');
-        console.log('Status:', res.statusCode);
-        console.log('Body:', body);
-        console.log('==============================');
-        
-        // Restaure la méthode send originale et l'appelle
-        res.send = originalSend;
-        return res.send(body);
-    };
-    
     next();
 };
 
@@ -119,24 +101,25 @@ router.post('/', auth, async (req, res) => {
 // Route pour réagir à un voyage (like/dislike)
 router.post('/:id/reaction', debugReactionMiddleware, async (req, res) => {
     try {
-        const { type } = req.body; // 'like' ou 'dislike'
+        const { type, userId: bodyUserId } = req.body; // 'like' ou 'dislike' et userId optionnel dans le corps
+
+        if (!type || (type !== 'like' && type !== 'dislike')) {
+            return res.status(400).json({ message: 'Type de réaction invalide' });
+        }
         
-        // Récupérer l'userId soit du token, soit des headers
+        // Récupérer l'userId de plusieurs sources possibles
         let userId;
         if (req.user) {
-            // Si l'utilisateur est authentifié (middleware auth)
             userId = req.user._id.toString();
         } else if (req.headers['user-id']) {
-            // Sinon, utiliser l'ID fourni dans les headers
             userId = req.headers['user-id'];
+        } else if (bodyUserId) {
+            userId = bodyUserId;
         } else {
             return res.status(400).json({ message: 'ID utilisateur requis' });
         }
         
-        console.log(`Réaction reçue: voyage=${req.params.id}, userId=${userId}, type=${type}`);
-        
         const voyage = await Voyage.findById(req.params.id);
-
         if (!voyage) {
             return res.status(404).json({ message: 'Voyage non trouvé' });
         }
@@ -149,8 +132,6 @@ router.post('/:id/reaction', debugReactionMiddleware, async (req, res) => {
                 userReactions: []
             };
         }
-
-        console.log(`État initial des réactions: likes=${voyage.reactions.likes}, dislikes=${voyage.reactions.dislikes}`);
 
         // Vérifier si l'utilisateur a déjà réagi
         const existingReaction = voyage.reactions.userReactions.find(
@@ -169,7 +150,6 @@ router.post('/:id/reaction', debugReactionMiddleware, async (req, res) => {
             
             // Réponse après suppression
             await voyage.save();
-            console.log(`Réaction supprimée: ${type}, likes=${voyage.reactions.likes}, dislikes=${voyage.reactions.dislikes}`);
             
             return res.json({
                 likes: voyage.reactions.likes,
@@ -197,8 +177,6 @@ router.post('/:id/reaction', debugReactionMiddleware, async (req, res) => {
 
         await voyage.save();
         
-        console.log(`État final des réactions: likes=${voyage.reactions.likes}, dislikes=${voyage.reactions.dislikes}`);
-        
         // Formater la réponse pour le client
         res.json({
             likes: voyage.reactions.likes,
@@ -208,27 +186,14 @@ router.post('/:id/reaction', debugReactionMiddleware, async (req, res) => {
         });
     } catch (error) {
         console.error('Erreur lors de la mise à jour des réactions:', error);
-        res.status(400).json({ message: error.message });
+        res.status(500).json({ message: 'Erreur lors de la mise à jour des réactions' });
     }
 });
 
 // Route pour obtenir les réactions d'un voyage
 router.get('/:id/reaction', debugReactionMiddleware, async (req, res) => {
     try {
-        // Récupérer l'userId soit du token, soit des headers
-        let userId;
-        if (req.user) {
-            // Si l'utilisateur est authentifié (middleware auth)
-            userId = req.user._id.toString();
-        } else if (req.headers['user-id']) {
-            // Sinon, utiliser l'ID fourni dans les headers
-            userId = req.headers['user-id'];
-        } else {
-            return res.status(400).json({ message: 'ID utilisateur requis' });
-        }
-        
-        console.log(`Récupération des réactions: voyage=${req.params.id}, userId=${userId}`);
-        
+        // Récupérer le voyage
         const voyage = await Voyage.findById(req.params.id);
         if (!voyage) {
             return res.status(404).json({ message: 'Voyage non trouvé' });
@@ -237,19 +202,29 @@ router.get('/:id/reaction', debugReactionMiddleware, async (req, res) => {
         // S'assurer que les réactions existent
         const reactions = voyage.reactions || { likes: 0, dislikes: 0, userReactions: [] };
         
-        // Trouver la réaction de l'utilisateur
-        const userReaction = reactions.userReactions?.find(reaction => reaction.userId === userId);
-
-        console.log(`Réactions récupérées: likes=${reactions.likes}, dislikes=${reactions.dislikes}, userReaction=${userReaction?.type || 'null'}`);
+        // Récupérer l'userId s'il est disponible
+        let userId;
+        if (req.user) {
+            userId = req.user._id.toString();
+        } else if (req.headers['user-id']) {
+            userId = req.headers['user-id'];
+        }
         
+        // Trouver la réaction de l'utilisateur si userId disponible
+        let userReaction = null;
+        if (userId) {
+            userReaction = reactions.userReactions?.find(reaction => reaction.userId === userId);
+        }
+        
+        // Retourner la réponse
         res.json({ 
-            likes: reactions.likes,
-            dislikes: reactions.dislikes,
-            reaction: userReaction ? userReaction.type : null 
+            likes: reactions.likes || 0,
+            dislikes: reactions.dislikes || 0,
+            reaction: userReaction ? userReaction.type : null
         });
     } catch (error) {
         console.error('Erreur lors de la récupération des réactions:', error);
-        res.status(400).json({ message: error.message });
+        res.status(500).json({ message: 'Erreur lors de la récupération des réactions' });
     }
 });
 

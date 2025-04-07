@@ -20,6 +20,15 @@ const Navbar = () => {
     isAdmin 
   })
 
+  // Fonction pour gérer le clic sur le lien Voyages
+  const handleVoyagesClick = () => {
+    // Fermer le menu mobile si ouvert
+    setIsMenuOpen(false)
+    
+    // Navigation standard pour éviter les problèmes
+    // Pas besoin de logique complexe qui pourrait causer des erreurs
+  };
+
   const handleLogout = () => {
     logout()
     setIsProfileOpen(false)
@@ -77,7 +86,7 @@ const Navbar = () => {
           </Link>
           <Link
             to="/voyages"
-            onClick={() => setIsMenuOpen(false)}
+            onClick={handleVoyagesClick}
             className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2 text-base font-medium"
           >
             Voyages
@@ -88,13 +97,6 @@ const Navbar = () => {
             className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2 text-base font-medium"
           >
             Activités
-          </Link>
-          <Link
-            to="/city/Toutes les villes du Maroc"
-            onClick={() => setIsMenuOpen(false)}
-            className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2 text-base font-medium"
-          >
-            Agences
           </Link>
           <Link
             to="/about"
@@ -178,6 +180,7 @@ const Navbar = () => {
           </Link>
           <Link
             to="/voyages"
+            onClick={handleVoyagesClick}
             className="no-underline text-gray-800 hover:text-sahara text-base font-medium px-1"
           >
             Voyages
@@ -187,12 +190,6 @@ const Navbar = () => {
             className="no-underline text-gray-800 hover:text-sahara text-base font-medium px-1"
           >
             Activités
-          </Link>
-          <Link
-            to="/city/Toutes les villes du Maroc"
-            className="no-underline text-gray-800 hover:text-sahara text-base font-medium px-1"
-          >
-            Agences
           </Link>
           <Link
             to="/about"

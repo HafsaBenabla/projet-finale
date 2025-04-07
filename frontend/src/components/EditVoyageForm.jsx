@@ -3,8 +3,10 @@ import { FaTimes } from 'react-icons/fa';
 import ImageUploader from './ImageUploader';
 import { Form, Button, Row, Col } from 'react-bootstrap';
 import axios from 'axios';
+import { useVoyages } from '../context/VoyagesContext';
 
 const EditVoyageForm = ({ voyage, onClose, onUpdate }) => {
+  const { updateVoyageInContext, clearCache } = useVoyages();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -193,6 +195,12 @@ const EditVoyageForm = ({ voyage, onClose, onUpdate }) => {
       );
 
       console.log('Voyage mis à jour avec succès:', response.data);
+      
+      // Mettre à jour le contexte des voyages pour synchroniser les cartes
+      updateVoyageInContext(response.data);
+      
+      // Vider le cache pour forcer un rafraîchissement complet
+      clearCache();
       
       onUpdate(response.data);
       onClose();

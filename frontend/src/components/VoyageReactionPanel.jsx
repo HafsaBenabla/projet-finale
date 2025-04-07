@@ -17,65 +17,72 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
 
   // Récupérer les réactions pour ce voyage
   useEffect(() => {
+    // Si aucun ID de voyage n'est fourni, ne rien faire
+    if (!voyageId) {
+      setReaction(prev => ({ ...prev, loading: false }));
+      return;
+    }
+
     const fetchReaction = async () => {
       try {
         setReaction(prev => ({ ...prev, loading: true }));
         
+        // Préparer les headers de la requête
         const headers = {
           'Content-Type': 'application/json',
         };
         
+        // Ajouter le token s'il existe
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
-        } else if (user?.id || user?.userId) {
-          headers['user-id'] = user.id || user.userId;
         }
         
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/voyages/${voyageId}/reaction`, {
+        // Ajouter l'ID utilisateur s'il existe
+        if (user?.userId || user?._id || user?.id) {
+          headers['user-id'] = user.userId || user._id || user.id;
+        }
+        
+        // Faire la requête pour récupérer les réactions
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/voyages/${voyageId}/reaction`, {
           headers
         });
         
         if (response.ok) {
-          try {
-            const data = await response.json();
-            console.log('Données de réaction reçues:', data);
-            
-            setReaction({
-              liked: data.reaction === 'like',
-              disliked: data.reaction === 'dislike',
-              likeCount: data.likes,
-              dislikeCount: data.dislikes,
-              loading: false
-            });
-          } catch (jsonError) {
-            console.error('Erreur lors du parsing JSON de la réponse:', jsonError);
-            setReaction(prev => ({ ...prev, loading: false }));
-          }
+          const data = await response.json();
+          setReaction({
+            liked: data.reaction === 'like',
+            disliked: data.reaction === 'dislike',
+            likeCount: data.likes || 0,
+            dislikeCount: data.dislikes || 0,
+            loading: false
+          });
         } else {
-          console.error('Erreur lors de la récupération de la réaction:', response.status, response.statusText);
-          try {
-            const errorData = await response.text();
-            console.error('Détails de l\'erreur:', errorData);
-          } catch (textError) {
-            console.error('Impossible de lire le contenu de l\'erreur');
-          }
-          setReaction(prev => ({ ...prev, loading: false }));
+          // En cas d'erreur, juste afficher les compteurs à 0
+          setReaction(prev => ({ 
+            ...prev, 
+            loading: false,
+            liked: false,
+            disliked: false
+          }));
         }
       } catch (error) {
-        console.error(`Erreur lors de la récupération de la réaction pour le voyage ${voyageId}:`, error);
-        setReaction(prev => ({ ...prev, loading: false }));
+        // En cas d'erreur, ne pas bloquer l'affichage
+        setReaction(prev => ({ 
+          ...prev, 
+          loading: false,
+          liked: false,
+          disliked: false
+        }));
       }
     };
 
-    if (voyageId) {
-      fetchReaction();
-    }
+    fetchReaction();
   }, [voyageId, token, user]);
 
   // Gérer le clic sur le bouton like ou dislike
   const handleReaction = async (type) => {
     // Vérifier si l'utilisateur est authentifié
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       // Rediriger vers la page de connexion avec le retour vers cette page
       const currentPath = location.pathname + location.search;
       navigate(`/login?redirect=${encodeURIComponent(currentPath)}`);
@@ -83,6 +90,15 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
     }
 
     try {
+      // Récupérer l'ID utilisateur
+      const userId = user.userId || user._id || user.id;
+      
+      if (!userId) {
+        alert('Veuillez vous reconnecter pour interagir avec les voyages.');
+        navigate('/login');
+        return;
+      }
+      
       // Optimistic UI update
       setReaction(prev => {
         const newReaction = { ...prev };
@@ -129,52 +145,44 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
       
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
-      } else if (user?.id || user?.userId) {
-        headers['user-id'] = user.id || user.userId;
       }
+      
+      // Inclure l'ID utilisateur dans les headers
+      headers['user-id'] = userId;
 
       // Envoyer la réaction au serveur
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/voyages/${voyageId}/reaction`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/voyages/${voyageId}/reaction`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ type })
+        body: JSON.stringify({ type, userId })
       });
 
       if (response.ok) {
-        try {
-          const data = await response.json();
-          
-          // Mettre à jour l'état avec les données réelles du serveur
-          setReaction({
-            liked: data.reaction === 'like',
-            disliked: data.reaction === 'dislike',
-            likeCount: data.likes,
-            dislikeCount: data.dislikes,
-            loading: false
-          });
-        } catch (jsonError) {
-          console.error('Erreur lors du parsing JSON de la réponse:', jsonError);
-          // En cas d'erreur de parsing, on rafraîchit les données
-          refreshReactionData();
-        }
+        const data = await response.json();
+        
+        // Mettre à jour l'état avec les données réelles du serveur
+        setReaction({
+          liked: data.reaction === 'like',
+          disliked: data.reaction === 'dislike',
+          likeCount: data.likes || 0,
+          dislikeCount: data.dislikes || 0,
+          loading: false
+        });
+      } else if (response.status === 401 || response.status === 403) {
+        // Si erreur d'authentification, rediriger vers la page de connexion
+        alert('Votre session a expiré. Veuillez vous reconnecter.');
+        navigate('/login');
       } else {
-        console.error('Erreur lors de l\'envoi de la réaction:', response.status, response.statusText);
-        try {
-          const errorText = await response.text();
-          console.error('Détails de l\'erreur:', errorText);
-        } catch (textError) {
-          console.error('Impossible de lire le contenu de l\'erreur');
-        }
-        // En cas d'erreur, on rafraîchit les données
-        refreshReactionData();
+        // Pour les autres erreurs, rafraîchir les données
+        fetchReactionData();
       }
     } catch (error) {
-      console.error('Erreur lors de la réaction:', error);
-      refreshReactionData();
+      // En cas d'erreur, rafraîchir les données
+      fetchReactionData();
     }
   };
 
-  const refreshReactionData = async () => {
+  const fetchReactionData = async () => {
     try {
       const headers = {
         'Content-Type': 'application/json',
@@ -182,34 +190,32 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
       
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
-      } else if (user?.id || user?.userId) {
-        headers['user-id'] = user.id || user.userId;
       }
       
-      const refreshResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/voyages/${voyageId}/reaction`, {
+      if (user?.userId || user?._id || user?.id) {
+        headers['user-id'] = user.userId || user._id || user.id;
+      }
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/voyages/${voyageId}/reaction`, {
         headers
       });
       
-      if (refreshResponse.ok) {
-        try {
-          const refreshData = await refreshResponse.json();
-          setReaction({
-            liked: refreshData.reaction === 'like',
-            disliked: refreshData.reaction === 'dislike',
-            likeCount: refreshData.likes,
-            dislikeCount: refreshData.dislikes,
-            loading: false
-          });
-        } catch (jsonError) {
-          console.error('Erreur lors du parsing JSON pendant le rafraîchissement:', jsonError);
-          setReaction(prev => ({ ...prev, loading: false }));
-        }
+      if (response.ok) {
+        const data = await response.json();
+        
+        setReaction({
+          liked: data.reaction === 'like',
+          disliked: data.reaction === 'dislike',
+          likeCount: data.likes || 0,
+          dislikeCount: data.dislikes || 0,
+          loading: false
+        });
       } else {
-        console.error('Erreur lors du rafraîchissement des réactions:', refreshResponse.status, refreshResponse.statusText);
+        // En cas d'erreur, ne pas bloquer l'affichage
         setReaction(prev => ({ ...prev, loading: false }));
       }
     } catch (error) {
-      console.error('Erreur lors du rafraîchissement des réactions:', error);
+      // En cas d'erreur, ne pas bloquer l'affichage
       setReaction(prev => ({ ...prev, loading: false }));
     }
   };
