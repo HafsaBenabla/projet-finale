@@ -4,6 +4,7 @@ import { FaPlus, FaArrowLeft, FaEdit, FaTrash, FaSpinner, FaTimes } from 'react-
 import axios from 'axios';
 import { Form, Button, Row, Col } from 'react-bootstrap';
 import ImageUploader from '../components/ImageUploader';
+import EditVoyageForm from '../components/EditVoyageForm';
 
 const VoyagesManagement = () => {
   const [voyages, setVoyages] = useState([]);
@@ -15,6 +16,8 @@ const VoyagesManagement = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formError, setFormError] = useState(null);
+  const [currentVoyage, setCurrentVoyage] = useState(null);
+  const [showEditForm, setShowEditForm] = useState(false);
 
   // États pour le formulaire de voyage
   const [voyageData, setVoyageData] = useState({
@@ -30,7 +33,8 @@ const VoyagesManagement = () => {
     returnDate: '',
     included: [],
     notIncluded: [],
-    hebergement: ''
+    hebergement: '',
+    hebergementImage: ''
   });
   
   // Liste des villes disponibles
@@ -79,7 +83,75 @@ const VoyagesManagement = () => {
   }, []);
 
   const handleEdit = (voyageId) => {
-    navigate(`/admin/voyages/edit/${voyageId}`);
+    // Trouver le voyage à éditer
+    const voyageToEdit = voyages.find(v => v._id === voyageId);
+    if (voyageToEdit) {
+      console.log('Édition du voyage:', voyageToEdit);
+      
+      // Vérifier et traiter les URLs des images si nécessaire
+      if (voyageToEdit.image && !voyageToEdit.image.startsWith('http')) {
+        voyageToEdit.image = `http://localhost:5000${voyageToEdit.image}`;
+      }
+      
+      if (voyageToEdit.hebergementImage && !voyageToEdit.hebergementImage.startsWith('http')) {
+        voyageToEdit.hebergementImage = `http://localhost:5000${voyageToEdit.hebergementImage}`;
+      }
+      
+      // Vérifier et formater les dates si elles existent
+      console.log('Dates originales du voyage:', {
+        departureDate: voyageToEdit.departureDate,
+        returnDate: voyageToEdit.returnDate,
+        departureType: typeof voyageToEdit.departureDate,
+        returnType: typeof voyageToEdit.returnDate
+      });
+      
+      // S'assurer que les dates sont des chaînes correctement formatées
+      if (voyageToEdit.departureDate) {
+        try {
+          const departureDate = new Date(voyageToEdit.departureDate);
+          if (!isNaN(departureDate.getTime())) {
+            // Date valide, réassignation au format YYYY-MM-DD
+            voyageToEdit.departureDate = departureDate.toISOString().split('T')[0];
+          } else {
+            console.error('Format de date de départ invalide:', voyageToEdit.departureDate);
+          }
+        } catch (err) {
+          console.error('Erreur lors du traitement de la date de départ:', err);
+        }
+      }
+      
+      if (voyageToEdit.returnDate) {
+        try {
+          const returnDate = new Date(voyageToEdit.returnDate);
+          if (!isNaN(returnDate.getTime())) {
+            // Date valide, réassignation au format YYYY-MM-DD
+            voyageToEdit.returnDate = returnDate.toISOString().split('T')[0];
+          } else {
+            console.error('Format de date de retour invalide:', voyageToEdit.returnDate);
+          }
+        } catch (err) {
+          console.error('Erreur lors du traitement de la date de retour:', err);
+        }
+      }
+      
+      console.log('Dates formatées du voyage:', {
+        departureDate: voyageToEdit.departureDate,
+        returnDate: voyageToEdit.returnDate
+      });
+      
+      setCurrentVoyage(voyageToEdit);
+      setShowEditForm(true);
+    } else {
+      console.error('Voyage non trouvé:', voyageId);
+      alert('Voyage non trouvé. Veuillez rafraîchir la page et réessayer.');
+    }
+  };
+
+  const handleUpdateSuccess = (updatedVoyage) => {
+    // Mettre à jour la liste des voyages après une édition réussie
+    console.log('Voyage mis à jour avec succès:', updatedVoyage);
+    alert('Voyage mis à jour avec succès!');
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const handleDelete = (voyageId) => {
@@ -116,6 +188,17 @@ const VoyagesManagement = () => {
     }));
   };
 
+  const handleHebergementImageUpload = (imageUrl) => {
+    console.log('URL de l\'image d\'hébergement reçue :', imageUrl);
+    
+    setVoyageData(prev => ({
+      ...prev,
+      hebergementImage: imageUrl
+    }));
+    
+    console.log('État mis à jour avec l\'image d\'hébergement :', imageUrl);
+  };
+
   const handleVoyageSubmit = async (e) => {
     e.preventDefault();
     setFormError(null);
@@ -139,6 +222,7 @@ const VoyagesManagement = () => {
         return;
       }
 
+      // Créer une copie du payload pour éviter de modifier l'état directement
       const voyagePayload = {
         ...voyageData,
         price: Number(voyageData.price),
@@ -149,6 +233,50 @@ const VoyagesManagement = () => {
         agencyName: selectedAgency.name
       };
 
+      // Formater les dates pour l'envoi au serveur
+      console.log('Formatage des dates pour envoi au serveur:', {
+        departureOriginal: voyagePayload.departureDate,
+        returnOriginal: voyagePayload.returnDate
+      });
+
+      // Vérifier et formater les dates si elles sont définies
+      if (voyagePayload.departureDate) {
+        try {
+          const departureDate = new Date(voyagePayload.departureDate);
+          if (!isNaN(departureDate.getTime())) {
+            // Date valide
+            console.log('Date de départ valide:', departureDate);
+          } else {
+            console.warn('Format de date de départ invalide:', voyagePayload.departureDate);
+          }
+        } catch (err) {
+          console.error('Erreur lors du traitement de la date de départ:', err);
+        }
+      }
+
+      if (voyagePayload.returnDate) {
+        try {
+          const returnDate = new Date(voyagePayload.returnDate);
+          if (!isNaN(returnDate.getTime())) {
+            // Date valide
+            console.log('Date de retour valide:', returnDate);
+          } else {
+            console.warn('Format de date de retour invalide:', voyagePayload.returnDate);
+          }
+        } catch (err) {
+          console.error('Erreur lors du traitement de la date de retour:', err);
+        }
+      }
+
+      // S'assurer que les URLs sont complètes
+      console.log('Vérification finale des URLs d\'images avant soumission:');
+      console.log('- Image principale:', voyagePayload.image);
+      console.log('- Image hébergement:', voyagePayload.hebergementImage);
+      console.log('- Dates de voyage:', {
+        departureDate: voyagePayload.departureDate,
+        returnDate: voyagePayload.returnDate
+      });
+
       // Récupérer le token d'authentification du stockage local
       const token = localStorage.getItem('token');
       if (!token) {
@@ -157,6 +285,10 @@ const VoyagesManagement = () => {
       }
 
       console.log('Envoi des données voyage:', voyagePayload);
+      console.log('Champs hébergement:', {
+        hebergement: voyagePayload.hebergement,
+        hebergementImage: voyagePayload.hebergementImage
+      });
       const response = await axios.post('http://localhost:5000/api/voyages', voyagePayload, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -183,7 +315,8 @@ const VoyagesManagement = () => {
           returnDate: '',
           included: [],
           notIncluded: [],
-          hebergement: ''
+          hebergement: '',
+          hebergementImage: ''
         });
         
         // Fermer le formulaire et rafraîchir la liste
@@ -214,6 +347,15 @@ const VoyagesManagement = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="container mx-auto px-4">
+      
+        {/* Formulaire d'édition de voyage */}
+        {showEditForm && currentVoyage && (
+          <EditVoyageForm 
+            voyage={currentVoyage} 
+            onClose={() => setShowEditForm(false)} 
+            onUpdate={handleUpdateSuccess}
+          />
+        )}
       
         {/* Formulaire d'ajout de voyage */}
         {showAddForm && (
@@ -354,6 +496,18 @@ const VoyagesManagement = () => {
                 </Col>
               </Row>
 
+              <Row className="mb-4">
+                <Col md={12}>
+                  <Form.Group>
+                    <Form.Label>Image de l'hébergement</Form.Label>
+                    <ImageUploader onImageUpload={handleHebergementImageUpload} />
+                    <Form.Text className="text-muted">
+                      Cette image sera affichée dans la section "Hébergements de Luxe" sur la page d'accueil.
+                    </Form.Text>
+                  </Form.Group>
+                </Col>
+              </Row>
+
               <Row>
                 <Col md={6}>
                   <Form.Group className="mb-4">
@@ -365,6 +519,11 @@ const VoyagesManagement = () => {
                       onChange={handleVoyageChange}
                       className="rounded-lg"
                     />
+                    <Form.Text className="text-muted">
+                      {voyageData.departureDate ? 
+                        `Date sélectionnée: ${new Date(voyageData.departureDate).toLocaleDateString('fr-FR')}` : 
+                        "Format: AAAA-MM-JJ"}
+                    </Form.Text>
                   </Form.Group>
                 </Col>
                 <Col md={6}>
@@ -377,6 +536,11 @@ const VoyagesManagement = () => {
                       onChange={handleVoyageChange}
                       className="rounded-lg"
                     />
+                    <Form.Text className="text-muted">
+                      {voyageData.returnDate ? 
+                        `Date sélectionnée: ${new Date(voyageData.returnDate).toLocaleDateString('fr-FR')}` : 
+                        "Format: AAAA-MM-JJ"}
+                    </Form.Text>
                   </Form.Group>
                 </Col>
               </Row>

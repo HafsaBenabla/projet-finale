@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaMapMarkerAlt, FaStar, FaCheck, FaCalendarAlt } from 'react-icons/fa';
 
@@ -14,6 +14,22 @@ function HotelCard({
 }) {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    console.log('HotelCard props reçues:', {
+      name,
+      location,
+      price,
+      image,
+      imageType: typeof image,
+      imageLength: image?.length,
+      imageStartsWithHttp: image?.startsWith('http'),
+      rating,
+      type,
+      agencyPackage,
+      features
+    });
+  }, [name, location, price, image, rating, type, agencyPackage, features]);
+
   const handleViewPackage = () => {
     if (agencyPackage) {
       navigate(`/voyage/${agencyPackage.id}`);
@@ -26,9 +42,17 @@ function HotelCard({
     <div className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 w-full">
       <div className="relative h-52 sm:h-64 overflow-hidden group">
         <img 
-          src={image} 
+          src={image || 'https://placehold.co/600x400/orange/white?text=Voyage+Maghreb'} 
           alt={name}
           className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-110"
+          onError={(e) => {
+            console.error('Erreur de chargement d\'image:', {
+              imageUrl: image,
+              componentProps: { name, location, type },
+              error: e.type
+            });
+            e.target.src = 'https://placehold.co/600x400/orange/white?text=Voyage+Maghreb';
+          }}
         />
         {agencyPackage && (
           <div className="absolute top-3 sm:top-4 right-3 sm:right-4 bg-sahara/90 backdrop-blur-sm text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2">

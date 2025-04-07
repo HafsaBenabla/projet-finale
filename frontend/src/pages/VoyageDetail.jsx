@@ -4,6 +4,7 @@ import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaMapMarkerAlt, FaClock, FaInf
 import ActivitySelectionCard from '../components/ActivitySelectionCard';
 import { useVoyages } from '../context/VoyagesContext';
 import { useAuth } from '../context/AuthContext';
+import VoyageReactionPanel from '../components/VoyageReactionPanel';
 
 // Activités disponibles par ville
 const activitiesByCity = {
@@ -382,6 +383,28 @@ const VoyageDetail = () => {
                 Description
               </h2>
               <p className="text-gray-600 leading-relaxed text-lg">{voyage.description}</p>
+            </div>
+
+            {/* Section Likes et Dislikes */}
+            <div className="bg-white rounded-2xl shadow-lg p-8">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-3xl font-semibold text-gray-800">Avis et réactions</h2>
+                  <p className="text-gray-600 mt-2">Vous aimez ce voyage ? Faites-le savoir !</p>
+                </div>
+                <div className="flex items-center">
+                  <VoyageReactionPanel voyageId={voyage._id} size="lg" />
+                </div>
+              </div>
+
+              <div className="mt-6 border-t border-gray-100 pt-6">
+                <p className="text-sm text-gray-500">
+                  {isAuthenticated ? 
+                    "Merci pour votre réaction ! Cela nous aide à améliorer nos offres." : 
+                    "Connectez-vous pour donner votre avis sur ce voyage."
+                  }
+                </p>
+              </div>
             </div>
 
             {/* Section Activités */}

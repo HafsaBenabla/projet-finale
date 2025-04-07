@@ -43,7 +43,8 @@ const AddNew = () => {
     returnDate: '',
     included: [],
     notIncluded: [],
-    hebergement: ''
+    hebergement: '',
+    hebergementImage: ''
   });
 
   // États pour le formulaire d'agence
@@ -311,10 +312,29 @@ const AddNew = () => {
   };
 
   const handleVoyageImageUpload = (imageUrl) => {
-    setVoyageData(prev => ({
-      ...prev,
+    setVoyageData({
+      ...voyageData,
       image: imageUrl
-    }));
+    });
+  };
+
+  const handleHebergementImageUpload = (imageUrl) => {
+    console.log('Image d\'hébergement uploadée:', {
+      imageUrl,
+      isString: typeof imageUrl === 'string',
+      length: imageUrl?.length,
+      startsWithHttp: imageUrl?.startsWith('http')
+    });
+    
+    setVoyageData({
+      ...voyageData,
+      hebergementImage: imageUrl
+    });
+    
+    console.log('État de voyageData après mise à jour de l\'image d\'hébergement:', {
+      ...voyageData,
+      hebergementImage: imageUrl
+    });
   };
 
   const handleAgencyImageUpload = (imageUrl) => {
@@ -421,6 +441,13 @@ const AddNew = () => {
         agencyName: selectedAgency.name
       };
 
+      // Vérifier que l'image d'hébergement est bien incluse dans le payload
+      console.log('Vérification du payload avant envoi au serveur:', {
+        hebergement: voyagePayload.hebergement,
+        hebergementImage: voyagePayload.hebergementImage,
+        imageVoyage: voyagePayload.image
+      });
+
       // Récupérer le token d'authentification du stockage local
       const token = localStorage.getItem('token');
       if (!token) {
@@ -428,12 +455,22 @@ const AddNew = () => {
         return;
       }
 
+      console.log('Envoi de la requête au serveur avec les données suivantes:', {
+        title: voyagePayload.title,
+        destination: voyagePayload.destination,
+        hebergement: voyagePayload.hebergement,
+        hebergementImage: voyagePayload.hebergementImage,
+        image: voyagePayload.image
+      });
+
       const response = await axios.post('http://localhost:5000/api/voyages', voyagePayload, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
+      
+      console.log('Réponse complète du serveur:', response);
       
       // Vérification du type de contenu
       const contentType = response.headers['content-type'];
@@ -1097,6 +1134,18 @@ const AddNew = () => {
                     style={{ borderRadius: '8px' }}
                     placeholder="Nom et type d'hébergement (ex: Hôtel Atlas 5*, Riad traditionnel, etc.)"
                   />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={12}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Image de l'hébergement</Form.Label>
+                  <ImageUploader onImageUpload={handleHebergementImageUpload} />
+                  <Form.Text className="text-muted">
+                    Cette image sera affichée dans la section "Hébergements de Luxe" sur la page d'accueil.
+                  </Form.Text>
                 </Form.Group>
               </Col>
             </Row>

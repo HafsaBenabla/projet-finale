@@ -6,16 +6,19 @@ const ImageUploader = ({ onImageUpload, multiple = false, maxFiles = 5 }) => {
   const [previews, setPreviews] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
 
   const uploadFile = async (file) => {
     setLoading(true);
     setError('');
+    setUploadStatus('Préparation de l\'envoi...');
     console.log('Début de l\'upload du fichier:', file.name);
 
     try {
       const formData = new FormData();
       formData.append('image', file);
 
+      setUploadStatus('Envoi de l\'image au serveur...');
       console.log('Envoi de la requête au serveur...');
       const response = await fetch('http://localhost:5000/api/upload', {
         method: 'POST',
@@ -33,6 +36,7 @@ const ImageUploader = ({ onImageUpload, multiple = false, maxFiles = 5 }) => {
         throw new Error(`Erreur serveur: ${errorText}`);
       }
 
+      setUploadStatus('Traitement de la réponse...');
       const data = await response.json();
       console.log('Données reçues du serveur:', data);
 
@@ -40,13 +44,13 @@ const ImageUploader = ({ onImageUpload, multiple = false, maxFiles = 5 }) => {
         throw new Error('URL de l\'image non reçue du serveur');
       }
 
-      // Extraire le chemin relatif de l'URL complète
-      const relativePath = `/uploads/${data.imageUrl.split('/uploads/')[1]}`;
-      console.log('Chemin relatif de l\'image:', relativePath);
+      // Utiliser l'URL complète au lieu du chemin relatif
+      console.log('URL complète de l\'image:', data.imageUrl);
+      setUploadStatus('Upload réussi!');
       
-      onImageUpload(relativePath);
-      console.log('Upload réussi:', relativePath);
-      return relativePath;
+      onImageUpload(data.imageUrl);
+      console.log('Upload réussi:', data.imageUrl);
+      return data.imageUrl;
     } catch (err) {
       console.error('Erreur détaillée:', {
         message: err.message,
@@ -56,24 +60,36 @@ const ImageUploader = ({ onImageUpload, multiple = false, maxFiles = 5 }) => {
 
       let errorMessage = 'Une erreur est survenue lors de l\'upload';
       
-      if (err.message.includes('Failed to fetch')) {
+      if (err.message.includes('Failed to fetch') || err.name === 'TypeError') {
         errorMessage = 'Impossible de contacter le serveur. Vérifiez que le serveur est démarré sur le port 5000.';
       } else if (err.message.includes('NetworkError')) {
         errorMessage = 'Erreur réseau. Vérifiez votre connexion internet.';
+      } else if (err.message.includes('413')) {
+        errorMessage = 'Le fichier est trop volumineux. Choisissez une image plus petite.';
       } else {
         errorMessage = `Erreur: ${err.message}`;
       }
 
       setError(errorMessage);
+      setUploadStatus('Échec de l\'upload');
       return null;
     } finally {
       setLoading(false);
+      // Le message de succès disparaît après 3 secondes
+      if (!error) {
+        setTimeout(() => {
+          setUploadStatus('');
+        }, 3000);
+      }
     }
   };
 
   const handleFileSelect = async (event) => {
     const files = Array.from(event.target.files);
+    if (files.length === 0) return; // L'utilisateur a annulé la sélection
+    
     console.log('Fichiers sélectionnés:', files.map(f => ({ name: f.name, type: f.type, size: f.size })));
+    setError('');
     
     // Validation des fichiers
     const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
@@ -135,7 +151,7 @@ const ImageUploader = ({ onImageUpload, multiple = false, maxFiles = 5 }) => {
               </svg>
             )}
             <p className="mb-2 text-sm font-semibold">
-              {loading ? 'Upload en cours...' : (multiple ? 'Cliquez pour sélectionner des images' : 'Cliquez pour sélectionner une image')}
+              {loading ? `${uploadStatus || 'Upload en cours...'}` : (multiple ? 'Cliquez pour sélectionner des images' : 'Cliquez pour sélectionner une image')}
             </p>
             <p className="text-xs text-gray-500">
               PNG, JPG ou JPEG (MAX. {multiple ? `${maxFiles} fichiers` : '1 fichier'})
@@ -157,6 +173,12 @@ const ImageUploader = ({ onImageUpload, multiple = false, maxFiles = 5 }) => {
           </div>
         )}
 
+        {!loading && uploadStatus && !error && (
+          <div className="mt-4 w-full p-3 bg-green-100 text-green-700 rounded-lg">
+            {uploadStatus}
+          </div>
+        )}
+
         {previews.length > 0 && (
           <div className="mt-4 w-full">
             <div className="grid grid-cols-3 gap-4">
@@ -166,6 +188,10 @@ const ImageUploader = ({ onImageUpload, multiple = false, maxFiles = 5 }) => {
                     src={preview}
                     alt={`Preview ${index + 1}`}
                     className="w-full h-24 object-cover rounded-lg"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "https://via.placeholder.com/300x200?text=Aperçu+non+disponible";
+                    }}
                   />
                   <button
                     onClick={() => removeFile(index)}

@@ -42,6 +42,13 @@ const ActivitiesManagement = () => {
   const navigate = useNavigate();
 
   const handleEdit = (activity) => {
+    console.log("Édition de l'activité:", activity);
+    
+    // Vérifier et traiter l'URL de l'image si nécessaire
+    if (activity.image && !activity.image.startsWith('http')) {
+      activity.image = `http://localhost:5000${activity.image}`;
+    }
+    
     setCurrentActivity(activity);
     setShowEditForm(true);
   };
@@ -154,6 +161,27 @@ const ActivitiesManagement = () => {
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="container mx-auto px-4">
       
+        {/* En-tête avec bouton retour et ajouter */}
+        <div className="flex justify-between items-center mb-6">
+          <button 
+            onClick={() => navigate('/admin')}
+            className="flex items-center text-gray-600 hover:text-sahara"
+          >
+            <FaArrowLeft className="mr-2" />
+            Retour au Dashboard
+          </button>
+          
+          <h1 className="text-3xl font-bold text-center text-gray-800">Gestion des Activités</h1>
+          
+          <button 
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center bg-sahara text-white px-4 py-2 rounded-lg hover:bg-sahara/90"
+          >
+            <FaPlus className="mr-2" />
+            Ajouter une activité
+          </button>
+        </div>
+
         {/* Formulaire d'ajout d'activité */}
         {showAddForm && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6 relative">
@@ -333,72 +361,56 @@ const ActivitiesManagement = () => {
             </Form>
           </div>
         )}
-        
-        {/* Liste des activités */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center">
-              <button 
-                onClick={() => navigate('/admin/dashboard')}
-                className="mr-4 text-gray-500 hover:text-gray-700"
-              >
-                <FaArrowLeft size={18} />
-              </button>
-              <h1 className="text-2xl font-bold text-gray-800">Gestion des Activités</h1>
-            </div>
-            
-            <button 
-              className="bg-sahara text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-sahara/90 transition-colors"
-              onClick={() => setShowAddForm(true)}
-            >
-              <FaPlus />
-              <span>Ajouter une activité</span>
-            </button>
-          </div>
 
-          {/* Key element to force re-render when data changes */}
+        {/* Formulaire d'édition d'activité */}
+        {showEditForm && currentActivity && (
+          <EditActivityForm 
+            activity={currentActivity} 
+            onClose={() => {
+              setShowEditForm(false);
+              setCurrentActivity(null);
+            }}
+            onUpdate={(updatedActivity) => {
+              setRefreshTrigger(prev => prev + 1);
+              alert('Activité mise à jour avec succès !');
+            }}
+          />
+        )}
+
+        {/* Modal de confirmation de suppression */}
+        {showConfirmDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+              <h3 className="text-xl font-bold mb-4">Confirmer la suppression</h3>
+              <p className="mb-6">Êtes-vous sûr de vouloir supprimer cette activité ? Cette action est irréversible.</p>
+              <div className="flex justify-end space-x-3">
+                <button 
+                  onClick={() => setShowConfirmDelete(false)}
+                  className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+                >
+                  Annuler
+                </button>
+                <button 
+                  onClick={confirmDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  Confirmer la suppression
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tableau des activités */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Liste des Activités</h2>
           <ActivitiesTable 
-            key={refreshTrigger} 
             onEdit={handleEdit} 
             onDelete={handleDelete} 
+            refreshTrigger={refreshTrigger} 
           />
         </div>
       </div>
-
-      {/* Edit Form Modal */}
-      {showEditForm && (
-        <EditActivityForm 
-          activity={currentActivity}
-          onClose={() => setShowEditForm(false)}
-          onUpdate={handleUpdateSuccess}
-        />
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showConfirmDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-auto">
-            <h3 className="text-xl font-bold mb-4">Confirmer la suppression</h3>
-            <p className="mb-6 text-gray-600">
-              Êtes-vous sûr de vouloir supprimer cette activité ? Cette action est irréversible.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowConfirmDelete(false)}
-                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-              >
-                Supprimer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

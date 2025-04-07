@@ -1,12 +1,14 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { FaSearch, FaMapMarkerAlt, FaCalendarAlt, FaUsers } from "react-icons/fa";
+import { FaSearch, FaMapMarkerAlt, FaCalendarAlt, FaUsers, FaHotel } from "react-icons/fa";
 import { images } from "../constants/images";
 import SearchBar from "../components/SearchBar";
 import Destinations from "../components/Destinations";
 import HotelCard from "../components/HotelCard";
 import ActivityCard from "../components/ActivityCard";
+import AccommodationCard from "../components/AccommodationCard";
 
+// Kept as fallback if no voyages with accommodations are available
 const hotels = [
   {
     id: 1,
@@ -95,6 +97,72 @@ const activities = [
 ];
 
 const Home = () => {
+  const [luxuryAccommodations, setLuxuryAccommodations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [allVoyages, setAllVoyages] = useState([]);
+  const [voyagesWithAccommodation, setVoyagesWithAccommodation] = useState([]);
+
+  useEffect(() => {
+    // Fetch voyages data when component mounts
+    const fetchVoyages = async () => {
+      try {
+        console.log('Début de la récupération des voyages pour la page d\'accueil');
+        const response = await fetch('http://localhost:5000/api/voyages');
+        const data = await response.json();
+        
+        console.log('Tous les voyages récupérés (brut):', data);
+        setAllVoyages(data);
+        
+        // Filtrer les voyages qui ont des images d'hébergement
+        const voyagesWithHebergementImage = data.filter(v => v.hebergementImage && v.hebergementImage.trim() !== '');
+        console.log(`Nombre de voyages avec hebergementImage: ${voyagesWithHebergementImage.length}`);
+        
+        // Détails pour le débogage
+        voyagesWithHebergementImage.forEach(v => {
+          console.log(`Détail de hebergementImage pour voyage ${v._id} - ${v.title}:`, {
+            hebergement: v.hebergement || 'Non défini',
+            hebergementImage: v.hebergementImage,
+            typeHebergementImage: typeof v.hebergementImage,
+            validUrl: v.hebergementImage?.startsWith('http'),
+            destination: v.destination,
+            price: v.price,
+            duration: v.duration
+          });
+        });
+        
+        // Sauvegarder les voyages avec des hébergements et des images
+        setVoyagesWithAccommodation(voyagesWithHebergementImage);
+        
+        // Créer des objets d'hébergement de luxe pour l'affichage sur la page d'accueil
+        // On priorise les voyages avec des images d'hébergement
+        const accommodationsWithImages = voyagesWithHebergementImage.map(voyage => ({
+          id: voyage._id,
+          name: voyage.hebergement || voyage.title,
+          location: voyage.destination,
+          price: voyage.price,
+          rating: 4.8,
+          image: voyage.hebergementImage,
+          type: 'Hébergement',
+          features: voyage.inclusions ? voyage.inclusions.slice(0, 3) : [],
+          agencyPackage: {
+            id: voyage._id,
+            name: voyage.title,
+            duration: `${voyage.duration} jour${voyage.duration > 1 ? 's' : ''}`
+          }
+        }));
+        
+        // Limiter à 4 hébergements
+        setLuxuryAccommodations(accommodationsWithImages.slice(0, 4));
+      } catch (error) {
+        console.error('Error fetching voyages:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchVoyages();
+  }, []);
+
   return (
     <div className="w-full">
       {/* Hero Section */}
@@ -120,7 +188,7 @@ const Home = () => {
       {/* Destinations Section */}
       <Destinations />
 
-      {/* Hotels Section */}
+      {/* Hébergements de Luxe Section */}
       <section className="py-12 sm:py-16 bg-gray-50">
         <div className="w-full max-w-[1400px] mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
@@ -132,21 +200,82 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-            {hotels.map((hotel) => (
-              <HotelCard 
-                key={hotel.id}
-                name={hotel.name}
-                location={hotel.location}
-                price={hotel.price}
-                image={hotel.image}
-                rating={hotel.rating}
-                type={hotel.type}
-                features={hotel.features}
-                agencyPackage={hotel.agencyPackage}
-              />
-            ))}
-          </div>
+          {loading ? (
+            <div className="col-span-full text-center py-10">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-sahara"></div>
+              <p className="mt-2 text-gray-600">Chargement des hébergements...</p>
+            </div>
+          ) : (
+            <>
+              {/* Affichage des hébergements de voyages */}
+              {voyagesWithAccommodation.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+                  {voyagesWithAccommodation.slice(0, 4).map(voyage => (
+                    <AccommodationCard
+                      key={voyage._id}
+                      voyageId={voyage._id}
+                      hebergementName={voyage.hebergement}
+                      hebergementImage={voyage.hebergementImage}
+                      destination={voyage.destination}
+                      price={voyage.price}
+                      duration={voyage.duration}
+                      voyageTitle={voyage.title}
+                    />
+                  ))}
+                </div>
+              ) : allVoyages.length > 0 ? (
+                // Si pas d'hébergements spécifiques, afficher les voyages normaux
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+                  {allVoyages.slice(0, 4).map((voyage) => (
+                    <HotelCard 
+                      key={voyage._id}
+                      name={voyage.title}
+                      location={voyage.destination}
+                      price={voyage.price}
+                      image={voyage.image}
+                      rating={4.5}
+                      type="Voyage"
+                      features={voyage.inclusions ? voyage.inclusions.slice(0, 3) : []}
+                      agencyPackage={{
+                        id: voyage._id,
+                        name: voyage.title,
+                        duration: `${voyage.duration} jour${voyage.duration > 1 ? 's' : ''}`
+                      }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                // Fallback aux données statiques
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+                  {hotels.map((hotel) => (
+                    <HotelCard 
+                      key={hotel.id}
+                      name={hotel.name}
+                      location={hotel.location}
+                      price={hotel.price}
+                      image={hotel.image}
+                      rating={hotel.rating}
+                      type={hotel.type}
+                      features={hotel.features}
+                      agencyPackage={hotel.agencyPackage}
+                    />
+                  ))}
+                </div>
+              )}
+              
+              {/* Bouton pour voir plus d'hébergements */}
+              {voyagesWithAccommodation.length > 4 && (
+                <div className="text-center mt-8">
+                  <Link 
+                    to="/voyages" 
+                    className="inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-lg hover:bg-sahara/90 transition-colors"
+                  >
+                    <FaHotel className="mr-2" /> Voir plus d'hébergements
+                  </Link>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </section>
 

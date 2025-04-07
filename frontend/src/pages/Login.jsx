@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated, user } = useAuth();
+  const location = useLocation();
+  const { login, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -12,13 +13,17 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Extraire le paramètre de redirection de l'URL si présent
+  const queryParams = new URLSearchParams(location.search);
+  const redirectPath = queryParams.get('redirect') || '/';
+
   // Rediriger si déjà connecté
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('Login: Utilisateur déjà connecté, redirection vers la page d\'accueil');
-      navigate('/');
+      console.log('Login: Utilisateur déjà connecté, redirection vers:', redirectPath);
+      navigate(redirectPath);
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, redirectPath]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -37,7 +42,7 @@ const Login = () => {
 
     try {
       console.log('Login: Envoi de la requête au serveur...');
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -79,13 +84,13 @@ const Login = () => {
       login(data.user, data.token);
       console.log('Login: État de connexion mis à jour, redirection...');
       
-      // Rediriger vers la page d'accueil (ou dashboard pour admin)
-      if (isAdmin) {
+      // Rediriger vers la page d'origine (si une redirection est spécifiée) ou vers la page appropriée
+      if (isAdmin && redirectPath === '/') {
         console.log('Login: Redirection vers le dashboard (utilisateur admin)');
         navigate('/admin/dashboard');
       } else {
-        console.log('Login: Redirection vers la page d\'accueil (utilisateur standard)');
-        navigate('/');
+        console.log(`Login: Redirection vers ${redirectPath}`);
+        navigate(redirectPath);
       }
     } catch (error) {
       console.error('Login: Erreur détaillée lors de la connexion:', error);
@@ -107,6 +112,11 @@ const Login = () => {
             créez un nouveau compte
           </Link>
         </p>
+        {redirectPath !== '/' && (
+          <p className="mt-2 text-center text-sm text-gray-500">
+            Connexion requise pour continuer votre action
+          </p>
+        )}
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -166,13 +176,7 @@ const Login = () => {
                 disabled={loading}
                 className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sahara hover:bg-sahara/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sahara ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                {loading ? (
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                ) : null}
-                Se connecter
+                {loading ? 'Connexion en cours...' : 'Se connecter'}
               </button>
             </div>
           </form>

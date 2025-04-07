@@ -88,6 +88,7 @@ app.use('/uploads', (req, res, next) => {
 
 // Route pour l'upload d'images
 app.post('/api/upload', upload.single('image'), (req, res) => {
+  console.log('==== DÉBUT TRAITEMENT UPLOAD IMAGE ====');
   console.log('Fichier reçu:', req.file);
   if (!req.file) {
     console.error('Aucun fichier n\'a été uploadé');
@@ -97,6 +98,19 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
   // Construire l'URL complète de l'image
   const imageUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
   console.log('URL de l\'image générée:', imageUrl);
+  
+  // Vérifier que l'URL est accessible
+  const filePath = path.join(uploadDir, req.file.filename);
+  console.log('Chemin du fichier sur le serveur:', filePath);
+  
+  if (!fs.existsSync(filePath)) {
+    console.error('Le fichier uploadé n\'existe pas sur le serveur:', filePath);
+    return res.status(500).json({ message: 'Erreur lors de l\'enregistrement du fichier' });
+  }
+  
+  console.log('Fichier bien enregistré et accessible sur le serveur');
+  console.log('==== FIN TRAITEMENT UPLOAD IMAGE ====');
+  
   res.json({ imageUrl });
 });
 
@@ -129,6 +143,8 @@ app.get('/api/voyages', async (req, res) => {
       })
       .sort({ createdAt: -1 });
 
+    console.log('Voyages récupérés (GET /api/voyages):', voyages.length);
+    
     // Formater les URLs des images pour les voyages et leurs activités
     const formattedVoyages = voyages.map(voyage => {
       const voyageObj = voyage.toObject();
@@ -139,6 +155,23 @@ app.get('/api/voyages', async (req, res) => {
           voyageObj.image = `http://localhost:${PORT}${voyageObj.image}`;
         }
       }
+      
+      // Formater l'URL de l'image de l'hébergement
+      if (voyageObj.hebergementImage && voyageObj.hebergementImage.includes('/uploads/')) {
+        if (!voyageObj.hebergementImage.startsWith('http')) {
+          voyageObj.hebergementImage = `http://localhost:${PORT}${voyageObj.hebergementImage}`;
+          console.log('Formatage de l\'URL d\'image d\'hébergement:', {
+            avant: voyage.hebergementImage,
+            apres: voyageObj.hebergementImage
+          });
+        }
+      }
+      
+      console.log('Hébergement pour voyage:', {
+        id: voyageObj._id,
+        hebergement: voyageObj.hebergement,
+        hebergementImage: voyageObj.hebergementImage
+      });
 
       // Formater les URLs des images des activités
       if (voyageObj.activities) {
@@ -205,6 +238,18 @@ app.get('/api/voyages/:id', async (req, res) => {
       }
     }
 
+    // Formater l'URL de l'image de l'hébergement
+    if (voyageObj.hebergementImage && voyageObj.hebergementImage.includes('/uploads/')) {
+      if (!voyageObj.hebergementImage.startsWith('http')) {
+        voyageObj.hebergementImage = `http://localhost:${PORT}${voyageObj.hebergementImage}`;
+        console.log('Formatage de l\'URL d\'image d\'hébergement pour voyage spécifique:', {
+          id: voyage._id,
+          avant: voyage.hebergementImage,
+          apres: voyageObj.hebergementImage
+        });
+      }
+    }
+
     // Fusionner et formater toutes les activités
     const allActivities = Array.from(allActivityIds).map(id => {
       const activity = [...voyage.activities, ...linkedActivities]
@@ -244,15 +289,24 @@ app.post('/api/voyages', async (req, res) => {
     console.log('1. Données reçues pour l\'ajout d\'un voyage:', req.body);
     const voyageData = { ...req.body };
 
-    // Formater l'URL de l'image si nécessaire
+    // Ne pas reformater les URLs complètes
     if (voyageData.image) {
-      if (voyageData.image.includes('/uploads/')) {
-        // Si l'image est déjà une URL complète, on la garde telle quelle
-        if (!voyageData.image.startsWith('http')) {
-          voyageData.image = `/uploads/${voyageData.image.split('/uploads/')[1]}`;
-        }
+      console.log('2. URL de l\'image du voyage reçue:', voyageData.image);
+      // Si l'URL est déjà complète, la conserver telle quelle
+      if (!voyageData.image.startsWith('http') && voyageData.image.includes('/uploads/')) {
+        voyageData.image = `http://localhost:${PORT}${voyageData.image}`;
+        console.log('URL de l\'image reformatée:', voyageData.image);
       }
-      console.log('2. URL de l\'image formatée:', voyageData.image);
+    }
+    
+    // Même logique pour l'image d'hébergement
+    if (voyageData.hebergementImage) {
+      console.log('2a. URL de l\'image d\'hébergement reçue:', voyageData.hebergementImage);
+      // Si l'URL est déjà complète, la conserver telle quelle
+      if (!voyageData.hebergementImage.startsWith('http') && voyageData.hebergementImage.includes('/uploads/')) {
+        voyageData.hebergementImage = `http://localhost:${PORT}${voyageData.hebergementImage}`;
+        console.log('URL de l\'image d\'hébergement reformatée:', voyageData.hebergementImage);
+      }
     }
 
     const voyage = new Voyage(voyageData);
@@ -263,6 +317,11 @@ app.post('/api/voyages', async (req, res) => {
     const voyageResponse = newVoyage.toObject();
     if (voyageResponse.image && voyageResponse.image.startsWith('/uploads/')) {
       voyageResponse.image = `http://localhost:${PORT}${voyageResponse.image}`;
+    }
+    
+    // Construire l'URL complète pour l'image d'hébergement dans la réponse
+    if (voyageResponse.hebergementImage && voyageResponse.hebergementImage.startsWith('/uploads/')) {
+      voyageResponse.hebergementImage = `http://localhost:${PORT}${voyageResponse.hebergementImage}`;
     }
 
     res.status(201).json(voyageResponse);

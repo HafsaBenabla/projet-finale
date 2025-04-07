@@ -38,10 +38,22 @@ const voyageSchema = new mongoose.Schema({
         type: String,
         required: false
     },
+    hebergementImage: {
+        type: String,
+        required: false
+    },
     maxPlaces: {
         type: Number,
         required: true,
         default: 15
+    },
+    departureDate: {
+        type: Date,
+        required: false
+    },
+    returnDate: {
+        type: Date,
+        required: false
     },
     inclusions: [{
         type: String,

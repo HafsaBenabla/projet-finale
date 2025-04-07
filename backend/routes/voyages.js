@@ -5,6 +5,35 @@ import mongoose from 'mongoose';
 
 const router = express.Router();
 
+// Middleware de débogage pour les routes de réaction
+const debugReactionMiddleware = (req, res, next) => {
+    console.log('====== DEBUG RÉACTION ======');
+    console.log('Méthode:', req.method);
+    console.log('URL:', req.originalUrl);
+    console.log('Headers:', req.headers);
+    console.log('Body:', req.body);
+    console.log('Params:', req.params);
+    console.log('User:', req.user);
+    console.log('===========================');
+    
+    // Capture la méthode send originale
+    const originalSend = res.send;
+    
+    // Remplace la méthode send pour intercepter les réponses
+    res.send = function (body) {
+        console.log('====== RÉPONSE RÉACTION ======');
+        console.log('Status:', res.statusCode);
+        console.log('Body:', body);
+        console.log('==============================');
+        
+        // Restaure la méthode send originale et l'appelle
+        res.send = originalSend;
+        return res.send(body);
+    };
+    
+    next();
+};
+
 // Route pour obtenir tous les voyages
 router.get('/', async (req, res) => {
     try {
@@ -17,17 +46,78 @@ router.get('/', async (req, res) => {
 
 // Route pour créer un nouveau voyage
 router.post('/', auth, async (req, res) => {
+    console.log('==== DÉBUT CRÉATION VOYAGE ====');
+    console.log('Données reçues complètes:', req.body);
+    console.log('Champs hébergement reçus:', {
+        hebergement: req.body.hebergement,
+        hebergementImage: req.body.hebergementImage,
+        typeHebergementImage: typeof req.body.hebergementImage,
+        hebergementImageLength: req.body.hebergementImage?.length,
+        hebergementImageStartsWithHttp: req.body.hebergementImage?.startsWith('http')
+    });
+    console.log('Champs dates reçus:', {
+        departureDate: req.body.departureDate,
+        returnDate: req.body.returnDate,
+        departureDateType: typeof req.body.departureDate,
+        returnDateType: typeof req.body.returnDate
+    });
+    
+    // Vérifier et convertir les dates si nécessaire
+    if (req.body.departureDate) {
+        try {
+            // Vérifier si la date est valide
+            const date = new Date(req.body.departureDate);
+            if (isNaN(date.getTime())) {
+                console.error('Format de date de départ invalide:', req.body.departureDate);
+            } else {
+                console.log('Date de départ valide:', date);
+            }
+        } catch (error) {
+            console.error('Erreur lors du traitement de la date de départ:', error);
+        }
+    }
+    
+    if (req.body.returnDate) {
+        try {
+            // Vérifier si la date est valide
+            const date = new Date(req.body.returnDate);
+            if (isNaN(date.getTime())) {
+                console.error('Format de date de retour invalide:', req.body.returnDate);
+            } else {
+                console.log('Date de retour valide:', date);
+            }
+        } catch (error) {
+            console.error('Erreur lors du traitement de la date de retour:', error);
+        }
+    }
+    
     const voyage = new Voyage(req.body);
     try {
+        console.log('Objet Voyage avant sauvegarde:', {
+            hebergement: voyage.hebergement,
+            hebergementImage: voyage.hebergementImage,
+            departureDate: voyage.departureDate,
+            returnDate: voyage.returnDate
+        });
+        
         const newVoyage = await voyage.save();
+        console.log('Voyage créé avec succès:', {
+            id: newVoyage._id,
+            hebergement: newVoyage.hebergement,
+            hebergementImage: newVoyage.hebergementImage,
+            departureDate: newVoyage.departureDate,
+            returnDate: newVoyage.returnDate
+        });
+        console.log('==== FIN CRÉATION VOYAGE ====');
         res.status(201).json(newVoyage);
     } catch (error) {
+        console.error('Erreur lors de la création du voyage:', error);
         res.status(400).json({ message: error.message });
     }
 });
 
 // Route pour réagir à un voyage (like/dislike)
-router.post('/:id/reaction', async (req, res) => {
+router.post('/:id/reaction', debugReactionMiddleware, async (req, res) => {
     try {
         const { type } = req.body; // 'like' ou 'dislike'
         
@@ -123,7 +213,7 @@ router.post('/:id/reaction', async (req, res) => {
 });
 
 // Route pour obtenir les réactions d'un voyage
-router.get('/:id/reaction', async (req, res) => {
+router.get('/:id/reaction', debugReactionMiddleware, async (req, res) => {
     try {
         // Récupérer l'userId soit du token, soit des headers
         let userId;
@@ -148,9 +238,7 @@ router.get('/:id/reaction', async (req, res) => {
         const reactions = voyage.reactions || { likes: 0, dislikes: 0, userReactions: [] };
         
         // Trouver la réaction de l'utilisateur
-        const userReaction = reactions.userReactions?.find(
-            reaction => reaction.userId === userId
-        );
+        const userReaction = reactions.userReactions?.find(reaction => reaction.userId === userId);
 
         console.log(`Réactions récupérées: likes=${reactions.likes}, dislikes=${reactions.dislikes}, userReaction=${userReaction?.type || 'null'}`);
         
@@ -162,6 +250,138 @@ router.get('/:id/reaction', async (req, res) => {
     } catch (error) {
         console.error('Erreur lors de la récupération des réactions:', error);
         res.status(400).json({ message: error.message });
+    }
+});
+
+// Route pour obtenir un voyage par son ID
+router.get('/:id', async (req, res) => {
+    try {
+        const voyage = await Voyage.findById(req.params.id).populate('activities');
+        
+        if (!voyage) {
+            return res.status(404).json({ message: 'Voyage non trouvé' });
+        }
+        
+        res.json(voyage);
+    } catch (error) {
+        console.error('Erreur lors de la récupération du voyage:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Route pour mettre à jour un voyage
+router.put('/:id', auth, async (req, res) => {
+    try {
+        console.log('==== DÉBUT MISE À JOUR VOYAGE ====');
+        console.log('ID du voyage à mettre à jour:', req.params.id);
+        console.log('Données reçues complètes:', req.body);
+        console.log('Champs hébergement reçus:', {
+            hebergement: req.body.hebergement,
+            hebergementImage: req.body.hebergementImage,
+            typeHebergementImage: typeof req.body.hebergementImage,
+            hebergementImageLength: req.body.hebergementImage?.length,
+            hebergementImageStartsWithHttp: req.body.hebergementImage?.startsWith('http')
+        });
+        console.log('Champs dates reçus:', {
+            departureDate: req.body.departureDate,
+            returnDate: req.body.returnDate,
+            departureDateType: typeof req.body.departureDate,
+            returnDateType: typeof req.body.returnDate
+        });
+
+        // Vérifier si l'ID est valide
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: 'ID de voyage invalide' });
+        }
+
+        // Vérifier que le voyage existe
+        const existingVoyage = await Voyage.findById(req.params.id);
+        if (!existingVoyage) {
+            return res.status(404).json({ message: 'Voyage non trouvé' });
+        }
+
+        // Préparer les données à mettre à jour
+        const updatedData = { ...req.body };
+        
+        // Vérifier et convertir les dates si nécessaire
+        if (updatedData.departureDate) {
+            try {
+                // Vérifier si la date est valide
+                const date = new Date(updatedData.departureDate);
+                if (isNaN(date.getTime())) {
+                    console.error('Format de date de départ invalide:', updatedData.departureDate);
+                } else {
+                    console.log('Date de départ valide:', date);
+                }
+            } catch (error) {
+                console.error('Erreur lors du traitement de la date de départ:', error);
+            }
+        }
+        
+        if (updatedData.returnDate) {
+            try {
+                // Vérifier si la date est valide
+                const date = new Date(updatedData.returnDate);
+                if (isNaN(date.getTime())) {
+                    console.error('Format de date de retour invalide:', updatedData.returnDate);
+                } else {
+                    console.log('Date de retour valide:', date);
+                }
+            } catch (error) {
+                console.error('Erreur lors du traitement de la date de retour:', error);
+            }
+        }
+
+        // Mettre à jour le voyage
+        const updatedVoyage = await Voyage.findByIdAndUpdate(
+            req.params.id,
+            updatedData,
+            { new: true, runValidators: true }
+        ).populate('activities');
+
+        console.log('Voyage mis à jour avec succès:', {
+            id: updatedVoyage._id,
+            title: updatedVoyage.title,
+            hebergement: updatedVoyage.hebergement,
+            hebergementImage: updatedVoyage.hebergementImage,
+            departureDate: updatedVoyage.departureDate,
+            returnDate: updatedVoyage.returnDate
+        });
+        console.log('==== FIN MISE À JOUR VOYAGE ====');
+
+        res.json(updatedVoyage);
+    } catch (error) {
+        console.error('Erreur lors de la mise à jour du voyage:', error);
+        res.status(400).json({ message: error.message });
+    }
+});
+
+// Route pour supprimer un voyage
+router.delete('/:id', auth, async (req, res) => {
+    try {
+        console.log('Tentative de suppression du voyage:', req.params.id);
+        
+        // Vérifier si l'ID est valide
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: 'ID de voyage invalide' });
+        }
+
+        // Supprimer le voyage
+        const deletedVoyage = await Voyage.findByIdAndDelete(req.params.id);
+        
+        if (!deletedVoyage) {
+            return res.status(404).json({ message: 'Voyage non trouvé' });
+        }
+        
+        console.log('Voyage supprimé avec succès:', {
+            id: deletedVoyage._id,
+            title: deletedVoyage.title
+        });
+        
+        res.json({ message: 'Voyage supprimé avec succès', id: req.params.id });
+    } catch (error) {
+        console.error('Erreur lors de la suppression du voyage:', error);
+        res.status(500).json({ message: error.message });
     }
 });
 

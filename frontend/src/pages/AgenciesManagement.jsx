@@ -4,6 +4,7 @@ import { FaPlus, FaArrowLeft, FaEdit, FaTrash, FaSpinner, FaStar, FaStarHalfAlt,
 import axios from 'axios';
 import { Form, Button, Row, Col } from 'react-bootstrap';
 import ImageUploader from '../components/ImageUploader';
+import EditAgencyForm from '../components/EditAgencyForm';
 
 const AgenciesManagement = () => {
   const [agencies, setAgencies] = useState([]);
@@ -13,6 +14,9 @@ const AgenciesManagement = () => {
   const [agencyToDelete, setAgencyToDelete] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [formError, setFormError] = useState(null);
+  const [currentAgency, setCurrentAgency] = useState(null);
+  const [showEditForm, setShowEditForm] = useState(false);
   
   // États pour le formulaire d'agence
   const [agencyData, setAgencyData] = useState({
@@ -25,8 +29,7 @@ const AgenciesManagement = () => {
     stars: '0',
     image: ''
   });
-  const [formError, setFormError] = useState(null);
-  
+
   const navigate = useNavigate();
 
   // Liste des villes disponibles
@@ -117,7 +120,29 @@ const AgenciesManagement = () => {
   }, [refreshTrigger]);
 
   const handleEdit = (agencyId) => {
-    navigate(`/admin/agencies/edit/${agencyId}`);
+    // Trouver l'agence à éditer
+    const agencyToEdit = agencies.find(a => a._id === agencyId);
+    if (agencyToEdit) {
+      console.log('Édition de l\'agence:', agencyToEdit);
+      
+      // Vérifier et traiter l'URL de l'image si nécessaire
+      if (agencyToEdit.image && !agencyToEdit.image.startsWith('http')) {
+        agencyToEdit.image = `http://localhost:5000${agencyToEdit.image}`;
+      }
+      
+      setCurrentAgency(agencyToEdit);
+      setShowEditForm(true);
+    } else {
+      console.error('Agence non trouvée:', agencyId);
+      alert('Agence non trouvée. Veuillez rafraîchir la page et réessayer.');
+    }
+  };
+
+  const handleUpdateSuccess = (updatedAgency) => {
+    // Mettre à jour la liste des agences après une édition réussie
+    console.log('Agence mise à jour avec succès:', updatedAgency);
+    alert('Agence mise à jour avec succès!');
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const handleDelete = (agencyId) => {
@@ -251,6 +276,15 @@ const AgenciesManagement = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="container mx-auto px-4">
+        {/* Formulaire d'édition d'agence */}
+        {showEditForm && currentAgency && (
+          <EditAgencyForm 
+            agency={currentAgency} 
+            onClose={() => setShowEditForm(false)} 
+            onUpdate={handleUpdateSuccess}
+          />
+        )}
+        
         {/* Formulaire d'ajout d'agence */}
         {showAddForm && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-6 relative">

@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }) => {
         if (storedToken) {
           // Vérifier la validité du token avec le backend
           console.log('AuthProvider: Tentative de vérification du token avec le backend...');
-          const response = await fetch('http://localhost:5000/api/auth/verify-token', {
+          const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/verify-token`, {
             headers: {
               'Authorization': `Bearer ${storedToken}`
             }
