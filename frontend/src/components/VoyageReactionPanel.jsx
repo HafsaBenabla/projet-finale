@@ -105,8 +105,24 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
 =======
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FaThumbsUp, FaThumbsDown, FaComment } from 'react-icons/fa';
+import { FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
+
+// Composant SVG personnalisé pour l'icône de commentaire
+const CommentBubbleIcon = ({ className = "" }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    viewBox="0 0 24 24" 
+    stroke="currentColor"
+    fill="none"
+    strokeWidth="1.5"
+    className={className}
+    width="1.2em" 
+    height="1.2em"
+  >
+    <path d="M12 2C6.486 2 2 5.589 2 10c0 2.908 1.898 5.516 5 6.934V22l5.34-4.005C17.697 17.852 22 14.32 22 10c0-4.411-4.486-8-10-8z"/>
+  </svg>
+);
 
 const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
   const { isAuthenticated, user } = useAuth();
@@ -697,7 +713,7 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
         disabled={reaction.loading}
         aria-label="Commenter"
       >
-        <FaComment className="text-xl" />
+        <CommentBubbleIcon className="text-xl" />
         {showCount && <span className="font-medium">{reaction.commentCount}</span>}
 >>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
       </button>
