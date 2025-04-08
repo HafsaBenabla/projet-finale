@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaMapMarkerAlt, FaClock, FaInfoCircle, FaWalking, FaCalendarCheck, FaCheck, FaBuilding } from 'react-icons/fa';
+import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaMapMarkerAlt, FaClock, FaInfoCircle, FaWalking, FaCalendarCheck, FaCheck, FaBuilding, FaComment } from 'react-icons/fa';
 import ActivitySelectionCard from '../components/ActivitySelectionCard';
 import { useVoyages } from '../context/VoyagesContext';
 import { useAuth } from '../context/AuthContext';
 import VoyageReactionPanel from '../components/VoyageReactionPanel';
+import VoyageComments from '../components/VoyageComments';
 
 // Activités disponibles par ville
 const activitiesByCity = {
@@ -550,84 +551,10 @@ const VoyageDetail = () => {
                   <VoyageReactionPanel voyageId={voyage._id} size="lg" />
                 </div>
               </div>
-
-              <div className="mt-6 border-t border-gray-100 pt-6">
-                <p className="text-sm text-gray-500">
-                  {isAuthenticated ? 
-                    "Merci pour votre réaction ! Cela nous aide à améliorer nos offres." : 
-                    "Connectez-vous pour donner votre avis sur ce voyage."
-                  }
-                </p>
-              </div>
-            </div>
-
-            {/* Section Activités */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-3xl font-semibold mb-6 text-gray-800 flex items-center gap-3">
-                <FaWalking className="text-sahara" />
-                Activités disponibles
-              </h2>
-              {voyage.activities && voyage.activities.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {voyage.activities.map((activity) => (
-                    <div 
-                      key={activity._id} 
-                      onClick={() => handleActivitySelection(activity)}
-                      className={`bg-gray-50 rounded-xl overflow-hidden transition-all duration-300 cursor-pointer hover:shadow-lg ${
-                        selectedActivities.some(a => a._id === activity._id)
-                          ? 'ring-2 ring-sahara bg-sahara/5'
-                          : 'hover:scale-105'
-                      }`}
-                    >
-                      <div className="relative">
-                        <img 
-                          src={activity.image} 
-                          alt={activity.name}
-                          className="w-full h-48 object-cover"
-                        />
-                        {selectedActivities.some(a => a._id === activity._id) && (
-                          <div className="absolute top-4 right-4 bg-sahara text-white px-3 py-1 rounded-full text-sm flex items-center gap-1">
-                            <FaCheck className="text-xs" /> Sélectionnée
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-4">
-                        <h3 className="text-xl font-semibold mb-2">{activity.name}</h3>
-                        <p className="text-gray-600 mb-3 text-sm">{activity.description}</p>
-                        <div className="flex flex-wrap gap-3 mb-3">
-                          <span className="bg-sahara/10 text-sahara px-3 py-1 rounded-full text-sm flex items-center gap-1">
-                            <FaClock className="text-xs" /> {activity.duration}h
-                          </span>
-                          <span className="bg-sahara/10 text-sahara px-3 py-1 rounded-full text-sm flex items-center gap-1">
-                            <FaUsers className="text-xs" /> Max {activity.maxParticipants} pers.
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sahara font-semibold">{activity.price} MAD</span>
-                          <span className={`text-sm ${
-                            selectedActivities.some(a => a._id === activity._id)
-                              ? 'text-sahara'
-                              : 'text-gray-500'
-                          }`}>
-                            {selectedActivities.some(a => a._id === activity._id) 
-                              ? 'Cliquez pour retirer'
-                              : 'Cliquez pour sélectionner'
-                            }
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-600 text-center py-8">
-                  Aucune activité n'est actuellement disponible pour ce voyage.
-                </p>
-              )}
             </div>
 
             {/* Section Informations importantes */}
-            <div className="bg-white rounded-2xl shadow-lg p-8 mt-8">
+            <div className="bg-white rounded-2xl shadow-lg p-8">
               <h2 className="text-3xl font-semibold mb-6 text-gray-800 flex items-center gap-3">
                 <FaInfoCircle className="text-sahara" />
                 Informations importantes
@@ -652,6 +579,15 @@ const VoyageDetail = () => {
                   <span className="text-gray-700">Transport depuis votre hôtel</span>
                 </li>
               </ul>
+            </div>
+
+            {/* Section Commentaires - Dernière carte */}
+            <div className="bg-white rounded-2xl shadow-lg p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <FaComment className="text-sahara text-2xl" />
+                <h2 className="text-3xl font-semibold text-gray-800">Commentaires</h2>
+              </div>
+              <VoyageComments voyageId={voyage._id} />
             </div>
           </div>
 

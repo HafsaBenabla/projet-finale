@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FaThumbsUp, FaRegThumbsUp, FaThumbsDown, FaRegThumbsDown } from 'react-icons/fa';
+import { FaThumbsUp, FaRegThumbsUp, FaThumbsDown, FaRegThumbsDown, FaComment, FaRegComment } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 
 const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
@@ -10,8 +10,10 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
   const [reaction, setReaction] = useState({
     liked: false,
     disliked: false,
+    commented: false,
     likeCount: 0,
     dislikeCount: 0,
+    commentCount: 0,
     loading: true
   });
 
@@ -52,8 +54,10 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
           setReaction({
             liked: data.reaction === 'like',
             disliked: data.reaction === 'dislike',
+            commented: data.commented,
             likeCount: data.likes || 0,
             dislikeCount: data.dislikes || 0,
+            commentCount: data.comments || 0,
             loading: false
           });
         } else {
@@ -62,7 +66,8 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
             ...prev, 
             loading: false,
             liked: false,
-            disliked: false
+            disliked: false,
+            commented: false
           }));
         }
       } catch (error) {
@@ -71,7 +76,8 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
           ...prev, 
           loading: false,
           liked: false,
-          disliked: false
+          disliked: false,
+          commented: false
         }));
       }
     };
@@ -164,8 +170,10 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
         setReaction({
           liked: data.reaction === 'like',
           disliked: data.reaction === 'dislike',
+          commented: data.commented,
           likeCount: data.likes || 0,
           dislikeCount: data.dislikes || 0,
+          commentCount: data.comments || 0,
           loading: false
         });
       } else if (response.status === 401 || response.status === 403) {
@@ -206,8 +214,10 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
         setReaction({
           liked: data.reaction === 'like',
           disliked: data.reaction === 'dislike',
+          commented: data.commented,
           likeCount: data.likes || 0,
           dislikeCount: data.dislikes || 0,
+          commentCount: data.comments || 0,
           loading: false
         });
       } else {
@@ -289,6 +299,32 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
         {showCount && (
           <span className={`font-medium w-3 text-center ${sizeClasses.text}`}>
             {reaction.dislikeCount || 0}
+          </span>
+        )}
+      </button>
+
+      {/* Bouton Commentaire */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/voyage/${voyageId}#comments`);
+        }}
+        className={`flex items-center justify-center gap-1 rounded-lg transition-all duration-300 ${sizeClasses.button} ${
+          reaction.commented
+            ? 'text-blue-500 hover:text-blue-600' 
+            : 'text-gray-400 hover:text-blue-500'
+        }`}
+        aria-label="Voir les commentaires"
+        disabled={reaction.loading}
+      >
+        {reaction.commented ? (
+          <FaComment className={`${sizeClasses.icon} transition-transform duration-300 transform scale-110`} />
+        ) : (
+          <FaRegComment className={`${sizeClasses.icon} transition-transform duration-300`} />
+        )}
+        {showCount && (
+          <span className={`font-medium w-3 text-center ${sizeClasses.text}`}>
+            {reaction.commentCount || 0}
           </span>
         )}
       </button>

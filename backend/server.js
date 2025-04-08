@@ -17,6 +17,7 @@ import contactRoutes from './routes/contact.js';
 import usersRoutes from './routes/users.js';
 import activitiesRoutes from './routes/activities.js';
 import fs from 'fs';
+import commentRoutes from './routes/comments.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -52,6 +53,7 @@ app.use('/api/voyages', voyagesRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/activities', activitiesRoutes);
+app.use('/api', commentRoutes);
 
 // Création du dossier uploads s'il n'existe pas
 const uploadDir = path.join(__dirname, 'uploads');
