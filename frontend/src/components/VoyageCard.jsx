@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import React, { useEffect } from 'react';
+=======
+import React from 'react';
+>>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
 import { useNavigate } from 'react-router-dom';
 import { FaMapMarkerAlt, FaCalendarAlt, FaRegClock, FaUsers, FaRegStar, FaCompass } from 'react-icons/fa';
 import VoyageReactionPanel from './VoyageReactionPanel';
@@ -6,6 +10,7 @@ import VoyageReactionPanel from './VoyageReactionPanel';
 const VoyageCard = ({ voyage }) => {
   const navigate = useNavigate();
 
+<<<<<<< HEAD
   // Log des informations pour le debug
   useEffect(() => {
     console.log(`Rendu VoyageCard pour ${voyage.title} - disponible: ${voyage.availableSpots}, max: ${voyage.maxPlaces}`);
@@ -15,6 +20,8 @@ const VoyageCard = ({ voyage }) => {
     navigate(`/voyage/${voyage._id}`);
   };
 
+=======
+>>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
   // S'assurer que l'URL de l'image est complète
   const imageUrl = voyage.image?.startsWith('http') 
     ? voyage.image 
@@ -22,8 +29,12 @@ const VoyageCard = ({ voyage }) => {
 
   return (
     <div 
+<<<<<<< HEAD
       className="relative group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transform transition-all duration-500 hover:-translate-y-2 cursor-pointer"
       onClick={handleClick}
+=======
+      className="relative group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transform transition-all duration-500 hover:-translate-y-2"
+>>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
     >
       {/* Badge promotion si applicable */}
       {voyage.isPromotion && (
@@ -100,10 +111,14 @@ const VoyageCard = ({ voyage }) => {
           </div>
           
           <button 
+<<<<<<< HEAD
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/voyage/${voyage._id}`);
             }}
+=======
+            onClick={() => navigate(`/voyage/${voyage._id}`)}
+>>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
             className="px-5 py-2 bg-sahara text-white rounded-full text-sm font-medium hover:bg-sahara/90 transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-sahara focus:ring-offset-2 shadow-md"
           >
             Voir le voyage

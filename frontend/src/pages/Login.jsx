@@ -15,15 +15,37 @@ const Login = () => {
 
   // Extraire le paramètre de redirection de l'URL si présent
   const queryParams = new URLSearchParams(location.search);
+<<<<<<< HEAD
   const redirectPath = queryParams.get('redirect') || '/';
+=======
+  const redirectFromQuery = queryParams.get('redirect') || '/';
+  
+  // Vérifier s'il y a une redirection stockée dans localStorage
+  const redirectFromStorage = localStorage.getItem('redirectAfterLogin');
+  
+  // Utiliser la redirection stockée si elle existe, sinon celle de l'URL
+  const redirectPath = redirectFromStorage || redirectFromQuery;
+>>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
 
   // Rediriger si déjà connecté
   useEffect(() => {
     if (isAuthenticated) {
       console.log('Login: Utilisateur déjà connecté, redirection vers:', redirectPath);
+<<<<<<< HEAD
       navigate(redirectPath);
     }
   }, [isAuthenticated, navigate, redirectPath]);
+=======
+      
+      // Nettoyer la redirection stockée dans localStorage après l'avoir utilisée
+      if (redirectFromStorage) {
+        localStorage.removeItem('redirectAfterLogin');
+      }
+      
+      navigate(redirectPath);
+    }
+  }, [isAuthenticated, navigate, redirectPath, redirectFromStorage]);
+>>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -42,7 +64,14 @@ const Login = () => {
 
     try {
       console.log('Login: Envoi de la requête au serveur...');
+<<<<<<< HEAD
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
+=======
+      const url = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/login`;
+      console.log('URL de l\'API:', url);
+      
+      const response = await fetch(url, {
+>>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,6 +113,14 @@ const Login = () => {
       login(data.user, data.token);
       console.log('Login: État de connexion mis à jour, redirection...');
       
+<<<<<<< HEAD
+=======
+      // Nettoyer la redirection stockée
+      if (redirectFromStorage) {
+        localStorage.removeItem('redirectAfterLogin');
+      }
+      
+>>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
       // Rediriger vers la page d'origine (si une redirection est spécifiée) ou vers la page appropriée
       if (isAdmin && redirectPath === '/') {
         console.log('Login: Redirection vers le dashboard (utilisateur admin)');

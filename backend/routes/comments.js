@@ -1,6 +1,10 @@
 import express from 'express';
 import Comment from '../models/comment.js';
+<<<<<<< HEAD
 import { authenticateToken } from '../middleware/auth.js';
+=======
+import { auth } from '../middleware/auth.js';
+>>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
 
 const router = express.Router();
 
@@ -16,12 +20,22 @@ router.get('/voyages/:voyageId/comments', async (req, res) => {
 });
 
 // Ajouter un commentaire
+<<<<<<< HEAD
 router.post('/voyages/:voyageId/comments', authenticateToken, async (req, res) => {
   try {
     const { content, userId } = req.body;
     
     if (!content || !userId) {
       return res.status(400).json({ message: 'Contenu et ID utilisateur requis' });
+=======
+router.post('/voyages/:voyageId/comments', auth, async (req, res) => {
+  try {
+    const { content } = req.body;
+    const userId = req.user.userId;
+    
+    if (!content) {
+      return res.status(400).json({ message: 'Contenu requis' });
+>>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
     }
 
     const comment = new Comment({

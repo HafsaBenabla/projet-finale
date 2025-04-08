@@ -58,6 +58,7 @@ const Voyages = () => {
   useEffect(() => {
     console.log('Page Voyages montée - Vérification des données récentes');
     
+<<<<<<< HEAD
     // Rafraîchir les données au montage du composant
     const currentTime = Date.now();
     const timeSinceLastFetch = currentTime - lastFetchTime;
@@ -68,6 +69,18 @@ const Voyages = () => {
       refreshVoyages();
     }
   }, [refreshVoyages, lastFetchTime]);
+=======
+    // Rafraîchir les données au montage du composant, mais seulement si nécessaire
+    const currentTime = Date.now();
+    const timeSinceLastFetch = currentTime - lastFetchTime;
+    const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes (plus conservateur)
+    
+    if (timeSinceLastFetch > REFRESH_INTERVAL && voyages.length === 0) {
+      console.log('Données inexistantes ou trop anciennes, rafraîchissement automatique');
+      refreshVoyages();
+    }
+  }, []); // Dépendances réduites pour éviter les rafraîchissements excessifs
+>>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
 
   // Modifier les queryParams lors du changement de filtre
   const updateFilters = (name, value) => {
@@ -214,7 +227,11 @@ const Voyages = () => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {filteredVoyages.map((voyage) => (
+<<<<<<< HEAD
           <VoyageCard key={voyage._id + '-' + lastFetchTime} voyage={voyage} />
+=======
+          <VoyageCard key={voyage._id} voyage={voyage} />
+>>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
         ))}
       </div>
     );
