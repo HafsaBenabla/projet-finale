@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import React, { createContext, useContext, useState, useEffect } from 'react';
-=======
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
 
 const VoyagesContext = createContext();
 
@@ -21,11 +17,6 @@ export const VoyagesProvider = ({ children }) => {
   const [voyages, setVoyages] = useState(getInitialVoyages);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-<<<<<<< HEAD
-  const [lastFetchTime, setLastFetchTime] = useState(localStorage.getItem('lastVoyagesFetchTime') || 0);
-
-  const fetchVoyages = async (forceRefresh = false) => {
-=======
   const [lastFetchTime, setLastFetchTime] = useState(
     parseInt(localStorage.getItem('lastVoyagesFetchTime') || '0')
   );
@@ -40,7 +31,6 @@ export const VoyagesProvider = ({ children }) => {
       return;
     }
     
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
     try {
       // Vérifier si le cache est récent (moins de 5 minutes) et non forcé
       const currentTime = Date.now();
@@ -49,24 +39,15 @@ export const VoyagesProvider = ({ children }) => {
       
       // Si le cache est valide et non forcé, ne pas charger depuis le serveur
       if (voyages.length > 0 && cacheIsValid && !forceRefresh) {
-<<<<<<< HEAD
-        console.log('Utilisation du cache récent');
-=======
         console.log('Utilisation du cache récent', new Date(lastFetchTime).toLocaleTimeString());
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
         setLoading(false);
         return;
       }
       
-<<<<<<< HEAD
-      setLoading(true);
-      console.log('Chargement des voyages depuis l\'API...');
-=======
       // Marquer qu'une requête est en cours
       fetchingRef.current = true;
       setLoading(true);
       console.log('Chargement des voyages depuis l\'API...', new Date().toLocaleTimeString());
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
       
       const response = await fetch('http://localhost:5000/api/voyages');
       if (!response.ok) {
@@ -99,21 +80,14 @@ export const VoyagesProvider = ({ children }) => {
       }
     } finally {
       setLoading(false);
-<<<<<<< HEAD
-=======
       // Indiquer que la requête est terminée
       fetchingRef.current = false;
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
     }
   };
   
   // Fonction pour mettre à jour un voyage spécifique après modification dans le dashboard
   const updateVoyageInContext = (updatedVoyage) => {
-<<<<<<< HEAD
-    console.log('Mise à jour du voyage dans le contexte:', updatedVoyage);
-=======
     console.log('Mise à jour du voyage dans le contexte:', updatedVoyage._id);
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
     
     // Mettre à jour le voyage dans le tableau des voyages
     setVoyages(prevVoyages => {
@@ -127,7 +101,6 @@ export const VoyagesProvider = ({ children }) => {
         localStorage.setItem('voyages', JSON.stringify(updatedVoyages));
         localStorage.setItem('lastVoyagesFetchTime', currentTime.toString());
         setLastFetchTime(currentTime);
-<<<<<<< HEAD
         
         // Déclencher un événement personnalisé pour notifier les autres composants
         const event = new CustomEvent('voyagesUpdated', { 
@@ -138,8 +111,6 @@ export const VoyagesProvider = ({ children }) => {
         });
         window.dispatchEvent(event);
         
-=======
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
       } catch (storageError) {
         console.error('Erreur lors de la mise à jour du cache:', storageError);
       }
@@ -166,10 +137,6 @@ export const VoyagesProvider = ({ children }) => {
       setLoading(false);
     }
     
-<<<<<<< HEAD
-    // Toujours chercher les dernières données
-    fetchVoyages();
-=======
     // Vérifier l'âge du cache avant de lancer une requête
     const currentTime = Date.now();
     const cacheAge = currentTime - lastFetchTime;
@@ -178,7 +145,6 @@ export const VoyagesProvider = ({ children }) => {
     if (voyages.length === 0 || cacheAge > 5 * 60 * 1000) {
       fetchVoyages();
     }
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
     
     // Nettoyer au démontage
     return () => {

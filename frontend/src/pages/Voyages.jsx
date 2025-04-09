@@ -58,18 +58,6 @@ const Voyages = () => {
   useEffect(() => {
     console.log('Page Voyages montée - Vérification des données récentes');
     
-<<<<<<< HEAD
-    // Rafraîchir les données au montage du composant
-    const currentTime = Date.now();
-    const timeSinceLastFetch = currentTime - lastFetchTime;
-    const REFRESH_INTERVAL = 2 * 60 * 1000; // 2 minutes
-    
-    if (timeSinceLastFetch > REFRESH_INTERVAL) {
-      console.log('Données trop anciennes, rafraîchissement automatique');
-      refreshVoyages();
-    }
-  }, [refreshVoyages, lastFetchTime]);
-=======
     // Rafraîchir les données au montage du composant, mais seulement si nécessaire
     const currentTime = Date.now();
     const timeSinceLastFetch = currentTime - lastFetchTime;
@@ -80,7 +68,6 @@ const Voyages = () => {
       refreshVoyages();
     }
   }, []); // Dépendances réduites pour éviter les rafraîchissements excessifs
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
 
   // Modifier les queryParams lors du changement de filtre
   const updateFilters = (name, value) => {
@@ -227,11 +214,7 @@ const Voyages = () => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {filteredVoyages.map((voyage) => (
-<<<<<<< HEAD
-          <VoyageCard key={voyage._id + '-' + lastFetchTime} voyage={voyage} />
-=======
           <VoyageCard key={voyage._id} voyage={voyage} />
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
         ))}
       </div>
     );
@@ -250,12 +233,17 @@ const Voyages = () => {
   if (error && voyages.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
-        <div className="text-center max-w-lg px-4">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur de chargement</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+        <div className="text-center p-8 max-w-lg">
+          <div className="text-red-500 text-6xl mb-6">
+            <svg className="w-24 h-24 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9 6a1 1 0 012 0v4a1 1 0 11-2 0V6zm0 8a1 1 0 112 0 1 1 0 01-2 0z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Une erreur s'est produite</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-sahara text-white rounded-full font-medium hover:bg-sahara/90"
+            className="px-6 py-3 bg-sahara text-white rounded-lg shadow-lg hover:bg-sahara/90 transition-colors"
           >
             Réessayer
           </button>
