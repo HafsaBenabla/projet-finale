@@ -25,6 +25,15 @@ export const AuthProvider = ({ children }) => {
         
         if (!storedToken || !storedUser) {
           console.log('AuthProvider: Aucune donnée d\'authentification trouvée');
+          resetAuthState();
+          setLoading(false);
+          return;
+        }
+        
+        // Vérifier que le token a une longueur raisonnable
+        if (storedToken.length < 20) {
+          console.log('AuthProvider: Token stocké trop court pour être valide');
+          resetAuthState();
           setLoading(false);
           return;
         }
@@ -32,6 +41,13 @@ export const AuthProvider = ({ children }) => {
         try {
           // Vérifier si les données utilisateur sont valides
           const parsedUser = JSON.parse(storedUser);
+          
+          if (!parsedUser || !parsedUser.email) {
+            console.log('AuthProvider: Données utilisateur incomplètes');
+            resetAuthState();
+            setLoading(false);
+            return;
+          }
           
           // Vérifier le statut admin
           const isAdmin = parsedUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -43,8 +59,15 @@ export const AuthProvider = ({ children }) => {
           
           console.log('AuthProvider: Authentification initialisée depuis localStorage');
           
-          // Vérifier avec le backend en arrière-plan (ne bloque pas le chargement)
-          validateTokenWithBackend(storedToken);
+          // Vérifier avec le backend en arrière-plan
+          const isValid = await validateTokenWithBackend(storedToken);
+          
+          if (!isValid) {
+            console.log('AuthProvider: Token invalide selon le backend, réinitialisation');
+            resetAuthState();
+          } else {
+            console.log('AuthProvider: Token validé par le backend');
+          }
         } catch (error) {
           console.error('AuthProvider: Erreur de parsing des données utilisateur:', error);
           resetAuthState();
@@ -63,16 +86,37 @@ export const AuthProvider = ({ children }) => {
   // Fonction pour valider le token avec le backend
   const validateTokenWithBackend = async (token) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/verify-token`, {
+      console.log('AuthProvider: Tentative de validation du token avec le backend');
+      
+      if (!token || token.trim() === '') {
+        console.log('AuthProvider: Token vide, impossible de valider');
+        resetAuthState();
+        return false;
+      }
+      
+      // Vérifier que le token a une longueur raisonnable
+      if (token.length < 20) {
+        console.log('AuthProvider: Token trop court pour être valide');
+        resetAuthState();
+        return false;
+      }
+      
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      console.log(`AuthProvider: Envoi de la requête de validation à ${apiUrl}/api/auth/verify-token`);
+      
+      const response = await fetch(`${apiUrl}/api/auth/verify-token`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
+      console.log('AuthProvider: Réponse de validation du token:', response.status);
+      
       if (!response.ok) {
-        console.log('AuthProvider: Token invalide selon le backend');
+        const errorData = await response.json().catch(() => ({}));
+        console.log('AuthProvider: Token invalide selon le backend', errorData);
         resetAuthState();
-        return;
+        return false;
       }
       
       const { user: userData } = await response.json();
@@ -91,10 +135,12 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
       console.log('AuthProvider: Token validé avec le backend');
+      return true;
     } catch (error) {
       console.error('AuthProvider: Erreur lors de la validation du token:', error);
       // On ne réinitialise pas l'état en cas d'erreur de connexion pour permettre
       // à l'application de fonctionner même hors ligne
+      return false;
     }
   };
   
@@ -110,7 +156,15 @@ export const AuthProvider = ({ children }) => {
   const login = (userData, newToken) => {
     if (!userData || !newToken) {
       console.error('AuthProvider: Données de connexion invalides');
-      return;
+      setAuthError('Données de connexion invalides');
+      return false;
+    }
+    
+    // Vérifier que le token a une longueur raisonnable
+    if (newToken.length < 20) {
+      console.error('AuthProvider: Token reçu trop court pour être valide');
+      setAuthError('Token invalide reçu du serveur');
+      return false;
     }
     
     try {
@@ -124,6 +178,13 @@ export const AuthProvider = ({ children }) => {
         userId: userData._id || userData.id || userData.userId
       };
       
+      // Vérifier que l'ID utilisateur est présent
+      if (!normalizedUser.userId) {
+        console.error('AuthProvider: ID utilisateur manquant dans les données de connexion');
+        setAuthError('Données utilisateur incomplètes');
+        return false;
+      }
+      
       // Mettre à jour l'état
       setUser(normalizedUser);
       setToken(newToken);
@@ -134,10 +195,17 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(normalizedUser));
       localStorage.setItem('token', newToken);
       
-      console.log('AuthProvider: Utilisateur connecté avec succès');
+      console.log('AuthProvider: Utilisateur connecté avec succès', {
+        userId: normalizedUser.userId,
+        isAdmin: normalizedUser.isAdmin,
+        tokenLength: newToken.length
+      });
+      
+      return true;
     } catch (error) {
       console.error('AuthProvider: Erreur lors de la connexion:', error);
-      setAuthError('Erreur lors de la connexion');
+      setAuthError('Erreur lors de la connexion: ' + error.message);
+      return false;
     }
   };
 

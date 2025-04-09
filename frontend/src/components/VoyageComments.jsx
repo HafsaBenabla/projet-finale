@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { FaUser, FaComment, FaPaperPlane, FaTrash, FaExclamationCircle } from 'react-icons/fa';
+import { FaUser, FaComment, FaPaperPlane, FaTrash } from 'react-icons/fa';
 
 const VoyageComments = ({ voyageId, onCommentAdded }) => {
   const { user, isAuthenticated, token } = useAuth();
@@ -11,7 +11,6 @@ const VoyageComments = ({ voyageId, onCommentAdded }) => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [deletingCommentId, setDeletingCommentId] = useState(null);
-  const [deleteConfirmationId, setDeleteConfirmationId] = useState(null);
 
   useEffect(() => {
     fetchComments();
@@ -92,16 +91,6 @@ const VoyageComments = ({ voyageId, onCommentAdded }) => {
     }
   };
 
-  // Fonction pour gérer la demande de suppression
-  const handleDeleteRequest = (commentId) => {
-    setDeleteConfirmationId(commentId);
-  };
-
-  // Fonction pour annuler la suppression
-  const handleCancelDelete = () => {
-    setDeleteConfirmationId(null);
-  };
-
   // Fonction pour vérifier si un commentaire appartient à l'utilisateur connecté
   const isUserComment = (comment) => {
     if (!isAuthenticated || !user) return false;
@@ -154,8 +143,18 @@ const VoyageComments = ({ voyageId, onCommentAdded }) => {
         commentData: commentToDelete,
         userData: user,
         userIds: [user?.userId, user?._id, user?.id].filter(Boolean),
-        tokenInfo: token ? 'Token présent' : 'Token absent'
+        tokenInfo: token ? `Token présent (${token.substring(0, 10)}...)` : 'Token absent'
       });
+      
+      // Vérifier que le token est valide avant de l'utiliser
+      const storedToken = localStorage.getItem('token');
+      
+      // Si le token stocké dans AuthContext ne correspond pas à celui du localStorage, utiliser celui du localStorage
+      const finalToken = token === storedToken ? token : storedToken;
+      
+      if (!finalToken) {
+        throw new Error('Votre session a expiré. Veuillez vous reconnecter.');
+      }
       
       const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/voyages/${voyageId}/comments/${commentId}`;
       console.log('URL de l\'API:', apiUrl);
@@ -163,7 +162,7 @@ const VoyageComments = ({ voyageId, onCommentAdded }) => {
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${finalToken}`,
           'Content-Type': 'application/json'
         }
       });
@@ -175,6 +174,12 @@ const VoyageComments = ({ voyageId, onCommentAdded }) => {
       
       if (!response.ok) {
         let errorMessage = 'Erreur lors de la suppression du commentaire';
+        
+        // Gérer spécifiquement les erreurs d'authentification
+        if (response.status === 401) {
+          errorMessage = 'Session expirée. Veuillez vous reconnecter pour supprimer ce commentaire.';
+        }
+        
         try {
           const errorData = await response.json();
           console.error('Détails de l\'erreur:', errorData);
@@ -203,9 +208,16 @@ const VoyageComments = ({ voyageId, onCommentAdded }) => {
     } catch (err) {
       console.error('Erreur lors de la suppression du commentaire:', err);
       setError(err.message || 'Une erreur est survenue lors de la suppression du commentaire');
+      
+      // Si l'erreur concerne l'authentification, suggérer à l'utilisateur de se reconnecter
+      if (err.message.includes('Token') || err.message.includes('session') || err.message.includes('connecter')) {
+        setTimeout(() => {
+          // Rediriger vers la page de connexion après 3 secondes
+          window.location.href = '/login';
+        }, 3000);
+      }
     } finally {
       setDeletingCommentId(null);
-      setDeleteConfirmationId(null);
     }
   };
 
@@ -297,35 +309,18 @@ const VoyageComments = ({ voyageId, onCommentAdded }) => {
                 {/* Bouton de suppression - visible uniquement pour les commentaires de l'utilisateur */}
                 {isUserComment(comment) && (
                   <div className="absolute top-2 right-2">
-                    {deleteConfirmationId === comment._id ? (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleDeleteComment(comment._id)}
-                          className="text-red-500 hover:text-red-700 bg-white p-1 rounded"
-                          disabled={deletingCommentId === comment._id}
-                        >
-                          {deletingCommentId === comment._id ? (
-                            <div className="animate-spin h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full" />
-                          ) : (
-                            <FaExclamationCircle className="text-sm" />
-                          )}
-                        </button>
-                        <button
-                          onClick={handleCancelDelete}
-                          className="text-gray-500 hover:text-gray-700 bg-white p-1 rounded"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => handleDeleteRequest(comment._id)}
-                        className="text-gray-400 hover:text-red-500 bg-white p-1 rounded opacity-70 hover:opacity-100"
-                        title="Supprimer ce commentaire"
-                      >
+                    <button
+                      onClick={() => handleDeleteComment(comment._id)}
+                      className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full opacity-70 hover:opacity-100 transition-all"
+                      title="Supprimer ce commentaire"
+                      disabled={deletingCommentId === comment._id}
+                    >
+                      {deletingCommentId === comment._id ? (
+                        <div className="animate-spin h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full" />
+                      ) : (
                         <FaTrash className="text-sm" />
-                      </button>
-                    )}
+                      )}
+                    </button>
                   </div>
                 )}
               </div>

@@ -87,23 +87,54 @@ export const verifyToken = async (req, res, next) => {
  */
 export const auth = async (req, res, next) => {
   console.log('=== Middleware d\'authentification standard ===');
+  console.log('Chemin de la requête:', req.path);
   
   const authHeader = req.headers['authorization'];
-  console.log('Header d\'autorisation:', authHeader);
+  console.log('Header d\'autorisation:', authHeader ? `${authHeader.substring(0, 15)}...` : 'Absent');
   
   if (!authHeader) {
     console.log('Aucun header d\'autorisation trouvé');
-    return res.status(401).json({ message: 'Aucun token d\'authentification trouvé', error: 'NO_AUTH_HEADER' });
+    return res.status(401).json({ 
+      message: 'Aucun token d\'authentification trouvé. Veuillez vous reconnecter.', 
+      error: 'NO_AUTH_HEADER' 
+    });
   }
   
-  const token = authHeader.split(' ')[1];
+  const parts = authHeader.split(' ');
+  
+  if (parts.length !== 2 || parts[0] !== 'Bearer') {
+    console.log('Format du header d\'autorisation invalide:', parts);
+    return res.status(401).json({ 
+      message: 'Format du token invalide. Veuillez vous reconnecter.', 
+      error: 'INVALID_TOKEN_FORMAT' 
+    });
+  }
+  
+  const token = parts[1];
   if (!token) {
     console.log('Token introuvable dans le header');
-    return res.status(401).json({ message: 'Token non fourni', error: 'NO_TOKEN_PROVIDED' });
+    return res.status(401).json({ 
+      message: 'Token non fourni. Veuillez vous reconnecter.', 
+      error: 'NO_TOKEN_PROVIDED' 
+    });
+  }
+  
+  // Vérifier si le token a une longueur raisonnable
+  if (token.length < 20) {
+    console.log('Token trop court pour être valide:', token);
+    return res.status(401).json({ 
+      message: 'Token invalide. Veuillez vous reconnecter.', 
+      error: 'INVALID_TOKEN_LENGTH' 
+    });
   }
   
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Tentative de vérification du token:', `${token.substring(0, 10)}...${token.substring(token.length - 5)}`);
+    
+    const JWT_SECRET = process.env.JWT_SECRET || 'votre_secret_jwt';
+    console.log('Utilisation de la clé secrète (longueur):', JWT_SECRET.length);
+    
+    const decoded = jwt.verify(token, JWT_SECRET);
     console.log('Token vérifié avec succès:', decoded);
     
     // Stocker l'utilisateur dans la requête
@@ -116,12 +147,35 @@ export const auth = async (req, res, next) => {
     next();
   } catch (error) {
     console.log('Erreur lors de la vérification du token:', error.message);
+    console.log('Type d\'erreur:', error.name);
     
+    // Gérer les différents types d'erreurs de token
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ message: 'Token expiré', error: 'TOKEN_EXPIRED' });
+      console.log('Token expiré - date d\'expiration:', new Date(error.expiredAt));
+      return res.status(401).json({ 
+        message: 'Votre session a expiré. Veuillez vous reconnecter.', 
+        error: 'TOKEN_EXPIRED',
+        expiredAt: error.expiredAt
+      });
+    } else if (error.name === 'JsonWebTokenError') {
+      console.log('Erreur JWT spécifique:', error.message);
+      return res.status(401).json({ 
+        message: 'Token invalide. Veuillez vous reconnecter.', 
+        error: 'INVALID_TOKEN',
+        details: error.message
+      });
+    } else if (error.name === 'NotBeforeError') {
+      return res.status(401).json({ 
+        message: 'Token non encore valide. Veuillez réessayer plus tard.', 
+        error: 'TOKEN_NOT_ACTIVE' 
+      });
     }
     
-    return res.status(401).json({ message: 'Token invalide', error: error.message });
+    // Erreur générique
+    return res.status(401).json({ 
+      message: 'Erreur d\'authentification. Veuillez vous reconnecter.', 
+      error: error.message 
+    });
   }
 };
  

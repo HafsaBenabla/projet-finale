@@ -468,6 +468,21 @@ router.delete('/:voyageId/comments/:commentId', auth, async (req, res) => {
     try {
         const { voyageId, commentId } = req.params;
         console.log(`Requête de suppression reçue - voyageId: ${voyageId}, commentId: ${commentId}`);
+        console.log(`Utilisateur authentifié: ${req.userId} (${req.user?.username || req.user?.email || 'Inconnu'})`);
+
+        // Logging du token reçu pour débogage (masqué pour sécurité)
+        const authHeader = req.headers['authorization'];
+        if (authHeader) {
+            const tokenParts = authHeader.split(' ');
+            if (tokenParts.length > 1) {
+                const token = tokenParts[1];
+                console.log(`Token reçu: ${token.substring(0, 10)}...${token.substring(token.length - 5)}`);
+            } else {
+                console.log('Format du header d\'autorisation invalide');
+            }
+        } else {
+            console.log('Header d\'autorisation absent');
+        }
 
         // Valider les IDs
         if (!mongoose.Types.ObjectId.isValid(voyageId) || !mongoose.Types.ObjectId.isValid(commentId)) {
@@ -494,7 +509,7 @@ router.delete('/:voyageId/comments/:commentId', auth, async (req, res) => {
         
         if (!currentUser) {
             console.log('Utilisateur non authentifié dans auth middleware');
-            return res.status(401).json({ message: 'Utilisateur non authentifié' });
+            return res.status(401).json({ message: 'Utilisateur non authentifié. Veuillez vous reconnecter.' });
         }
         
         // Récupérer tous les formats possibles d'ID utilisateur actuel
@@ -561,7 +576,20 @@ router.delete('/:voyageId/comments/:commentId', auth, async (req, res) => {
         res.json({ message: 'Commentaire supprimé avec succès' });
     } catch (error) {
         console.error('Erreur lors de la suppression du commentaire:', error);
-        res.status(500).json({ message: 'Erreur lors de la suppression du commentaire' });
+        
+        // Fournir des informations plus détaillées sur l'erreur
+        let statusCode = 500;
+        let message = 'Erreur lors de la suppression du commentaire';
+        
+        if (error.name === 'JsonWebTokenError') {
+            statusCode = 401;
+            message = 'Token invalide. Veuillez vous reconnecter.';
+        } else if (error.name === 'TokenExpiredError') {
+            statusCode = 401;
+            message = 'Votre session a expiré. Veuillez vous reconnecter.';
+        }
+        
+        res.status(statusCode).json({ message, error: error.message });
     }
 });
 
