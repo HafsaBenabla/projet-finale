@@ -149,15 +149,10 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md', customCo
     // Vérifier si l'utilisateur est authentifié et que les données utilisateur sont disponibles
     if (!isAuthenticated || !user) {
       console.log('Non authentifié:', { isAuthenticated, user });
-      // Afficher une alerte améliorée et rediriger
-      const confirmation = window.confirm(
-        'Vous devez être connecté pour réagir à ce voyage. Souhaitez-vous vous connecter maintenant?'
-      );
-      if (confirmation) {
-        // Sauvegarder l'URL actuelle pour revenir après la connexion
-        localStorage.setItem('redirectAfterLogin', window.location.pathname);
-        navigate('/login');
-      }
+      // Rediriger directement vers la page de login sans confirmation
+      // Sauvegarder l'URL actuelle pour revenir après la connexion
+      localStorage.setItem('redirectAfterLogin', window.location.pathname);
+      navigate('/login');
       return;
     }
 
