@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaMapMarkerAlt, FaClock, FaInfoCircle, FaWalking, FaCalendarCheck, FaCheck, FaBuilding, FaComment } from 'react-icons/fa';
 import ActivitySelectionCard from '../components/ActivitySelectionCard';
 import { useVoyages } from '../context/VoyagesContext';
@@ -152,11 +152,16 @@ const activitiesByCity = {
 const VoyageDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { refreshVoyages } = useVoyages();
   const { user, token, isAuthenticated } = useAuth();
   const [voyage, setVoyage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const commentsRef = useRef(null);
+  
+  // Ajout d'un state pour suivre le compteur de commentaires
+  const [commentCount, setCommentCount] = useState(0);
 
   const [formData, setFormData] = useState({
     nom: '',
@@ -178,6 +183,7 @@ const VoyageDetail = () => {
         }
         const data = await response.json();
         setVoyage(data);
+        setCommentCount(data.commentCount || 0);
         setLoading(false);
       } catch (err) {
         setError(err.message);
@@ -192,6 +198,21 @@ const VoyageDetail = () => {
   const availableActivities = useMemo(() => {
     return activitiesByCity[voyage?.destination] || [];
   }, [voyage?.destination]);
+  
+  // Fonction pour faire défiler jusqu'à la section des commentaires
+  const scrollToComments = () => {
+    if (commentsRef.current) {
+      commentsRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Effet pour gérer la navigation par fragment d'URL
+  useEffect(() => {
+    // Vérifier si le chargement est terminé et si l'URL contient le fragment #comments
+    if (!loading && location.hash === '#comments') {
+      scrollToComments();
+    }
+  }, [loading, location.hash]);
   
   // Calculer le prix total
   const calculateTotalPrice = () => {
@@ -315,6 +336,37 @@ const VoyageDetail = () => {
         type: 'error',
         message: err.message
       });
+    }
+  };
+
+  // Gestionnaire pour mettre à jour le compteur de commentaires
+  const handleCommentAdded = async (action = 'add') => {
+    try {
+      // Déterminer si on incrémente ou décrémente le compteur
+      const increment = action === 'add' ? 1 : -1;
+      
+      // Mettre à jour le compteur directement pour une réponse immédiate de l'interface
+      setCommentCount(prevCount => Math.max(0, prevCount + increment));
+      
+      // Mettre à jour les données du voyage
+      if (voyage) {
+        const newCount = Math.max(0, (voyage.commentCount || 0) + increment);
+        setVoyage({
+          ...voyage,
+          commentCount: newCount
+        });
+      }
+      
+      // Facultativement, récupérer le nombre exact de commentaires depuis le serveur
+      const response = await fetch(`http://localhost:5000/api/voyages/${id}`);
+      if (response.ok) {
+        const updatedVoyage = await response.json();
+        setCommentCount(updatedVoyage.commentCount || 0);
+        setVoyage(updatedVoyage);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du nombre de commentaires:", error);
+      // En cas d'erreur, on garde au moins l'incrémentation/décrémentation locale
     }
   };
 
@@ -548,7 +600,11 @@ const VoyageDetail = () => {
                   <p className="text-gray-600 mt-2">Vous aimez ce voyage ? Faites-le savoir !</p>
                 </div>
                 <div className="flex items-center">
-                  <VoyageReactionPanel voyageId={voyage._id} size="lg" />
+                  <VoyageReactionPanel 
+                    voyageId={voyage._id} 
+                    size="lg" 
+                    customCommentCount={commentCount}
+                  />
                 </div>
               </div>
             </div>
@@ -581,13 +637,13 @@ const VoyageDetail = () => {
               </ul>
             </div>
 
-            {/* Section Commentaires - Dernière carte */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
+            {/* Section Commentaires - avec une référence React */}
+            <div id="comments" ref={commentsRef} className="bg-white rounded-2xl shadow-lg p-8">
               <div className="flex items-center gap-3 mb-6">
                 <FaComment className="text-sahara text-2xl" />
                 <h2 className="text-3xl font-semibold text-gray-800">Commentaires</h2>
               </div>
-              <VoyageComments voyageId={voyage._id} />
+              <VoyageComments voyageId={voyage._id} onCommentAdded={handleCommentAdded} />
             </div>
           </div>
 

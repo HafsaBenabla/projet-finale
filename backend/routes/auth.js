@@ -117,32 +117,21 @@ router.post('/login', async (req, res) => {
     
     // Générer le token JWT avec l'ID utilisateur sous forme de chaîne
     const token = jwt.sign(
-<<<<<<< HEAD
-      { userId: user._id.toString(), role: user.role, email: user.email },
-=======
       { 
         userId: user._id.toString(), 
         role: user.role, 
         email: user.email 
       },
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
       JWT_SECRET,
       { expiresIn: '24h' }
     );
 
-<<<<<<< HEAD
-    res.json({
-      message: "Connexion réussie",
-      user: {
-        id: user._id,
-=======
     console.log('Token JWT généré avec ID utilisateur:', user._id.toString());
 
     res.json({
       message: "Connexion réussie",
       user: {
         id: user._id.toString(),
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
         username: user.username,
         email: user.email,
         role: user.role

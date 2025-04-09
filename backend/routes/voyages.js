@@ -1,5 +1,6 @@
 import express from 'express';
 import { Voyage } from '../models/voyage.js';
+import { Comment } from '../models/comment.js';
 import { auth } from '../middleware/auth.js';
 import mongoose from 'mongoose';
 
@@ -379,6 +380,188 @@ router.get('/by-agency/:agencyId', async (req, res) => {
     } catch (error) {
         console.error('Erreur lors de la récupération des voyages par agence:', error);
         res.status(500).json({ message: error.message });
+    }
+});
+
+// Route pour obtenir les commentaires d'un voyage
+router.get('/:id/comments', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'ID de voyage invalide' });
+        }
+
+        // Vérifier si le voyage existe
+        const voyage = await Voyage.findById(id);
+        if (!voyage) {
+            return res.status(404).json({ message: 'Voyage non trouvé' });
+        }
+
+        // Récupérer les commentaires
+        const comments = await Comment.find({ voyageId: id })
+            .sort({ createdAt: -1 });
+
+        res.json(comments);
+    } catch (error) {
+        console.error('Erreur lors de la récupération des commentaires:', error);
+        res.status(500).json({ message: 'Erreur lors de la récupération des commentaires' });
+    }
+});
+
+// Route pour ajouter un commentaire à un voyage
+router.post('/:id/comments', auth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { content, userId } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'ID de voyage invalide' });
+        }
+
+        if (!content || !content.trim()) {
+            return res.status(400).json({ message: 'Le contenu du commentaire est requis' });
+        }
+
+        // Vérifier si le voyage existe
+        const voyage = await Voyage.findById(id);
+        if (!voyage) {
+            return res.status(404).json({ message: 'Voyage non trouvé' });
+        }
+
+        // Récupérer l'utilisateur à partir du token
+        const currentUser = req.user;
+        if (!currentUser) {
+            return res.status(401).json({ message: 'Utilisateur non authentifié' });
+        }
+
+        // Créer le commentaire
+        const comment = new Comment({
+            voyageId: id,
+            userId: userId || currentUser._id,
+            userName: currentUser.fullName || currentUser.nom || currentUser.username || 'Utilisateur',
+            content
+        });
+
+        const savedComment = await comment.save();
+
+        // Mettre à jour le compteur de commentaires dans le voyage
+        // S'assurer que commentCount existe ou initialiser à 0
+        if (voyage.commentCount === undefined) {
+            voyage.commentCount = 0;
+        }
+        voyage.commentCount += 1;
+        await voyage.save();
+
+        // Log pour débogage
+        console.log(`Compteur de commentaires mis à jour pour le voyage ${id}: ${voyage.commentCount}`);
+
+        res.status(201).json(savedComment);
+    } catch (error) {
+        console.error('Erreur lors de l\'ajout du commentaire:', error);
+        res.status(500).json({ message: 'Erreur lors de l\'ajout du commentaire' });
+    }
+});
+
+// Route pour supprimer un commentaire
+router.delete('/:voyageId/comments/:commentId', auth, async (req, res) => {
+    try {
+        const { voyageId, commentId } = req.params;
+        console.log(`Requête de suppression reçue - voyageId: ${voyageId}, commentId: ${commentId}`);
+
+        // Valider les IDs
+        if (!mongoose.Types.ObjectId.isValid(voyageId) || !mongoose.Types.ObjectId.isValid(commentId)) {
+            console.log('IDs invalides');
+            return res.status(400).json({ message: 'ID de voyage ou de commentaire invalide' });
+        }
+
+        // Trouver le commentaire
+        const comment = await Comment.findById(commentId);
+        
+        if (!comment) {
+            console.log('Commentaire non trouvé');
+            return res.status(404).json({ message: 'Commentaire non trouvé' });
+        }
+        
+        // Vérifier que le commentaire appartient au voyage spécifié
+        if (comment.voyageId.toString() !== voyageId) {
+            console.log(`Mismatch: commentaire.voyageId=${comment.voyageId}, paramVoyageId=${voyageId}`);
+            return res.status(400).json({ message: 'Ce commentaire n\'appartient pas à ce voyage' });
+        }
+
+        // Récupérer l'ID utilisateur du token
+        const currentUser = req.user;
+        
+        if (!currentUser) {
+            console.log('Utilisateur non authentifié dans auth middleware');
+            return res.status(401).json({ message: 'Utilisateur non authentifié' });
+        }
+        
+        // Récupérer tous les formats possibles d'ID utilisateur actuel
+        const currentUserIds = [
+            currentUser._id,
+            currentUser._id?.toString(),
+            currentUser.id,
+            currentUser.id?.toString(),
+            currentUser.userId,
+            currentUser.userId?.toString()
+        ].filter(Boolean); // Filtrer les valeurs null/undefined
+        
+        // Récupérer tous les formats possibles d'ID utilisateur du commentaire
+        const commentUserIds = [
+            comment.userId,
+            typeof comment.userId === 'object' ? comment.userId.toString() : comment.userId
+        ].filter(Boolean);
+        
+        console.log('Comparaison des IDs utilisateur:', {
+            commentUserIds,
+            currentUserIds,
+            currentUser: JSON.stringify(currentUser)
+        });
+        
+        // Vérifier s'il y a une correspondance d'ID
+        let isAuthorized = false;
+        
+        // Vérifier chaque combinaison possible d'ID
+        for (const commentUserId of commentUserIds) {
+            for (const currentUserId of currentUserIds) {
+                if (commentUserId === currentUserId) {
+                    isAuthorized = true;
+                    break;
+                }
+            }
+            if (isAuthorized) break;
+        }
+        
+        // Autoriser également si l'utilisateur est admin
+        if (currentUser.role === 'admin') {
+            console.log('Utilisateur admin autorisé à supprimer n\'importe quel commentaire');
+            isAuthorized = true;
+        }
+        
+        if (!isAuthorized) {
+            console.log('Utilisateur non autorisé à supprimer ce commentaire');
+            return res.status(403).json({ message: 'Vous ne pouvez pas supprimer le commentaire d\'un autre utilisateur' });
+        }
+
+        // Supprimer le commentaire
+        await Comment.findByIdAndDelete(commentId);
+        console.log(`Commentaire ${commentId} supprimé avec succès`);
+        
+        // Décrémenter le compteur de commentaires dans le voyage
+        const voyage = await Voyage.findById(voyageId);
+        if (voyage) {
+            voyage.commentCount = Math.max(0, (voyage.commentCount || 1) - 1);
+            await voyage.save();
+            
+            // Log pour débogage
+            console.log(`Compteur de commentaires mis à jour après suppression pour le voyage ${voyageId}: ${voyage.commentCount}`);
+        }
+
+        res.json({ message: 'Commentaire supprimé avec succès' });
+    } catch (error) {
+        console.error('Erreur lors de la suppression du commentaire:', error);
+        res.status(500).json({ message: 'Erreur lors de la suppression du commentaire' });
     }
 });
 

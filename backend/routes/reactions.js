@@ -21,7 +21,8 @@ router.get('/voyage/:voyageId', async (req, res) => {
     const reactions = voyage.reactions || { likes: 0, dislikes: 0, userReactions: [] };
     res.json({
       likes: reactions.likes || 0,
-      dislikes: reactions.dislikes || 0
+      dislikes: reactions.dislikes || 0,
+      commentCount: voyage.commentCount || 0
     });
   } catch (error) {
     console.error('Erreur lors de la récupération des réactions:', error);
@@ -33,7 +34,8 @@ router.get('/voyage/:voyageId', async (req, res) => {
 router.get('/user/:voyageId', verifyToken, async (req, res) => {
   try {
     const { voyageId } = req.params;
-    const userId = req.user.userId;
+    // Récupérer l'ID utilisateur depuis plusieurs sources possibles
+    const userId = req.user?.userId || req.userId;
     
     console.log('Récupération de réaction utilisateur:', {
       voyageId,
@@ -68,7 +70,8 @@ router.get('/user/:voyageId', verifyToken, async (req, res) => {
 router.post('/', verifyToken, async (req, res) => {
   try {
     const { voyageId, type } = req.body;
-    const userId = req.user.userId;
+    // Récupérer l'ID utilisateur depuis plusieurs sources possibles
+    const userId = req.user?.userId || req.userId;
     
     console.log('Traitement de réaction:', {
       voyageId,

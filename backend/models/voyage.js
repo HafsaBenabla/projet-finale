@@ -83,6 +83,10 @@ const voyageSchema = new mongoose.Schema({
             userId: { type: String, required: true },
             type: { type: String, enum: ['like', 'dislike'], required: true }
         }]
+    },
+    commentCount: {
+        type: Number,
+        default: 0
     }
 });
 

@@ -19,7 +19,7 @@ const CommentBubbleIcon = ({ className = "" }) => (
   </svg>
 );
 
-const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
+const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md', customCommentCount }) => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -64,7 +64,8 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
       setReaction(prev => ({
         ...prev,
         likeCount: data.likes,
-        dislikeCount: data.dislikes
+        dislikeCount: data.dislikes,
+        commentCount: data.commentCount || 0
       }));
     } catch (error) {
       console.error('Erreur lors de la récupération des statistiques:', error);
@@ -326,17 +327,76 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
     });
   };
 
+  // Gérer le clic sur le bouton de commentaire
+  const handleCommentClick = () => {
+    // Vérifier si nous sommes déjà sur la page de détails du voyage
+    if (location.pathname === `/voyage/${voyageId}`) {
+      // Si nous sommes déjà sur la page de détails, faire défiler vers les commentaires
+      // Utiliser le comportement natif du navigateur pour naviguer vers le fragment
+      window.location.hash = 'comments';
+    } else {
+      // Sinon, naviguer vers la page de détails avec le fragment
+      // En utilisant navigate avec un fragment, cela devrait déclencher notre useEffect dans VoyageDetail
+      navigate(`/voyage/${voyageId}#comments`);
+    }
+  };
+
+  // Mise à jour du compteur de commentaires quand customCommentCount change
+  useEffect(() => {
+    if (customCommentCount !== undefined) {
+      setReaction(prev => ({
+        ...prev,
+        commentCount: customCommentCount
+      }));
+    }
+  }, [customCommentCount]);
+
+  // Effet pour récupérer les statistiques de réactions et les réactions de l'utilisateur
   useEffect(() => {
     // Utiliser un timeout pour éviter des requêtes trop fréquentes
     const timer = setTimeout(() => {
-      fetchStats();
+      // Ne récupérer les statistiques que si customCommentCount n'est pas fourni
+      if (customCommentCount === undefined) {
+        fetchStats();
+      } else {
+        // Si customCommentCount est fourni, récupérer quand même les likes/dislikes
+        // mais en évitant d'écraser le compteur de commentaires personnalisé
+        const fetchLikesOnly = async () => {
+          try {
+            if (fetchingRef.current) return;
+            fetchingRef.current = true;
+            
+            const apiUrl = `http://localhost:5000/api/reactions/voyage/${voyageId}`;
+            const response = await fetch(apiUrl);
+            
+            if (!response.ok) {
+              throw new Error(`Erreur HTTP: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            setReaction(prev => ({
+              ...prev,
+              likeCount: data.likes,
+              dislikeCount: data.dislikes,
+              // Garder le commentCount personnalisé
+            }));
+          } catch (error) {
+            console.error('Erreur lors de la récupération des statistiques:', error);
+          } finally {
+            fetchingRef.current = false;
+          }
+        };
+        
+        fetchLikesOnly();
+      }
+      
       if (isAuthenticated) {
         fetchUserReaction();
       }
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [voyageId, isAuthenticated]);
+  }, [voyageId, isAuthenticated, customCommentCount]);
 
   const sizeClasses = {
     sm: 'text-sm',
@@ -380,6 +440,7 @@ const VoyageReactionPanel = ({ voyageId, showCount = true, size = 'md' }) => {
             ? 'bg-white text-black hover:bg-gray-100' 
             : 'text-black hover:bg-gray-50'
         }`}
+        onClick={handleCommentClick}
         disabled={reaction.loading}
         aria-label="Commenter"
       >

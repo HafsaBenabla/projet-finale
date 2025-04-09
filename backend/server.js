@@ -17,12 +17,9 @@ import contactRoutes from './routes/contact.js';
 import usersRoutes from './routes/users.js';
 import activitiesRoutes from './routes/activities.js';
 import fs from 'fs';
-import commentRoutes from './routes/comments.js';
-<<<<<<< HEAD
-=======
+import commentRoutes, { syncCommentCount } from './routes/comments.js';
 import reactionsRoutes from './routes/reactions.js';
 import { verifyToken } from './middleware/auth.js';
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -43,56 +40,11 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-<<<<<<< HEAD
 // Middleware de logging pour déboguer
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   console.log('Headers:', req.headers);
   console.log('Body:', req.body);
-=======
-// Système de rate limiting
-const requestCounts = new Map();
-const RATE_LIMIT = 5; // Nombre maximum de requêtes par seconde
-const RATE_LIMIT_WINDOW = 1000; // Fenêtre de temps en millisecondes
-
-// Middleware de rate limiting
-app.use((req, res, next) => {
-  const now = Date.now();
-  const ip = req.ip;
-  
-  if (!requestCounts.has(ip)) {
-    requestCounts.set(ip, {
-      count: 0,
-      resetTime: now + RATE_LIMIT_WINDOW
-    });
-  }
-
-  const userRequests = requestCounts.get(ip);
-  
-  if (now > userRequests.resetTime) {
-    userRequests.count = 0;
-    userRequests.resetTime = now + RATE_LIMIT_WINDOW;
-  }
-
-  if (userRequests.count >= RATE_LIMIT) {
-    return res.status(429).json({ 
-      error: 'Trop de requêtes',
-      message: 'Veuillez attendre avant de faire une nouvelle requête'
-    });
-  }
-
-  userRequests.count++;
-  next();
-});
-
-// Middleware de logging simplifié
-app.use((req, res, next) => {
-  if (req.path.startsWith('/uploads/') || req.path.includes('favicon.ico')) {
-    return next();
-  }
-
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
   next();
 });
 
@@ -103,160 +55,9 @@ app.use('/api/voyages', voyagesRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/activities', activitiesRoutes);
-<<<<<<< HEAD
-app.use('/api', commentRoutes);
-
-=======
 app.use('/api/reactions', reactionsRoutes);
 app.use('/api', commentRoutes);
 
-// Route de test pour vérifier si les réactions fonctionnent
-app.get('/api/test-reaction', (req, res) => {
-  console.log('Test de réaction OK');
-  res.json({ message: 'Route de test des réactions fonctionne!' });
-});
-
-// Route de secours pour les réactions en cas de problème avec le router
-app.post('/api/reactions-direct', verifyToken, async (req, res) => {
-  console.log('======= DÉBUT TRAITEMENT RÉACTION =======');
-  console.log('Info utilisateur complète:', req.user);
-  console.log('req.userId:', req.userId);
-  console.log('req.user?.userId:', req.user?.userId);
-  console.log('Body reçu:', req.body);
-  
-  try {
-    // Récupérer l'userId de plusieurs sources possibles pour maximiser les chances de succès
-    let userIdToUse;
-    const { userId: bodyUserId, voyageId, type } = req.body;
-    
-    // Sources potentielles d'userId, par ordre de priorité
-    if (req.user && req.user.userId) {
-      userIdToUse = req.user.userId;
-      console.log('UserId récupéré depuis req.user.userId:', userIdToUse);
-    } else if (req.userId) {
-      userIdToUse = req.userId;
-      console.log('UserId récupéré depuis req.userId:', userIdToUse);
-    } else if (req.user && req.user.id) {
-      userIdToUse = req.user.id;
-      console.log('UserId récupéré depuis req.user.id:', userIdToUse);
-    } else if (req.user && req.user._id) {
-      userIdToUse = req.user._id;
-      console.log('UserId récupéré depuis req.user._id:', userIdToUse);
-    } else if (bodyUserId) {
-      // MODIFICATION: Accepter l'userId du corps même si l'authentification a échoué
-      // Cela permet de traiter la réaction même en cas de problèmes d'authentification
-      userIdToUse = bodyUserId;
-      console.log('UserId récupéré depuis le corps de la requête (fallback):', userIdToUse);
-    } else {
-      console.error('ERREUR: Impossible de trouver un ID utilisateur valide');
-      return res.status(401).json({
-        message: 'Impossible d\'identifier votre compte. Veuillez vous reconnecter.',
-        error: 'NO_VALID_USER_ID'
-      });
-    }
-    
-    // Validation des données
-    if (!voyageId || !type || !['like', 'dislike'].includes(type)) {
-      console.error('ERREUR: Données invalides', { voyageId, type });
-      return res.status(400).json({ 
-        message: 'Données incomplètes ou invalides',
-        required: { voyageId: 'ID du voyage', type: 'like ou dislike' }
-      });
-    }
-    
-    // Vérifier que voyageId est un ObjectId valide
-    if (!mongoose.Types.ObjectId.isValid(voyageId)) {
-      console.error('ERREUR: ID de voyage invalide', voyageId);
-      return res.status(400).json({ message: 'ID de voyage invalide' });
-    }
-    
-    // Trouver le voyage avec gestion d'erreur
-    console.log('Recherche du voyage:', voyageId);
-    const voyage = await Voyage.findById(voyageId);
-    
-    if (!voyage) {
-      console.error('ERREUR: Voyage non trouvé', voyageId);
-      return res.status(404).json({ message: 'Voyage non trouvé' });
-    }
-    
-    console.log('Voyage trouvé:', voyage.title);
-    
-    // Initialiser l'objet reactions s'il n'existe pas
-    if (!voyage.reactions) {
-      voyage.reactions = {
-        likes: 0,
-        dislikes: 0,
-        userReactions: []
-      };
-    }
-    
-    // Vérifier si l'utilisateur a déjà réagi
-    console.log('Recherche de réaction pour userId:', userIdToUse);
-    
-    // Sécurité supplémentaire pour s'assurer que userIdToUse est une chaîne de caractères
-    const userIdString = userIdToUse.toString();
-    
-    const existingReactionIndex = voyage.reactions.userReactions.findIndex(
-      reaction => reaction.userId.toString() === userIdString
-    );
-    
-    console.log('Réaction existante trouvée:', existingReactionIndex !== -1);
-    
-    if (existingReactionIndex !== -1) {
-      const existingReaction = voyage.reactions.userReactions[existingReactionIndex];
-      console.log('Réaction précédente:', existingReaction);
-      
-      if (existingReaction.type === type) {
-        // Supprimer la réaction (toggle)
-        voyage.reactions[type + 's'] = Math.max(0, voyage.reactions[type + 's'] - 1);
-        voyage.reactions.userReactions.splice(existingReactionIndex, 1);
-        console.log(`Réaction ${type} supprimée pour l'utilisateur ${userIdToUse}`);
-      } else {
-        // Changer de type de réaction
-        voyage.reactions[existingReaction.type + 's'] = Math.max(0, voyage.reactions[existingReaction.type + 's'] - 1);
-        voyage.reactions[type + 's']++;
-        existingReaction.type = type;
-        console.log(`Réaction changée en ${type} pour l'utilisateur ${userIdToUse}`);
-      }
-    } else {
-      // Ajouter une nouvelle réaction
-      voyage.reactions[type + 's']++;
-      voyage.reactions.userReactions.push({ userId: userIdString, type });
-      console.log(`Nouvelle réaction ${type} ajoutée pour l'utilisateur ${userIdToUse}`);
-    }
-    
-    // Sauvegarder les changements
-    console.log('Sauvegarde des modifications...');
-    await voyage.save();
-    
-    // Réponse avec les statistiques à jour
-    const response = {
-      message: 'Réaction enregistrée avec succès',
-      voyage: {
-        id: voyage._id,
-        title: voyage.title,
-        reactions: {
-          likes: voyage.reactions.likes,
-          dislikes: voyage.reactions.dislikes
-        },
-        userReaction: { type }
-      }
-    };
-    
-    console.log('Réponse:', response);
-    console.log('======= FIN TRAITEMENT RÉACTION =======');
-    res.json(response);
-  } catch (error) {
-    console.error('ERREUR lors du traitement de la réaction:', error);
-    console.log('======= FIN TRAITEMENT RÉACTION (AVEC ERREUR) =======');
-    res.status(500).json({ 
-      message: 'Erreur lors du traitement de la réaction',
-      error: error.message
-    });
-  }
-});
-
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
 // Création du dossier uploads s'il n'existe pas
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -331,44 +132,23 @@ mongoose.connect('mongodb+srv://admin:admin@cluster0.bedq1.mongodb.net/maghrebxp
       }
       console.log('Available collections:', collections.map(c => c.name));
     });
+    
+    // Synchroniser les compteurs de commentaires au démarrage
+    syncCommentCount();
   })
   .catch((err) => {
     console.error('Error connecting to MongoDB:', err);
     process.exit(1); // Arrêter l'application si la connexion échoue
   });
 
-<<<<<<< HEAD
 // Route pour récupérer tous les voyages
 app.get('/api/voyages', async (req, res) => {
   try {
-=======
-// Système de cache simple
-const cache = {
-  voyages: {
-    data: null,
-    timestamp: 0,
-    ttl: 5000 // 5 secondes de cache
-  }
-};
-
-// Route pour récupérer tous les voyages
-app.get('/api/voyages', async (req, res) => {
-  try {
-    const now = Date.now();
-    
-    // Vérifier si les données en cache sont encore valides
-    if (cache.voyages.data && (now - cache.voyages.timestamp) < cache.voyages.ttl) {
-      return res.json(cache.voyages.data);
-    }
-
-    // Récupérer les données depuis la base de données
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
     const voyages = await Voyage.find()
       .populate({
         path: 'activities',
         select: 'name description price image duration maxParticipants'
       })
-<<<<<<< HEAD
       .sort({ createdAt: -1 });
 
     console.log('Voyages récupérés (GET /api/voyages):', voyages.length);
@@ -420,44 +200,6 @@ app.get('/api/voyages', async (req, res) => {
   } catch (error) {
     console.error('Erreur lors de la récupération des voyages:', error);
     res.status(500).json({ error: error.message });
-=======
-      .sort({ createdAt: -1 })
-      .lean();
-
-    // Formater les URLs des images
-    const formattedVoyages = voyages.map(voyage => {
-      const formatImageUrl = (url) => {
-        if (!url) return null;
-        if (url.startsWith('http')) return url;
-        if (url.startsWith('/uploads/')) {
-          return `http://localhost:${PORT}${url}`;
-        }
-        return url;
-      };
-
-      return {
-        ...voyage,
-        image: formatImageUrl(voyage.image),
-        hebergementImage: formatImageUrl(voyage.hebergementImage),
-        activities: voyage.activities?.map(activity => ({
-          ...activity,
-          image: formatImageUrl(activity.image)
-        }))
-      };
-    });
-
-    // Mettre à jour le cache
-    cache.voyages.data = formattedVoyages;
-    cache.voyages.timestamp = now;
-
-    res.json(formattedVoyages);
-  } catch (error) {
-    console.error('Erreur lors de la récupération des voyages:', error);
-    res.status(500).json({ 
-      error: 'Erreur lors de la récupération des voyages',
-      message: error.message 
-    });
->>>>>>> 7aec9ec (Stockage des réactions dans la base de données)
   }
 });
 
@@ -943,4 +685,143 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur le port ${PORT}`);
+});
+
+app.post('/api/reactions-direct', verifyToken, async (req, res) => {
+  console.log('======= DÉBUT TRAITEMENT RÉACTION =======');
+  console.log('Info utilisateur complète:', JSON.stringify(req.user));
+  console.log('req.userId:', req.userId);
+  console.log('req.user?.userId:', req.user?.userId);
+  console.log('Body reçu:', req.body);
+  
+  try {
+    // Récupérer l'userId de plusieurs sources possibles pour maximiser les chances de succès
+    let userIdToUse;
+    const { userId: bodyUserId, voyageId, type } = req.body;
+    
+    // Sources potentielles d'userId, par ordre de priorité
+    if (req.user && req.user.userId) {
+      userIdToUse = req.user.userId;
+      console.log('UserId récupéré depuis req.user.userId:', userIdToUse);
+    } else if (req.userId) {
+      userIdToUse = req.userId;
+      console.log('UserId récupéré depuis req.userId:', userIdToUse);
+    } else if (req.user && req.user.id) {
+      userIdToUse = req.user.id;
+      console.log('UserId récupéré depuis req.user.id:', userIdToUse);
+    } else if (req.user && req.user._id) {
+      userIdToUse = req.user._id;
+      console.log('UserId récupéré depuis req.user._id:', userIdToUse);
+    } else if (bodyUserId) {
+      // MODIFICATION: Accepter l'userId du corps même si l'authentification a échoué
+      // Cela permet de traiter la réaction même en cas de problèmes d'authentification
+      userIdToUse = bodyUserId;
+      console.log('UserId récupéré depuis le corps de la requête (fallback):', userIdToUse);
+    } else {
+      console.error('ERREUR: Impossible de trouver un ID utilisateur valide');
+      return res.status(401).json({
+        message: 'Impossible d\'identifier votre compte. Veuillez vous reconnecter.',
+        error: 'NO_VALID_USER_ID'
+      });
+    }
+    
+    // Validation des données
+    if (!voyageId || !type || !['like', 'dislike'].includes(type)) {
+      console.error('ERREUR: Données invalides', { voyageId, type });
+      return res.status(400).json({ 
+        message: 'Données incomplètes ou invalides',
+        required: { voyageId: 'ID du voyage', type: 'like ou dislike' }
+      });
+    }
+    
+    // Vérifier que voyageId est un ObjectId valide
+    if (!mongoose.Types.ObjectId.isValid(voyageId)) {
+      console.error('ERREUR: ID de voyage invalide', voyageId);
+      return res.status(400).json({ message: 'ID de voyage invalide' });
+    }
+    
+    // Trouver le voyage avec gestion d'erreur
+    console.log('Recherche du voyage:', voyageId);
+    const voyage = await Voyage.findById(voyageId);
+    
+    if (!voyage) {
+      console.error('ERREUR: Voyage non trouvé', voyageId);
+      return res.status(404).json({ message: 'Voyage non trouvé' });
+    }
+    
+    console.log('Voyage trouvé:', voyage.title);
+    
+    // Initialiser l'objet reactions s'il n'existe pas
+    if (!voyage.reactions) {
+      voyage.reactions = {
+        likes: 0,
+        dislikes: 0,
+        userReactions: []
+      };
+    }
+    
+    // Vérifier si l'utilisateur a déjà réagi
+    console.log('Recherche de réaction pour userId:', userIdToUse);
+    
+    // Sécurité supplémentaire pour s'assurer que userIdToUse est une chaîne de caractères
+    const userIdString = userIdToUse.toString();
+    
+    const existingReactionIndex = voyage.reactions.userReactions.findIndex(
+      reaction => reaction.userId.toString() === userIdString
+    );
+    
+    console.log('Réaction existante trouvée:', existingReactionIndex !== -1);
+    
+    if (existingReactionIndex !== -1) {
+      const existingReaction = voyage.reactions.userReactions[existingReactionIndex];
+      console.log('Réaction précédente:', existingReaction);
+      
+      if (existingReaction.type === type) {
+        // Supprimer la réaction (toggle)
+        voyage.reactions[type + 's'] = Math.max(0, voyage.reactions[type + 's'] - 1);
+        voyage.reactions.userReactions.splice(existingReactionIndex, 1);
+        console.log(`Réaction ${type} supprimée pour l'utilisateur ${userIdToUse}`);
+      } else {
+        // Changer de type de réaction
+        voyage.reactions[existingReaction.type + 's'] = Math.max(0, voyage.reactions[existingReaction.type + 's'] - 1);
+        voyage.reactions[type + 's']++;
+        existingReaction.type = type;
+        console.log(`Réaction changée en ${type} pour l'utilisateur ${userIdToUse}`);
+      }
+    } else {
+      // Ajouter une nouvelle réaction
+      voyage.reactions[type + 's']++;
+      voyage.reactions.userReactions.push({ userId: userIdString, type });
+      console.log(`Nouvelle réaction ${type} ajoutée pour l'utilisateur ${userIdToUse}`);
+    }
+    
+    // Sauvegarder les changements
+    console.log('Sauvegarde des modifications...');
+    await voyage.save();
+    
+    // Réponse avec les statistiques à jour
+    const response = {
+      message: 'Réaction enregistrée avec succès',
+      voyage: {
+        id: voyage._id,
+        title: voyage.title,
+        reactions: {
+          likes: voyage.reactions.likes,
+          dislikes: voyage.reactions.dislikes
+        },
+        userReaction: { type }
+      }
+    };
+    
+    console.log('Réponse:', response);
+    console.log('======= FIN TRAITEMENT RÉACTION =======');
+    res.json(response);
+  } catch (error) {
+    console.error('ERREUR lors du traitement de la réaction:', error);
+    console.log('======= FIN TRAITEMENT RÉACTION (AVEC ERREUR) =======');
+    res.status(500).json({ 
+      message: 'Erreur lors du traitement de la réaction',
+      error: error.message
+    });
+  }
 });
