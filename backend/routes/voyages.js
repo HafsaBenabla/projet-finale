@@ -3,6 +3,7 @@ import { Voyage } from '../models/voyage.js';
 import { Comment } from '../models/comment.js';
 import { auth } from '../middleware/auth.js';
 import mongoose from 'mongoose';
+import { User } from '../models/user.js';
 
 const router = express.Router();
 
@@ -435,15 +436,49 @@ router.post('/:id/comments', auth, async (req, res) => {
             return res.status(401).json({ message: 'Utilisateur non authentifié' });
         }
 
+        // Afficher les informations disponibles pour le débogage
+        console.log('Informations utilisateur disponibles pour le commentaire:', {
+            userId: currentUser.userId,
+            username: currentUser.username,
+            email: currentUser.email,
+            role: currentUser.role,
+            fullObject: JSON.stringify(currentUser)
+        });
+
+        // Essayer de récupérer l'utilisateur complet depuis la base de données pour garantir les données les plus récentes
+        let userName = currentUser.username || 'Utilisateur';
+        try {
+            // Si nous avons l'identifiant de l'utilisateur, essayons de récupérer son profil complet
+            if (currentUser.userId) {
+                const userFromDb = await User.findById(currentUser.userId).select('username');
+                if (userFromDb && userFromDb.username) {
+                    userName = userFromDb.username;
+                    console.log('Nom d\'utilisateur récupéré depuis la base de données:', userName);
+                } else {
+                    console.log('Utilisateur non trouvé ou sans nom d\'utilisateur, utilisation de la valeur du token:', userName);
+                }
+            }
+        } catch (error) {
+            console.error('Erreur lors de la récupération du profil utilisateur:', error);
+            console.log('Continuation avec le nom d\'utilisateur du token:', userName);
+        }
+
         // Créer le commentaire
         const comment = new Comment({
             voyageId: id,
-            userId: userId || currentUser._id,
-            userName: currentUser.fullName || currentUser.nom || currentUser.username || 'Utilisateur',
+            userId: userId || currentUser.userId,
+            userName: userName, // Utiliser le nom d'utilisateur récupéré
             content
         });
 
         const savedComment = await comment.save();
+
+        console.log('Commentaire enregistré avec les informations:', {
+            voyageId: savedComment.voyageId,
+            userId: savedComment.userId,
+            userName: savedComment.userName,
+            content: savedComment.content.substring(0, 30) + (savedComment.content.length > 30 ? '...' : '')
+        });
 
         // Mettre à jour le compteur de commentaires dans le voyage
         // S'assurer que commentCount existe ou initialiser à 0

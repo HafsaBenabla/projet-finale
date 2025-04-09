@@ -20,6 +20,7 @@ import fs from 'fs';
 import commentRoutes, { syncCommentCount } from './routes/comments.js';
 import reactionsRoutes from './routes/reactions.js';
 import { verifyToken } from './middleware/auth.js';
+import adminRoutes from './routes/admin.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -57,6 +58,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/activities', activitiesRoutes);
 app.use('/api/reactions', reactionsRoutes);
 app.use('/api', commentRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Création du dossier uploads s'il n'existe pas
 const uploadDir = path.join(__dirname, 'uploads');
