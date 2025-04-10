@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import Logo from './Logo'
 import { FaBars, FaTimes, FaUser, FaSignOutAlt, FaUserCircle, FaCog } from 'react-icons/fa'
 import { useAuth } from '../context/AuthContext'
+// Suppression de l'import problématique
 
 const Navbar = () => {
   const navigate = useNavigate()
@@ -62,9 +62,25 @@ const Navbar = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
-      <div className="w-full max-w-[1400px] mx-auto py-4 px-4 sm:px-6 flex justify-between items-center">
-        <Link to="/" className="flex-shrink-0 flex items-center">
-          <Logo />
+      <div className="w-full max-w-[1400px] mx-auto py-2 px-4 sm:px-6 flex justify-between items-center">
+        <Link to="/" className="flex-shrink-0 flex items-center gap-2 -ml-2">
+          {/* Image du logo */}
+          <div className="logo-hover">
+            <img 
+              src="/logo.png" 
+              alt="MaghrebXplore Logo" 
+              className="w-24 h-24 object-contain"
+            />
+          </div>
+          
+          {/* Texte du logo */}
+          <div className="flex flex-col">
+            <h1 className="text-4xl font-bold">
+              <span className="text-gray-800">Maghreb</span>
+              <span className="text-orange-500">Xplore</span>
+            </h1>
+            <span className="text-base uppercase tracking-widest text-gray-500">Voyages & Découvertes</span>
+          </div>
         </Link>
         
         {/* Menu burger pour mobile */}

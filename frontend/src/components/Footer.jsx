@@ -1,6 +1,5 @@
 import React from 'react'
 import { FaFacebook, FaTwitter, FaInstagram, FaMapMarkerAlt, FaPhone, FaEnvelope, FaUniversity, FaLock } from 'react-icons/fa'
-import Logo from './Logo'
 
 function Footer() {
   return (
@@ -9,8 +8,24 @@ function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12">
           {/* À propos */}
           <div className="space-y-4 sm:space-y-6">
-            <div className="invert brightness-200 max-w-[150px] sm:max-w-[180px]">
-              <Logo />
+            <div className="flex items-center gap-3 invert brightness-200 max-w-[220px] sm:max-w-[250px]">
+              {/* Image du logo */}
+              <div>
+                <img 
+                  src="/logo.png" 
+                  alt="MaghrebXplore Logo" 
+                  className="w-16 h-16 object-contain"
+                />
+              </div>
+              
+              {/* Texte du logo */}
+              <div className="flex flex-col">
+                <h1 className="text-2xl font-bold">
+                  <span>Maghreb</span>
+                  <span className="text-sahara">Xplore</span>
+                </h1>
+                <span className="text-xs uppercase tracking-widest">Voyages & Découvertes</span>
+              </div>
             </div>
             <p className="text-sm sm:text-base text-gray-400">
               Découvrez le Maroc authentique avec nos expériences de voyage uniques. 

@@ -8,55 +8,6 @@ import HotelCard from "../components/HotelCard";
 import ActivityCard from "../components/ActivityCard";
 import AccommodationCard from "../components/AccommodationCard";
 
-// Kept as fallback if no voyages with accommodations are available
-const hotels = [
-  {
-    id: 1,
-    name: 'Sahara Palace Marrakech',
-    location: 'Marrakech',
-    price: 8900,
-    rating: 4.8,
-    image: 'https://i.pinimg.com/736x/4c/bf/1f/4cbf1f5b6e463f34bb9e71337a4a72b6.jpg',
-    type: 'Palace',
-    features: ['Spa', 'Piscine', 'Restaurant Gastronomique', 'Vue sur l\'Atlas'],
-    agencyPackage: {
-      id: '1',
-      name: 'Circuit des Villes Impériales',
-      duration: '8+ jours'
-    }
-  },
-  {
-    id: 2,
-    name: 'Riad Fès Heritage',
-    location: 'Fès',
-    price: 3500,
-    rating: 4.6,
-    image: 'https://i.pinimg.com/236x/2d/27/d1/2d27d13abdbe5c99863a189aa39e18b0.jpg',
-    type: 'Riad',
-    features: ['Terrasse Panoramique', 'Hammam', 'Architecture Traditionnelle'],
-    agencyPackage: {
-      id: '3',
-      name: 'Découverte de Fès',
-      duration: '2-3 jours'
-    }
-  },
-  {
-    id: 3,
-    name: 'Kasbah du Désert',
-    location: 'Merzouga',
-    price: 6500,
-    rating: 4.9,
-    image: 'https://i.pinimg.com/236x/94/c2/74/94c2746c843628602c37fed233b9a72a.jpg',
-    type: 'Kasbah',
-    features: ['Vue sur les Dunes', 'Piscine', 'Excursions en Dromadaire'],
-    agencyPackage: {
-      id: '2',
-      name: 'Escapade dans le Sahara',
-      duration: '4-7 jours'
-    }
-  }
-];
-
 const activities = [
   { 
     id: 'desert-tour',
@@ -223,43 +174,11 @@ const Home = () => {
                     />
                   ))}
                 </div>
-              ) : allVoyages.length > 0 ? (
-                // Si pas d'hébergements spécifiques, afficher les voyages normaux
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-                  {allVoyages.slice(0, 4).map((voyage) => (
-                    <HotelCard 
-                      key={voyage._id}
-                      name={voyage.title}
-                      location={voyage.destination}
-                      price={voyage.price}
-                      image={voyage.image}
-                      rating={4.5}
-                      type="Voyage"
-                      features={voyage.inclusions ? voyage.inclusions.slice(0, 3) : []}
-                      agencyPackage={{
-                        id: voyage._id,
-                        name: voyage.title,
-                        duration: `${voyage.duration} jour${voyage.duration > 1 ? 's' : ''}`
-                      }}
-                    />
-                  ))}
-                </div>
               ) : (
-                // Fallback aux données statiques
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-                  {hotels.map((hotel) => (
-                    <HotelCard 
-                      key={hotel.id}
-                      name={hotel.name}
-                      location={hotel.location}
-                      price={hotel.price}
-                      image={hotel.image}
-                      rating={hotel.rating}
-                      type={hotel.type}
-                      features={hotel.features}
-                      agencyPackage={hotel.agencyPackage}
-                    />
-                  ))}
+                // Message si aucun hébergement n'est disponible
+                <div className="text-center py-10 bg-gray-100 rounded-lg">
+                  <p className="text-gray-600">Aucun hébergement n'est disponible pour le moment.</p>
+                  <p className="text-gray-500 mt-2">Ajoutez des voyages avec des informations d'hébergement pour les voir apparaître ici.</p>
                 </div>
               )}
               

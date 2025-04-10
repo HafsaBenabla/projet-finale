@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaCalendarCheck, FaSearch, FaFilter, FaSyncAlt, FaTrash, FaArrowLeft, FaSpinner } from 'react-icons/fa';
+import { FaCalendarCheck, FaSearch, FaFilter, FaSyncAlt, FaTrash, FaArrowLeft, FaSpinner, FaCheckCircle, FaTimes } from 'react-icons/fa';
 import axios from 'axios';
+import { useVoyages } from '../context/VoyagesContext';
 
 const ReservationsManagement = () => {
   const navigate = useNavigate();
+  const { refreshVoyages } = useVoyages();
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -13,6 +15,7 @@ const ReservationsManagement = () => {
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortOption, setSortOption] = useState('recent');
   const [confirmCancel, setConfirmCancel] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
 
   useEffect(() => {
     // La vérification d'administrateur est désormais gérée par le composant AdminRoute
@@ -89,11 +92,20 @@ const ReservationsManagement = () => {
         )
       );
 
+      // Rafraîchir les données des voyages pour mettre à jour les places disponibles partout
+      refreshVoyages();
+
       setConfirmCancel(null);
-      alert('Réservation annulée avec succès');
+      // Afficher le message de succès
+      setSuccessMessage('Réservation annulée avec succès');
+      
+      // Faire disparaître automatiquement le message après 5 secondes
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
     } catch (error) {
       console.error('Erreur lors de l\'annulation de la réservation:', error);
-      alert(`Erreur: ${error.response?.data?.message || 'Une erreur est survenue'}`);
+      setError(`Erreur: ${error.response?.data?.message || 'Une erreur est survenue lors de l\'annulation'}`);
     } finally {
       setLoading(false);
     }
@@ -140,6 +152,32 @@ const ReservationsManagement = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="container mx-auto px-4">
+        {/* Success Message - Non modal notification */}
+        {successMessage && (
+          <div className="fixed top-20 left-0 right-0 mx-auto w-full max-w-md z-50 transform transition-all duration-300 ease-in-out">
+            <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 shadow-lg rounded">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <FaCheckCircle className="h-5 w-5 text-green-500" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium">{successMessage}</p>
+                </div>
+                <div className="ml-auto pl-3">
+                  <div className="-mx-1.5 -my-1.5">
+                    <button 
+                      onClick={() => setSuccessMessage(null)}
+                      className="inline-flex bg-green-100 rounded-md p-1.5 text-green-500 hover:bg-green-200 focus:outline-none"
+                    >
+                      <FaTimes className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header and Filters */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-6">
@@ -407,21 +445,26 @@ const ReservationsManagement = () => {
         {confirmCancel && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-auto">
-              <h3 className="text-xl font-bold mb-4">Confirmer l'annulation</h3>
+              <div className="flex items-center mb-4">
+                <FaTrash className="text-red-500 mr-3 text-xl" />
+                <h3 className="text-xl font-bold">Confirmer l'annulation</h3>
+              </div>
               <p className="mb-6 text-gray-600">
                 Êtes-vous sûr de vouloir annuler cette réservation ? Cette action est irréversible.
               </p>
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setConfirmCancel(null)}
-                  className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 flex items-center"
                 >
+                  <FaTimes className="mr-2" />
                   Annuler
                 </button>
                 <button
                   onClick={() => handleCancelReservation(confirmCancel)}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 flex items-center"
                 >
+                  <FaTrash className="mr-2" />
                   Confirmer l'annulation
                 </button>
               </div>
