@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { FaCalendarCheck, FaSearch, FaFilter, FaSyncAlt, FaTrash, FaArrowLeft, FaSpinner } from 'react-icons/fa';
 import axios from 'axios';
 
@@ -31,6 +31,14 @@ const ReservationsManagement = () => {
         throw new Error('Vous devez être connecté en tant qu\'administrateur');
       }
 
+      // Vérifier la longueur du token
+      if (token.length < 20) {
+        console.error('Token trop court pour être valide:', token.length);
+        throw new Error('Token invalide. Veuillez vous reconnecter.');
+      }
+
+      console.log('Tentative de récupération des réservations avec token:', token.substring(0, 10) + '...');
+
       const response = await axios.get('http://localhost:5000/api/reservations/admin/all', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -38,10 +46,18 @@ const ReservationsManagement = () => {
         }
       });
 
+      console.log('Réponse du serveur:', response.status);
       setReservations(response.data);
     } catch (error) {
-      console.error('Erreur lors du chargement des réservations:', error);
-      setError(error.response?.data?.message || 'Erreur lors du chargement des réservations');
+      console.error('Erreur détaillée lors du chargement des réservations:', error);
+      
+      // Si l'erreur est liée à l'authentification
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token'); // Supprimer le token invalide
+        setError('Token invalide ou expiré. Veuillez vous reconnecter.');
+      } else {
+        setError(error.response?.data?.message || error.message || 'Erreur lors du chargement des réservations');
+      }
     } finally {
       setLoading(false);
     }
@@ -238,16 +254,22 @@ const ReservationsManagement = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-6">
+          <div className="bg-red-100 text-red-700 p-6 rounded-lg mb-6">
             <p className="font-bold mb-2">Erreur de chargement:</p>
-            <p>{error}</p>
-            <div className="mt-3">
+            <p className="mb-4">{error}</p>
+            <div className="mt-3 flex space-x-4">
               <button 
                 onClick={fetchReservations}
-                className="bg-sahara text-white px-3 py-1 rounded text-sm hover:bg-sahara/90"
+                className="bg-sahara text-white px-4 py-2 rounded hover:bg-sahara/90"
               >
                 Réessayer
               </button>
+              
+              {error.includes('Token') && (
+                <Link to="/login" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                  Se reconnecter
+                </Link>
+              )}
             </div>
           </div>
         )}

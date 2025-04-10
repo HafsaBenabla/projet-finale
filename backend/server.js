@@ -5,6 +5,7 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import dotenv from 'dotenv';
 import { Activity } from './models/activity.js';
 import { Voyage } from './models/voyage.js';
 import { Agency } from './models/agency.js';
@@ -22,11 +23,14 @@ import reactionsRoutes from './routes/reactions.js';
 import { verifyToken } from './middleware/auth.js';
 import adminRoutes from './routes/admin.js';
 
+// Load environment variables
+dotenv.config();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 // Configuration CORS détaillée
 app.use(cors({

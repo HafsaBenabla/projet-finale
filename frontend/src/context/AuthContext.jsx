@@ -146,11 +146,39 @@ export const AuthProvider = ({ children }) => {
   
   // Fonction pour réinitialiser l'état d'authentification
   const resetAuthState = () => {
+    console.log('AuthProvider: Réinitialisation complète de l\'état d\'authentification');
+    
+    // Réinitialiser l'état React
     setUser(null);
     setToken(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    setAuthError(null);
+    
+    // Supprimer les données du localStorage
+    try {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      // Vérification que les données ont bien été supprimées
+      const tokenCheck = localStorage.getItem('token');
+      const userCheck = localStorage.getItem('user');
+      
+      if (tokenCheck || userCheck) {
+        console.warn('AuthProvider: Problème lors de la suppression des données d\'authentification du localStorage');
+        // Tentative alternative de suppression
+        window.localStorage.clear();
+      } else {
+        console.log('AuthProvider: Données d\'authentification supprimées avec succès du localStorage');
+      }
+    } catch (error) {
+      console.error('AuthProvider: Erreur lors de la réinitialisation du localStorage:', error);
+      // En cas d'erreur, tenter de vider complètement le localStorage
+      try {
+        window.localStorage.clear();
+      } catch (e) {
+        console.error('AuthProvider: Impossible de vider le localStorage:', e);
+      }
+    }
   };
 
   const login = (userData, newToken) => {
