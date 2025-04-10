@@ -3,6 +3,7 @@ import { auth, adminAuth } from '../middleware/auth.js';
 import { Reservation } from '../models/Reservation.js';
 import { Voyage } from '../models/voyage.js';
 import mongoose from 'mongoose';
+import { Activity } from '../models/Activity.js';
 
 const router = express.Router();
 
@@ -12,10 +13,20 @@ router.post('/', auth, async (req, res) => {
     console.log('=== Début de la création d\'une réservation ===');
     console.log('Requête reçue:', req.body);
     console.log('Headers de la requête:', req.headers);
+    console.log('Infos utilisateur du token:', {
+      userId: req.userId,
+      user: req.user
+    });
     
     const { type, voyageId, nombrePersonnes } = req.body;
     
     console.log('Données extraites:', { type, voyageId, nombrePersonnes });
+
+    // Vérifier que l'ID utilisateur est valide
+    if (!req.userId || !mongoose.Types.ObjectId.isValid(req.userId)) {
+      console.error('ID utilisateur invalide ou manquant:', req.userId);
+      return res.status(400).json({ message: 'ID utilisateur invalide. Veuillez vous reconnecter.' });
+    }
 
     if (type === 'voyage') {
       console.log('Recherche du voyage avec l\'ID:', voyageId);
@@ -43,14 +54,13 @@ router.post('/', auth, async (req, res) => {
 
     // Debugging de l'utilisateur reçu du token
     console.log('User dans le token:', req.user);
-    console.log('Type du userId:', typeof req.user.userId);
-    console.log('Valeur du userId:', req.user.userId);
+    console.log('UserId extrait du token:', req.userId);
     
     // Convertir l'ID utilisateur en ObjectId
-    console.log('Tentative de conversion du userId en ObjectId:', req.user.userId);
+    console.log('Tentative de conversion du userId en ObjectId:', req.userId);
     let userId;
     try {
-      userId = new mongoose.Types.ObjectId(req.user.userId);
+      userId = new mongoose.Types.ObjectId(req.userId);
       console.log('Conversion réussie:', userId);
     } catch (err) {
       console.error('Erreur lors de la conversion du userId en ObjectId:', err);
@@ -101,12 +111,22 @@ router.post('/', auth, async (req, res) => {
 // Obtenir toutes les réservations d'un utilisateur
 router.get('/user', auth, async (req, res) => {
   try {
-    const reservations = await Reservation.find({ user: req.user._id })
+    console.log('Recherche des réservations pour l\'utilisateur:', req.userId);
+    
+    if (!req.userId || !mongoose.Types.ObjectId.isValid(req.userId)) {
+      console.error('ID utilisateur invalide ou manquant:', req.userId);
+      return res.status(400).json({ message: 'ID utilisateur invalide. Veuillez vous reconnecter.' });
+    }
+
+    const reservations = await Reservation.find({ user: req.userId })
       .populate('voyage')
       .populate('activite')
       .sort({ dateReservation: -1 });
+      
+    console.log(`${reservations.length} réservations trouvées pour l'utilisateur:`, req.userId);
     res.json(reservations);
   } catch (error) {
+    console.error('Erreur lors de la récupération des réservations:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -116,12 +136,17 @@ router.patch('/:id/annuler', auth, async (req, res) => {
   try {
     console.log('Tentative de modification du statut d\'une réservation:', {
       reservationId: req.params.id,
-      userId: req.user.userId || req.user._id
+      userId: req.userId
     });
+
+    if (!req.userId || !mongoose.Types.ObjectId.isValid(req.userId)) {
+      console.error('ID utilisateur invalide ou manquant:', req.userId);
+      return res.status(400).json({ message: 'ID utilisateur invalide. Veuillez vous reconnecter.' });
+    }
 
     const reservation = await Reservation.findOne({
       _id: req.params.id,
-      user: req.user.userId || req.user._id
+      user: req.userId
     });
 
     if (!reservation) {
@@ -720,6 +745,127 @@ router.patch('/admin/:id/cancel', adminAuth, async (req, res) => {
       message: "Erreur lors de l'annulation de la réservation",
       details: error.message
     });
+  }
+});
+
+// Créer une réservation d'activité
+router.post('/activity', auth, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { activityId, timeSlotId, nombrePersonnes, clientInfo } = req.body;
+    console.log('=== Début de la création d\'une réservation d\'activité ===');
+    console.log('Données reçues:', { activityId, timeSlotId, nombrePersonnes, clientInfo });
+    console.log('Infos utilisateur du token:', {
+      userId: req.userId,
+      user: req.user
+    });
+
+    // Vérifier que l'ID utilisateur est valide
+    if (!req.userId || !mongoose.Types.ObjectId.isValid(req.userId)) {
+      console.error('ID utilisateur invalide ou manquant:', req.userId);
+      await session.abortTransaction();
+      return res.status(400).json({ message: 'ID utilisateur invalide. Veuillez vous reconnecter.' });
+    }
+
+    // Vérifier que l'activité existe
+    const activity = await Activity.findById(activityId);
+    if (!activity) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Activité non trouvée' });
+    }
+
+    // Vérifier que l'activité est de type 'locale'
+    if (activity.type !== 'locale') {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        message: 'Cette route est uniquement pour les activités locales',
+        type: activity.type
+      });
+    }
+
+    // Vérifier que le créneau horaire existe et a assez de places
+    const timeSlotIndex = activity.timeSlots.findIndex(
+      slot => slot._id.toString() === timeSlotId
+    );
+
+    if (timeSlotIndex === -1) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Créneau horaire non trouvé' });
+    }
+
+    const timeSlot = activity.timeSlots[timeSlotIndex];
+    
+    if (timeSlot.availableSpots < nombrePersonnes) {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        message: 'Pas assez de places disponibles',
+        availableSpots: timeSlot.availableSpots,
+        requestedSpots: nombrePersonnes
+      });
+    }
+
+    // Mettre à jour le nombre de places disponibles
+    activity.timeSlots[timeSlotIndex].availableSpots -= nombrePersonnes;
+    await activity.save({ session });
+
+    // Créer la réservation
+    const reservation = new Reservation({
+      user: req.userId,
+      type: 'activite',
+      activite: activityId,
+      timeSlotId: timeSlotId,
+      timeSlotInfo: {
+        date: timeSlot.date,
+        startTime: timeSlot.startTime,
+        endTime: timeSlot.endTime
+      },
+      nombrePersonnes: nombrePersonnes,
+      clientInfo: {
+        firstName: clientInfo?.firstName || req.user.firstName || '',
+        lastName: clientInfo?.lastName || req.user.lastName || '',
+        email: clientInfo?.email || req.user.email || '',
+        phone: clientInfo?.phone || req.user.phone || ''
+      },
+      statut: 'confirmé',
+      
+      // Ajouter une option pour contourner le middleware pre-save
+      _skipMiddleware: true
+    });
+
+    // Log pour débogage avant la sauvegarde
+    console.log('Tentative de création de la réservation avec user:', req.userId);
+    console.log('Détails utilisateur du token:', req.user);
+
+    // Utiliser save() avec une option pour indiquer qu'on a déjà mis à jour les places
+    await reservation.save({ session });
+    await session.commitTransaction();
+
+    // Envoyer un email de confirmation (simulation)
+    console.log(`Email de confirmation envoyé à ${clientInfo?.email || req.user.email}`);
+
+    console.log('Réservation créée avec succès:', {
+      id: reservation._id,
+      activite: reservation.activite,
+      type: activity.type,
+      nombrePersonnes: reservation.nombrePersonnes,
+      placesRestantes: activity.timeSlots[timeSlotIndex].availableSpots,
+      client: clientInfo
+    });
+
+    res.status(201).json({
+      message: 'Réservation effectuée avec succès',
+      reservation,
+      activityType: activity.type,
+      availableSpots: activity.timeSlots[timeSlotIndex].availableSpots
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    console.error('Erreur lors de la création de la réservation:', error);
+    res.status(500).json({ message: error.message });
+  } finally {
+    session.endSession();
   }
 });
 

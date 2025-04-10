@@ -1,6 +1,8 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
-import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaClock, FaCheck } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaClock, FaCheck, FaSpinner, FaUser, FaEnvelope, FaPhone } from 'react-icons/fa';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 // Données des activités (à remplacer par des données de l'API plus tard)
 const activitiesData = {
@@ -90,42 +92,341 @@ const activitiesData = {
 
 const ActivityDetail = () => {
   const { id } = useParams();
-  const activityData = activitiesData[id];
+  const navigate = useNavigate();
+  const { user, isAuthenticated, token } = useAuth();
+  const [activity, setActivity] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reservationSuccess, setReservationSuccess] = useState(false);
+  const [reservationError, setReservationError] = useState('');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState(null);
 
-  if (!activityData) {
+  // Informations du client pour le formulaire
+  const [clientInfo, setClientInfo] = useState({
+    firstName: user?.firstName || user?.name?.split(' ')[0] || '',
+    lastName: user?.lastName || (user?.name?.split(' ').length > 1 ? user.name.split(' ').slice(1).join(' ') : '') || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    numberOfPersons: 1
+  });
+
+  useEffect(() => {
+    const fetchActivity = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`http://localhost:5000/api/activities/${id}`);
+        setActivity(response.data);
+      } catch (err) {
+        console.error('Erreur lors du chargement de l\'activité:', err);
+        setError(err.message || 'Une erreur est survenue lors du chargement de l\'activité');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActivity();
+  }, [id]);
+
+  // Mettre à jour les informations client quand l'utilisateur est connecté
+  useEffect(() => {
+    if (user) {
+      console.log('Mise à jour des infos client avec utilisateur:', user);
+      setClientInfo(prev => ({
+        ...prev,
+        firstName: user.firstName || user.name?.split(' ')[0] || '',
+        lastName: user.lastName || (user.name?.split(' ').length > 1 ? user.name.split(' ').slice(1).join(' ') : '') || '',
+        email: user.email || '',
+        phone: user.phone || ''
+      }));
+    }
+  }, [user]);
+
+  const formatDuration = (duration) => {
+    return duration >= 24 
+      ? `${Math.floor(duration/24)} jours` 
+      : `${duration} heures`;
+  };
+
+  const handleClientInfoChange = (e) => {
+    const { name, value } = e.target;
+    setClientInfo(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleTimeSlotSelection = (slot) => {
+    setSelectedTimeSlot(slot);
+    // Réinitialiser le nombre de personnes à 1 lors du changement de créneau
+    setClientInfo(prev => ({
+      ...prev,
+      numberOfPersons: 1
+    }));
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', { 
+      weekday: 'long', 
+      day: 'numeric', 
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  const handleNumberOfPersonsChange = (change) => {
+    setClientInfo(prev => {
+      const newValue = Math.max(1, prev.numberOfPersons + change);
+      // Ne pas dépasser le nombre de places disponibles ou le maximum de participants
+      const max = activity.type === 'locale' 
+        ? Math.min(activity.maxParticipants, selectedTimeSlot?.availableSpots || 0)
+        : Math.min(activity.maxParticipants, activity.availableSpots || 0);
+      
+      return {
+        ...prev,
+        numberOfPersons: Math.min(newValue, max)
+      };
+    });
+  };
+
+  const handleReservationSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!isAuthenticated) {
+      setReservationError('Vous devez être connecté pour effectuer une réservation.');
+      return;
+    }
+
+    // Validation des champs
+    if (!clientInfo.firstName || !clientInfo.lastName || !clientInfo.email || !clientInfo.phone) {
+      setReservationError('Tous les champs sont obligatoires.');
+      return;
+    }
+
+    // Validation de l'email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(clientInfo.email)) {
+      setReservationError('Veuillez entrer une adresse email valide.');
+      return;
+    }
+
+    // Validation du téléphone (format international ou local marocain)
+    const phoneRegex = /^(\+\d{1,3}\s?)?\d{8,15}$/;
+    if (!phoneRegex.test(clientInfo.phone.replace(/\s+/g, ''))) {
+      setReservationError('Veuillez entrer un numéro de téléphone valide.');
+      return;
+    }
+
+    // Validation pour les activités locales
+    if (activity.type === 'locale' && !selectedTimeSlot) {
+      setReservationError('Veuillez sélectionner un créneau horaire.');
+      return;
+    }
+
+    // Validation de la date pour les activités de voyage
+    if (activity.type === 'voyage' && !selectedDate) {
+      setReservationError('Veuillez sélectionner une date de départ.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setReservationError('');
+
+    try {
+      // Utiliser le token du contexte d'authentification
+      // const token = localStorage.getItem('token');
+      
+      // Vérification du token
+      if (!token || token.trim() === '' || token.length < 20) {
+        console.error('Token invalide ou manquant:', token);
+        setReservationError('Problème d\'authentification. Veuillez vous reconnecter.');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // S'assurer que nous avons l'ID utilisateur (modification pour accepter différentes formes d'ID)
+      const userId = user?._id || user?.id || user?.userId;
+      if (!user || !userId) {
+        console.error('Problème d\'identification: user=', user);
+        setReservationError('Problème d\'identification de l\'utilisateur. Veuillez vous reconnecter.');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Différent endpoint selon le type d'activité
+      if (activity.type === 'locale') {
+        // Pour les activités locales, nous avons besoin d'un créneau horaire
+        if (!selectedTimeSlot) {
+          setReservationError('Veuillez sélectionner un créneau horaire.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Vérifier que le créneau a assez de places disponibles
+        if (selectedTimeSlot.availableSpots < clientInfo.numberOfPersons) {
+          setReservationError(`Il ne reste que ${selectedTimeSlot.availableSpots} places pour ce créneau.`);
+          setIsSubmitting(false);
+          return;
+        }
+
+        await axios.post(
+          'http://localhost:5000/api/reservations/activity',
+          {
+            activityId: activity._id, 
+            timeSlotId: selectedTimeSlot._id,
+            nombrePersonnes: clientInfo.numberOfPersons,
+            // Ne pas envoyer l'ID utilisateur ici, le middleware auth s'en chargera
+            clientInfo: {
+              firstName: clientInfo.firstName,
+              lastName: clientInfo.lastName,
+              email: clientInfo.email,
+              phone: clientInfo.phone
+            }
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+      } else if (activity.type === 'voyage') {
+        await axios.post(
+          'http://localhost:5000/api/reservations',
+          {
+            type: 'voyage',
+            voyageId: activity._id,
+            nombrePersonnes: clientInfo.numberOfPersons,
+            departureDate: selectedDate,
+            clientName: `${clientInfo.firstName} ${clientInfo.lastName}`,
+            email: clientInfo.email,
+            phone: clientInfo.phone
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+      }
+
+      // Mettre à jour le nombre de places disponibles
+      if (activity.type === 'locale') {
+        // Pour les activités locales, mettre à jour le créneau spécifique
+        const updatedTimeSlots = activity.timeSlots.map(slot => {
+          if (slot._id === selectedTimeSlot._id) {
+            return {
+              ...slot,
+              availableSpots: slot.availableSpots - clientInfo.numberOfPersons
+            };
+          }
+          return slot;
+        });
+        
+        // Mettre à jour l'activité et le créneau sélectionné
+        setActivity(prev => ({
+          ...prev,
+          timeSlots: updatedTimeSlots
+        }));
+        
+        // Mettre à jour le créneau sélectionné
+        const updatedSlot = updatedTimeSlots.find(slot => slot._id === selectedTimeSlot._id);
+        if (updatedSlot) {
+          setSelectedTimeSlot(updatedSlot);
+        }
+      } else if (activity.type === 'voyage') {
+        // Pour les activités de voyage, mettre à jour les places disponibles
+        setActivity(prev => ({
+          ...prev,
+          availableSpots: prev.availableSpots - clientInfo.numberOfPersons
+        }));
+      }
+
+      // Afficher le message de succès
+      setReservationSuccess(true);
+      // Réinitialiser le formulaire
+      setClientInfo({
+        firstName: user?.firstName || '',
+        lastName: user?.lastName || '',
+        email: user?.email || '',
+        phone: user?.phone || '',
+        numberOfPersons: 1
+      });
+      setSelectedDate('');
+      setSelectedTimeSlot(null); // Réinitialiser le créneau sélectionné
+      
+    } catch (err) {
+      console.error('Erreur lors de la réservation:', err);
+      setReservationError(err.response?.data?.message || 'Erreur lors de la réservation. Veuillez réessayer.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen pt-16 flex items-center justify-center">
+        <FaSpinner className="animate-spin text-sahara text-4xl mr-3" />
+        <span className="text-xl">Chargement de l'activité...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen pt-16 flex items-center justify-center">
+        <div className="text-xl text-red-600">{error}</div>
+      </div>
+    );
+  }
+
+  if (!activity) {
+    return (
+      <div className="min-h-screen pt-16 flex items-center justify-center">
         <p className="text-2xl text-gray-600">Activité non trouvée</p>
       </div>
     );
   }
+
+  // Vérifier s'il reste des places disponibles
+  const hasAvailableSlots = activity.type === 'locale' 
+    ? activity.timeSlots && activity.timeSlots.some(slot => slot.availableSpots > 0)
+    : activity.availableSpots > 0;
 
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
       {/* Hero Section */}
       <div className="relative h-[60vh]">
         <img 
-          src={activityData.image}
-          alt={activityData.name}
+          src={activity.image}
+          alt={activity.name}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-black/50 flex items-center">
           <div className="container mx-auto px-4">
             <div className="text-white max-w-3xl">
-              <h1 className="text-5xl font-bold mb-4">{activityData.name}</h1>
-              <div className="flex items-center gap-6 text-lg">
+              <h1 className="text-5xl font-bold mb-4">{activity.name}</h1>
+              <div className="flex flex-wrap items-center gap-6 text-lg">
                 <span className="flex items-center gap-2">
                   <FaClock />
-                  {activityData.duration}
+                  {formatDuration(activity.duration)}
                 </span>
                 <span className="flex items-center gap-2">
                   <FaUsers />
-                  Max {activityData.maxParticipants} personnes
+                  Max {activity.maxParticipants} personnes
                 </span>
                 <span className="flex items-center gap-2">
                   <FaMoneyBillWave />
-                  {activityData.price} DH
+                  {activity.price.toLocaleString()} DH
                 </span>
+                {activity.category && (
+                  <span className="flex items-center gap-2 bg-sahara/20 px-3 py-1 rounded-full text-white">
+                    {activity.category}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -139,60 +440,387 @@ const ActivityDetail = () => {
             {/* Description */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-semibold mb-4">Description</h2>
-              <p className="text-gray-600">{activityData.description}</p>
+              <p className="text-gray-600">{activity.description}</p>
             </div>
 
-            {/* Packages associés */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-semibold mb-6">Packages incluant cette activité</h2>
-              <div className="space-y-4">
-                {activityData.relatedPackages.map((pkg) => (
-                  <div key={pkg.id} className="border rounded-lg p-4 hover:border-sahara transition-colors">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-lg text-gray-900">{pkg.name}</h3>
-                        <p className="text-gray-600">Par {pkg.agencyName}</p>
+            {/* Créneaux horaires pour activités locales */}
+            {activity.type === 'locale' && activity.timeSlots && activity.timeSlots.length > 0 && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h2 className="text-2xl font-semibold mb-6">Créneaux disponibles</h2>
+                <div className="space-y-4">
+                  {activity.timeSlots.map((slot, index) => {
+                    const slotDate = new Date(slot.date);
+                    const isAvailable = slot.availableSpots > 0;
+                    const isSelected = selectedTimeSlot && selectedTimeSlot._id === slot._id;
+                    
+                    return (
+                      <div 
+                        key={index} 
+                        className={`border rounded-lg p-4 ${
+                          isSelected 
+                            ? 'border-sahara bg-sahara/10' 
+                            : isAvailable 
+                              ? 'hover:border-sahara transition-colors cursor-pointer' 
+                              : 'opacity-50 bg-gray-50'
+                        }`}
+                        onClick={() => isAvailable && handleTimeSlotSelection(slot)}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-semibold text-lg text-gray-900">
+                              {slotDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                            </h3>
+                            <p className="text-gray-600">{slot.startTime} - {slot.endTime}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`font-semibold ${isAvailable ? 'text-sahara' : 'text-gray-400'}`}>
+                              {activity.price.toLocaleString()} DH
+                            </p>
+                            <p className={`text-sm ${
+                              isAvailable
+                                ? slot.availableSpots < 5 ? 'text-orange-600' : 'text-gray-600'
+                                : 'text-gray-400'
+                            }`}>
+                              {isAvailable 
+                                ? `${slot.availableSpots} places restantes` 
+                                : 'Complet'
+                              }
+                            </p>
+                            {isSelected && (
+                              <span className="inline-block mt-2 bg-sahara text-white text-xs px-2 py-1 rounded-full">
+                                Sélectionné
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-sahara">{pkg.price} DH</p>
-                        <p className="text-gray-600">{pkg.duration}</p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => window.location.href = `/packages/${pkg.id}`}
-                      className="mt-4 w-full bg-sahara/10 text-sahara py-2 rounded-lg font-semibold hover:bg-sahara/20 transition-colors"
-                    >
-                      Voir le package complet
-                    </button>
-                  </div>
-                ))}
+                    );
+                  })}
+                </div>
               </div>
+            )}
+            
+            {/* Infos supplémentaires pour les activités de voyage */}
+            {activity.type === 'voyage' && (
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h2 className="text-2xl font-semibold mb-4">Informations sur le voyage</h2>
+                <div className="space-y-4">
+                  <div className="flex justify-between pb-3 border-b border-gray-200">
+                    <span className="text-gray-600">Destination:</span>
+                    <span className="font-medium">{activity.city}</span>
+                  </div>
+                  <div className="flex justify-between pb-3 border-b border-gray-200">
+                    <span className="text-gray-600">Durée:</span>
+                    <span className="font-medium">{formatDuration(activity.duration)}</span>
+                  </div>
+                  <div className="flex justify-between pb-3 border-b border-gray-200">
+                    <span className="text-gray-600">Places disponibles:</span>
+                    <span className={`font-medium ${activity.availableSpots < 5 ? 'text-orange-600' : ''}`}>
+                      {activity.availableSpots} / {activity.maxParticipants}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Formulaire de réservation intégré dans la page */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-semibold mb-6">Réserver cette activité</h2>
+              
+              {reservationSuccess ? (
+                <div className="bg-green-50 text-green-700 p-6 rounded-lg text-center">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Réservation confirmée !</h3>
+                  <p className="mb-1">Votre réservation pour {activity.name} a été effectuée avec succès.</p>
+                  <p>Un email de confirmation a été envoyé à {clientInfo.email}.</p>
+                  <button 
+                    onClick={() => setReservationSuccess(false)}
+                    className="mt-4 px-4 py-2 bg-sahara text-white rounded-full hover:bg-sahara/90 transition-colors"
+                  >
+                    Faire une autre réservation
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleReservationSubmit}>
+                  {reservationError && (
+                    <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6">
+                      {reservationError}
+                    </div>
+                  )}
+
+                  {!hasAvailableSlots ? (
+                    <div className="bg-orange-50 text-orange-700 p-4 rounded-lg mb-6">
+                      {activity.type === 'locale' 
+                        ? "Aucun créneau disponible pour cette activité." 
+                        : "Cette activité est complète."}
+                    </div>
+                  ) : (
+                    <>
+                      {/* Affichage du créneau sélectionné pour les activités locales */}
+                      {activity.type === 'locale' && (
+                        <div className="mb-6">
+                          <label className="block text-gray-700 font-medium mb-2">
+                            <div className="flex items-center gap-2">
+                              <FaCalendarAlt className="text-sahara" />
+                              Date et heure de l'activité
+                            </div>
+                          </label>
+                          
+                          {selectedTimeSlot ? (
+                            <div className="bg-sahara/10 p-4 rounded-lg">
+                              <div className="flex flex-col">
+                                <div className="mb-2">
+                                  <span className="font-medium">Date : </span>
+                                  <span>{formatDate(selectedTimeSlot.date)}</span>
+                                </div>
+                                <div>
+                                  <span className="font-medium">Horaire : </span>
+                                  <span>{selectedTimeSlot.startTime} - {selectedTimeSlot.endTime}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="border border-orange-300 bg-orange-50 text-orange-700 p-4 rounded-lg">
+                              Veuillez sélectionner un créneau horaire parmi les créneaux disponibles.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Date de départ pour les activités de voyage */}
+                      {activity.type === 'voyage' && (
+                        <div className="mb-6">
+                          <label className="block text-gray-700 font-medium mb-2">
+                            <div className="flex items-center gap-2">
+                              <FaCalendarAlt className="text-sahara" />
+                              Date de départ
+                            </div>
+                          </label>
+                          <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sahara"
+                            required
+                            min={new Date().toISOString().split('T')[0]}
+                          />
+                        </div>
+                      )}
+
+                      {/* Nombre de personnes */}
+                      <div className="mb-6">
+                        <label className="block text-gray-700 font-medium mb-2">
+                          <div className="flex items-center gap-2">
+                            <FaUsers className="text-sahara" />
+                            Nombre de personnes
+                          </div>
+                        </label>
+                        
+                        <div className="flex items-center">
+                          <button 
+                            type="button"
+                            className="px-4 py-2 border border-gray-300 rounded-l-lg text-xl"
+                            onClick={() => handleNumberOfPersonsChange(-1)}
+                          >
+                            -
+                          </button>
+                          <div className="px-6 py-2 border-t border-b border-gray-300 text-center min-w-[60px]">
+                            {clientInfo.numberOfPersons}
+                          </div>
+                          <button 
+                            type="button"
+                            className="px-4 py-2 border border-gray-300 rounded-r-lg text-xl"
+                            onClick={() => handleNumberOfPersonsChange(1)}
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <div className="mt-2 text-sm text-gray-600">
+                          {activity.type === 'locale' 
+                            ? selectedTimeSlot
+                              ? `Places disponibles: ${selectedTimeSlot.availableSpots}`
+                              : "Veuillez sélectionner un créneau horaire"
+                            : `Places disponibles: ${activity.availableSpots || 0}`}
+                        </div>
+                        
+                        {/* Affichage des places restantes après réservation */}
+                        {(activity.type === 'locale' && selectedTimeSlot && clientInfo.numberOfPersons > 0) && (
+                          <div className="mt-1 text-sm font-medium">
+                            Places restantes après réservation: 
+                            <span className={`ml-1 ${selectedTimeSlot.availableSpots - clientInfo.numberOfPersons < 3 ? 'text-orange-600' : 'text-green-600'}`}>
+                              {selectedTimeSlot.availableSpots - clientInfo.numberOfPersons}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {(activity.type === 'voyage' && activity.availableSpots && clientInfo.numberOfPersons > 0) && (
+                          <div className="mt-1 text-sm font-medium">
+                            Places restantes après réservation:
+                            <span className={`ml-1 ${activity.availableSpots - clientInfo.numberOfPersons < 3 ? 'text-orange-600' : 'text-green-600'}`}>
+                              {activity.availableSpots - clientInfo.numberOfPersons}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Champs pour les informations personnelles */}
+                      <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <div className="flex items-center gap-1">
+                              <FaUser className="text-sahara text-xs" />
+                              Prénom*
+                            </div>
+                          </label>
+                          <input
+                            type="text"
+                            name="firstName"
+                            value={clientInfo.firstName}
+                            onChange={handleClientInfoChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sahara"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <div className="flex items-center gap-1">
+                              <FaUser className="text-sahara text-xs" />
+                              Nom*
+                            </div>
+                          </label>
+                          <input
+                            type="text"
+                            name="lastName"
+                            value={clientInfo.lastName}
+                            onChange={handleClientInfoChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sahara"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <div className="flex items-center gap-1">
+                            <FaEnvelope className="text-sahara text-xs" />
+                            Email*
+                          </div>
+                        </label>
+                        <input
+                          type="email"
+                          name="email"
+                          value={clientInfo.email}
+                          onChange={handleClientInfoChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sahara"
+                          required
+                        />
+                      </div>
+
+                      <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <div className="flex items-center gap-1">
+                            <FaPhone className="text-sahara text-xs" />
+                            Téléphone*
+                          </div>
+                        </label>
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={clientInfo.phone}
+                          onChange={handleClientInfoChange}
+                          placeholder="+212 XXXXXXXXX"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sahara"
+                          required
+                        />
+                      </div>
+
+                      {/* Prix total */}
+                      <div className="bg-sahara/10 rounded-lg p-4 mb-6">
+                        <div className="flex justify-between items-center text-lg font-semibold">
+                          <span>Prix total</span>
+                          <span className="text-sahara">{activity.price * clientInfo.numberOfPersons} DH</span>
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          {activity.price} DH x {clientInfo.numberOfPersons} {clientInfo.numberOfPersons > 1 ? 'personnes' : 'personne'}
+                        </div>
+                      </div>
+
+                      <button 
+                        type="submit"
+                        disabled={isSubmitting || !isAuthenticated || !hasAvailableSlots || (activity.type === 'locale' && !selectedTimeSlot)}
+                        className={`w-full py-3 rounded-xl font-semibold transition-colors ${
+                          isSubmitting || !isAuthenticated || !hasAvailableSlots || (activity.type === 'locale' && !selectedTimeSlot)
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-sahara text-white hover:bg-sahara/90'
+                        }`}
+                      >
+                        {isSubmitting ? 'Réservation en cours...' : 'Confirmer la réservation'}
+                      </button>
+                      
+                      {!isAuthenticated && (
+                        <p className="text-sm text-center mt-4 text-red-600">
+                          Vous devez être connecté pour effectuer une réservation.
+                        </p>
+                      )}
+                      
+                      {activity.type === 'locale' && !selectedTimeSlot && hasAvailableSlots && isAuthenticated && (
+                        <p className="text-sm text-center mt-4 text-orange-600">
+                          Veuillez sélectionner un créneau horaire pour continuer.
+                        </p>
+                      )}
+                    </>
+                  )}
+                </form>
+              )}
             </div>
           </div>
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
-              <h2 className="text-2xl font-semibold mb-6">Ce qui est inclus</h2>
-              <div className="space-y-3">
-                {activityData.included.map((item, index) => (
-                  <div key={index} className="flex items-center gap-3 text-gray-600">
+              <h2 className="text-2xl font-semibold mb-6">Informations</h2>
+              
+              <div className="space-y-4 mb-8">
+                <div className="flex items-center gap-3 text-gray-600">
+                  <FaUsers className="text-sahara flex-shrink-0" />
+                  <span>Groupe de {activity.maxParticipants} personnes maximum</span>
+                </div>
+                <div className="flex items-center gap-3 text-gray-600">
+                  <FaClock className="text-sahara flex-shrink-0" />
+                  <span>Durée: {formatDuration(activity.duration)}</span>
+                </div>
+                {activity.city && (
+                  <div className="flex items-center gap-3 text-gray-600">
                     <FaCheck className="text-sahara flex-shrink-0" />
-                    <span>{item}</span>
+                    <span>Lieu: {activity.city}</span>
                   </div>
-                ))}
+                )}
+                {activity.category && (
+                  <div className="flex items-center gap-3 text-gray-600">
+                    <FaCheck className="text-sahara flex-shrink-0" />
+                    <span>Catégorie: {activity.category}</span>
+                  </div>
+                )}
               </div>
 
               <div className="mt-8">
                 <div className="bg-sahara/10 rounded-lg p-4 mb-6">
                   <div className="flex justify-between items-center text-lg font-semibold">
                     <span>Prix par personne</span>
-                    <span className="text-sahara">{activityData.price} DH</span>
+                    <span className="text-sahara">{activity.price.toLocaleString()} DH</span>
                   </div>
                 </div>
 
-                <button className="w-full bg-sahara text-white py-3 rounded-xl font-semibold hover:bg-sahara/90 transition-colors">
-                  Réserver maintenant
+                <button 
+                  onClick={() => navigate(activity.type === 'locale' ? '/activites-locales' : '/activites-voyages')}
+                  className="w-full py-3 bg-transparent border border-sahara text-sahara rounded-xl font-semibold hover:bg-sahara/10 transition-colors"
+                >
+                  Retour aux activités
                 </button>
               </div>
             </div>

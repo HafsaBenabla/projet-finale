@@ -86,4 +86,5 @@ const activitySchema = new mongoose.Schema({
   }
 });
 
-export const Activity = mongoose.model('Activity', activitySchema);
+// Vérifier si le modèle existe déjà pour éviter l'erreur OverwriteModelError
+export const Activity = mongoose.models.Activity || mongoose.model('Activity', activitySchema);

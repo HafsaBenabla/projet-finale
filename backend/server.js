@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import dotenv from 'dotenv';
-import { Activity } from './models/activity.js';
+import { Activity } from './models/Activity.js';
 import { Voyage } from './models/voyage.js';
 import { Agency } from './models/agency.js';
 import { Reservation } from './models/reservation.js';

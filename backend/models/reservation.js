@@ -20,7 +20,7 @@ const reservationSchema = new mongoose.Schema({
   },
   activite: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Activite',
+    ref: 'Activity',
     required: function() {
       return this.type === 'activite';
     }
@@ -36,6 +36,12 @@ const reservationSchema = new mongoose.Schema({
     date: { type: Date },
     startTime: { type: String },
     endTime: { type: String }
+  },
+  clientInfo: {
+    firstName: { type: String },
+    lastName: { type: String },
+    email: { type: String },
+    phone: { type: String }
   },
   nombrePersonnes: {
     type: Number,
@@ -59,6 +65,12 @@ const reservationSchema = new mongoose.Schema({
   dateModification: {
     type: Date,
     default: null
+  },
+  // Option pour contourner le middleware pre-save (non stockée en DB)
+  _skipMiddleware: {
+    type: Boolean,
+    default: false,
+    select: false
   }
 }, {
   timestamps: true
@@ -66,6 +78,12 @@ const reservationSchema = new mongoose.Schema({
 
 // Middleware pour mettre à jour les places disponibles lors de la création d'une réservation
 reservationSchema.pre('save', async function(next) {
+  // Si on a explicitement demandé à contourner le middleware, on passe directement au suivant
+  if (this._skipMiddleware) {
+    console.log('Middleware pre-save contourné pour la réservation:', this._id);
+    return next();
+  }
+  
   if (this.isNew && this.statut === 'confirmé') {
     if (this.type === 'voyage') {
       // Mise à jour des places pour un voyage
