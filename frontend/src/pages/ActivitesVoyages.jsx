@@ -182,19 +182,24 @@ const Activites = () => {
               <div className="p-6">
                 <h3 className="text-xl font-semibold text-gray-900">{activity.name}</h3>
                 <p className="mt-2 text-gray-600 line-clamp-2">{activity.description}</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="flex items-center gap-1 px-3 py-1 bg-sahara/10 text-sahara rounded-full text-sm">
+                <div className="mt-4 flex flex-nowrap space-x-2 items-center">
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-sahara/10 text-sahara rounded-full text-sm whitespace-nowrap">
                     <FaClock className="text-sahara" />
                     {formatDuration(activity.duration)}
                   </span>
-                  <span className="flex items-center gap-1 px-3 py-1 bg-sahara/10 text-sahara rounded-full text-sm">
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-sahara/10 text-sahara rounded-full text-sm whitespace-nowrap">
                     <FaUsers className="text-sahara" />
-                    Max {activity.maxParticipants} pers.
+                    Max {activity.maxParticipants}
                   </span>
-                  <span className="flex items-center gap-1 px-3 py-1 bg-sahara/10 text-sahara rounded-full text-sm">
+                  <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-sahara/10 text-sahara rounded-full text-sm whitespace-nowrap">
                     <FaMapMarkerAlt className="text-sahara" />
                     {activity.city}
                   </span>
+                  {activity.category && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-sahara/10 text-sahara rounded-full text-sm whitespace-nowrap">
+                      {activity.category}
+                    </span>
+                  )}
                 </div>
                 <div className="mt-4 flex items-center justify-between">
                   <span className="text-sahara font-semibold">{formatPrice(activity.price)}</span>

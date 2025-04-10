@@ -25,6 +25,18 @@ const reservationSchema = new mongoose.Schema({
       return this.type === 'activite';
     }
   },
+  timeSlotId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: function() {
+      // Requis uniquement pour les activités qui ont des créneaux
+      return this.type === 'activite';
+    }
+  },
+  timeSlotInfo: {
+    date: { type: Date },
+    startTime: { type: String },
+    endTime: { type: String }
+  },
   nombrePersonnes: {
     type: Number,
     required: true,
@@ -54,14 +66,37 @@ const reservationSchema = new mongoose.Schema({
 
 // Middleware pour mettre à jour les places disponibles lors de la création d'une réservation
 reservationSchema.pre('save', async function(next) {
-  if (this.isNew && this.type === 'voyage' && this.statut === 'confirmé') {
-    const voyage = await mongoose.model('Voyage').findById(this.voyage);
-    if (voyage) {
-      if (voyage.availableSpots < this.nombrePersonnes) {
-        throw new Error('Pas assez de places disponibles');
+  if (this.isNew && this.statut === 'confirmé') {
+    if (this.type === 'voyage') {
+      // Mise à jour des places pour un voyage
+      const voyage = await mongoose.model('Voyage').findById(this.voyage);
+      if (voyage) {
+        if (voyage.availableSpots < this.nombrePersonnes) {
+          throw new Error('Pas assez de places disponibles');
+        }
+        voyage.availableSpots -= this.nombrePersonnes;
+        await voyage.save();
       }
-      voyage.availableSpots -= this.nombrePersonnes;
-      await voyage.save();
+    } else if (this.type === 'activite') {
+      // Mise à jour des places pour une activité avec créneau horaire
+      const activity = await mongoose.model('Activity').findById(this.activite);
+      if (activity && activity.timeSlots && activity.timeSlots.length > 0) {
+        // Trouver le créneau correspondant
+        const timeSlotIndex = activity.timeSlots.findIndex(
+          slot => slot._id.toString() === this.timeSlotId.toString()
+        );
+        
+        if (timeSlotIndex !== -1) {
+          // Vérifier les places disponibles
+          if (activity.timeSlots[timeSlotIndex].availableSpots < this.nombrePersonnes) {
+            throw new Error('Pas assez de places disponibles pour ce créneau');
+          }
+          
+          // Mettre à jour les places disponibles
+          activity.timeSlots[timeSlotIndex].availableSpots -= this.nombrePersonnes;
+          await activity.save();
+        }
+      }
     }
   }
   next();
@@ -72,11 +107,29 @@ reservationSchema.pre('findOneAndUpdate', async function(next) {
   const update = this.getUpdate();
   if (update.statut === 'annulé') {
     const reservation = await this.model.findOne(this.getQuery());
-    if (reservation && reservation.type === 'voyage' && reservation.statut !== 'annulé') {
-      const voyage = await mongoose.model('Voyage').findById(reservation.voyage);
-      if (voyage) {
-        voyage.availableSpots += reservation.nombrePersonnes;
-        await voyage.save();
+    if (reservation && reservation.statut !== 'annulé') {
+      if (reservation.type === 'voyage') {
+        // Restaurer les places pour un voyage
+        const voyage = await mongoose.model('Voyage').findById(reservation.voyage);
+        if (voyage) {
+          voyage.availableSpots += reservation.nombrePersonnes;
+          await voyage.save();
+        }
+      } else if (reservation.type === 'activite' && reservation.timeSlotId) {
+        // Restaurer les places pour une activité avec créneau horaire
+        const activity = await mongoose.model('Activity').findById(reservation.activite);
+        if (activity && activity.timeSlots && activity.timeSlots.length > 0) {
+          // Trouver le créneau correspondant
+          const timeSlotIndex = activity.timeSlots.findIndex(
+            slot => slot._id.toString() === reservation.timeSlotId.toString()
+          );
+          
+          if (timeSlotIndex !== -1) {
+            // Mettre à jour les places disponibles
+            activity.timeSlots[timeSlotIndex].availableSpots += reservation.nombrePersonnes;
+            await activity.save();
+          }
+        }
       }
     }
   }

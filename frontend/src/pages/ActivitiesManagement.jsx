@@ -27,9 +27,100 @@ const ActivitiesManagement = () => {
     duration: '',
     maxParticipants: '',
     isWeekendOnly: false,
-    category: ''
+    category: '',
+    timeSlots: []
   });
   
+  // Pour gérer les créneaux horaires temporaires avant de les ajouter
+  const [tempTimeSlot, setTempTimeSlot] = useState({
+    date: '',
+    startTime: '',
+    endTime: '',
+    availableSpots: ''
+  });
+
+  // Pour générer automatiquement les dates du week-end
+  const getUpcomingWeekendDates = () => {
+    const today = new Date();
+    const dates = [];
+    
+    // Trouver le prochain samedi
+    let nextSaturday = new Date(today);
+    nextSaturday.setDate(today.getDate() + (6 - today.getDay()) % 7);
+    
+    // Trouver le prochain dimanche
+    let nextSunday = new Date(today);
+    nextSunday.setDate(today.getDate() + (7 - today.getDay()) % 7);
+    
+    // Si aujourd'hui est dimanche, passer au week-end suivant
+    if (today.getDay() === 0) {
+      nextSaturday.setDate(nextSaturday.getDate() + 7);
+      nextSunday.setDate(nextSunday.getDate() + 7);
+    }
+    
+    // Formater les dates
+    const formatDate = (date) => {
+      return date.toISOString().split('T')[0];
+    };
+    
+    dates.push({ value: formatDate(nextSaturday), label: `Samedi ${nextSaturday.getDate()}/${nextSaturday.getMonth() + 1}` });
+    dates.push({ value: formatDate(nextSunday), label: `Dimanche ${nextSunday.getDate()}/${nextSunday.getMonth() + 1}` });
+    
+    // Ajouter les dates du week-end suivant
+    let nextWeekSaturday = new Date(nextSaturday);
+    nextWeekSaturday.setDate(nextWeekSaturday.getDate() + 7);
+    
+    let nextWeekSunday = new Date(nextSunday);
+    nextWeekSunday.setDate(nextWeekSunday.getDate() + 7);
+    
+    dates.push({ value: formatDate(nextWeekSaturday), label: `Samedi ${nextWeekSaturday.getDate()}/${nextWeekSaturday.getMonth() + 1}` });
+    dates.push({ value: formatDate(nextWeekSunday), label: `Dimanche ${nextWeekSunday.getDate()}/${nextWeekSunday.getMonth() + 1}` });
+    
+    return dates;
+  };
+  
+  const weekendDates = getUpcomingWeekendDates();
+  
+  // Pour ajouter un créneau horaire temporaire à la liste
+  const addTimeSlot = () => {
+    if (!tempTimeSlot.date || !tempTimeSlot.startTime || !tempTimeSlot.endTime || !tempTimeSlot.availableSpots) {
+      alert('Veuillez remplir tous les champs du créneau horaire');
+      return;
+    }
+    
+    setActivityData({
+      ...activityData,
+      timeSlots: [...activityData.timeSlots, { ...tempTimeSlot }]
+    });
+    
+    // Réinitialiser le formulaire temporaire
+    setTempTimeSlot({
+      date: '',
+      startTime: '',
+      endTime: '',
+      availableSpots: ''
+    });
+  };
+  
+  // Pour supprimer un créneau horaire
+  const removeTimeSlot = (index) => {
+    const updatedTimeSlots = [...activityData.timeSlots];
+    updatedTimeSlots.splice(index, 1);
+    setActivityData({
+      ...activityData,
+      timeSlots: updatedTimeSlots
+    });
+  };
+  
+  // Gestionnaire pour les changements dans le formulaire temporaire de créneau
+  const handleTimeSlotChange = (e) => {
+    const { name, value } = e.target;
+    setTempTimeSlot({
+      ...tempTimeSlot,
+      [name]: value
+    });
+  };
+
   // Liste des villes disponibles
   const availableCities = [
     "Agadir", "Al Hoceima", "Asilah", "Azrou", "Béni Mellal", "Casablanca",
@@ -131,7 +222,8 @@ const ActivitiesManagement = () => {
           duration: '',
           maxParticipants: '',
           isWeekendOnly: false,
-          category: ''
+          category: '',
+          timeSlots: []
         });
         
         // Fermer le formulaire et rafraîchir la liste
@@ -317,6 +409,8 @@ const ActivitiesManagement = () => {
                       <option value="aventure">Aventure</option>
                       <option value="gastronomie">Gastronomie</option>
                       <option value="bien-etre">Bien-être</option>
+                      <option value="sport-sensations">Sport & Sensations</option>
+                      <option value="nature-aventure">Nature & Aventure</option>
                     </Form.Select>
                   </Form.Group>
                 </Col>
@@ -332,6 +426,116 @@ const ActivitiesManagement = () => {
                   onChange={handleActivityChange}
                 />
               </Form.Group>
+
+              {/* Section des créneaux horaires - visible uniquement si activité locale + weekend */}
+              {activityData.type === 'locale' && activityData.isWeekendOnly && (
+                <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                  <h3 className="text-lg font-semibold mb-3">Créneaux horaires disponibles</h3>
+                  
+                  {activityData.timeSlots.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="font-medium mb-2">Créneaux programmés :</h4>
+                      <div className="space-y-2">
+                        {activityData.timeSlots.map((slot, index) => {
+                          // Trouver le label de la date
+                          const dateObj = weekendDates.find(d => d.value === slot.date);
+                          const dateLabel = dateObj ? dateObj.label : slot.date;
+                          
+                          return (
+                            <div key={index} className="flex items-center justify-between bg-white p-3 rounded border">
+                              <div>
+                                <span className="font-medium">📅 {dateLabel}</span> • 
+                                <span className="ml-2">⏰ {slot.startTime} - {slot.endTime}</span> • 
+                                <span className="ml-2">💺 {slot.availableSpots} places</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeTimeSlot(index)}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <FaTimes />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="bg-white p-3 rounded border">
+                    <h4 className="font-medium mb-2">Ajouter un nouveau créneau :</h4>
+                    <Row className="mb-3">
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label>Date</Form.Label>
+                          <Form.Select
+                            name="date"
+                            value={tempTimeSlot.date}
+                            onChange={handleTimeSlotChange}
+                            className="rounded-lg"
+                          >
+                            <option value="">Sélectionnez une date</option>
+                            {weekendDates.map((date, index) => (
+                              <option key={index} value={date.value}>
+                                {date.label}
+                              </option>
+                            ))}
+                          </Form.Select>
+                        </Form.Group>
+                      </Col>
+                      <Col md={3}>
+                        <Form.Group>
+                          <Form.Label>Heure de début</Form.Label>
+                          <Form.Control
+                            type="time"
+                            name="startTime"
+                            value={tempTimeSlot.startTime}
+                            onChange={handleTimeSlotChange}
+                            className="rounded-lg"
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={3}>
+                        <Form.Group>
+                          <Form.Label>Heure de fin</Form.Label>
+                          <Form.Control
+                            type="time"
+                            name="endTime"
+                            value={tempTimeSlot.endTime}
+                            onChange={handleTimeSlotChange}
+                            className="rounded-lg"
+                          />
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                    <Row className="mb-2">
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label>Places disponibles</Form.Label>
+                          <Form.Control
+                            type="number"
+                            name="availableSpots"
+                            value={tempTimeSlot.availableSpots}
+                            onChange={handleTimeSlotChange}
+                            min="1"
+                            className="rounded-lg"
+                          />
+                        </Form.Group>
+                      </Col>
+                      <Col md={6} className="d-flex align-items-end">
+                        <Button
+                          type="button"
+                          variant="outline-primary"
+                          className="w-100 rounded-lg"
+                          onClick={addTimeSlot}
+                        >
+                          Ajouter ce créneau
+                        </Button>
+                      </Col>
+                    </Row>
+                  </div>
+                </div>
+              )}
 
               <Form.Group className="mb-4">
                 <Form.Label>Description</Form.Label>

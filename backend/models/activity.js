@@ -36,7 +36,7 @@ const activitySchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['culture', 'aventure', 'gastronomie', 'bien-etre'],
+    enum: ['culture', 'aventure', 'gastronomie', 'bien-etre', 'sport-sensations', 'nature-aventure'],
     required: function() {
       return this.type === 'locale';
     }
@@ -45,6 +45,34 @@ const activitySchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  timeSlots: [
+    {
+      date: {
+        type: Date,
+        required: function() {
+          return this.parent().isWeekendOnly && this.parent().type === 'locale';
+        }
+      },
+      startTime: {
+        type: String,
+        required: function() {
+          return this.parent().isWeekendOnly && this.parent().type === 'locale';
+        }
+      },
+      endTime: {
+        type: String,
+        required: function() {
+          return this.parent().isWeekendOnly && this.parent().type === 'locale';
+        }
+      },
+      availableSpots: {
+        type: Number,
+        required: function() {
+          return this.parent().isWeekendOnly && this.parent().type === 'locale';
+        }
+      }
+    }
+  ],
   voyageId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Voyage',

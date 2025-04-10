@@ -890,6 +890,8 @@ const AddNew = () => {
                         <option value="aventure">Aventure</option>
                         <option value="gastronomie">Gastronomie</option>
                         <option value="bien-etre">Bien-être</option>
+                        <option value="sport-sensations">Sport & Sensations</option>
+                        <option value="nature-aventure">Nature & Aventure</option>
                       </Form.Select>
                     </Form.Group>
                   </Col>
@@ -967,6 +969,8 @@ const AddNew = () => {
                         <option value="aventure">Aventure</option>
                         <option value="gastronomie">Gastronomie</option>
                         <option value="bien-etre">Bien-être</option>
+                        <option value="sport-sensations">Sport & Sensations</option>
+                        <option value="nature-aventure">Nature & Aventure</option>
                       </Form.Select>
                     </Form.Group>
                   </Col>

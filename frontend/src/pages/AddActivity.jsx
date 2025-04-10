@@ -4,16 +4,27 @@ import ImageUploader from '../components/ImageUploader';
 
 const AddActivity = () => {
   const [formData, setFormData] = useState({
-    title: '',
+    name: '',
     description: '',
     city: '',
     price: '',
     image: '',
     maxParticipants: '',
-    duration: ''
+    duration: '',
+    type: 'locale',
+    category: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Liste des villes disponibles
+  const availableCities = [
+    "Agadir", "Al Hoceima", "Asilah", "Azrou", "Béni Mellal", "Casablanca",
+    "Chefchaouen", "Dakhla", "El Jadida", "Errachidia", "Essaouira", "Fès",
+    "Ifrane", "Kénitra", "Larache", "Marrakech", "Meknès", "Merzouga",
+    "Mohammedia", "Nador", "Ouarzazate", "Oujda", "Rabat", "Safi", "Salé",
+    "Tanger", "Taroudant", "Tétouan", "Zagora"
+  ].sort();
 
   const navigate = useNavigate();
 
@@ -52,7 +63,7 @@ const AddActivity = () => {
     });
 
     try {
-      const response = await fetch('http://localhost:5000/ajouter', {
+      const response = await fetch('http://localhost:5000/api/activities', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,11 +77,22 @@ const AddActivity = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Erreur lors de l\'ajout de l\'activité');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Erreur lors de l\'ajout de l\'activité');
       }
 
-      navigate('/activities');
+      alert('Activité ajoutée avec succès!');
+      
+      // Rediriger vers la page appropriée selon le type d'activité
+      if (formData.type === 'locale') {
+        navigate('/activites-locales');
+      } else if (formData.type === 'voyage') {
+        navigate('/activites-voyages');
+      } else {
+        navigate('/activities');
+      }
     } catch (err) {
+      console.error('Erreur complète:', err);
       setError(err.message);
     } finally {
       setIsSubmitting(false);
@@ -91,12 +113,12 @@ const AddActivity = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Titre
+              Nom de l'activité
             </label>
             <input
               type="text"
-              name="title"
-              value={formData.title}
+              name="name"
+              value={formData.name}
               onChange={handleChange}
               required
               className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -136,20 +158,65 @@ const AddActivity = () => {
               />
             </div>
 
+            {/* Type d'activité */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="type">
+                Type d'activité
+              </label>
+              <select
+                id="type"
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
+                required
+              >
+                <option value="locale">Activité Locale</option>
+                <option value="voyage">Activité de Voyage</option>
+              </select>
+            </div>
+
+            {/* Catégorie */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="category">
+                Catégorie
+              </label>
+              <select
+                id="category"
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
+                required
+              >
+                <option value="">Sélectionnez une catégorie</option>
+                <option value="culture">Culture</option>
+                <option value="aventure">Aventure</option>
+                <option value="gastronomie">Gastronomie</option>
+                <option value="bien-etre">Bien-être</option>
+                <option value="sport-sensations">Sport & Sensations</option>
+                <option value="nature-aventure">Nature & Aventure</option>
+              </select>
+            </div>
+
             {/* Ville */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="city">
                 Ville
               </label>
-              <input
-                type="text"
+              <select
                 id="city"
                 name="city"
                 value={formData.city}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
                 required
-              />
+              >
+                <option value="">Sélectionnez une ville</option>
+                {availableCities.map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
             </div>
 
             {/* Prix */}
@@ -209,7 +276,15 @@ const AddActivity = () => {
           <div className="flex justify-end space-x-4 pt-6">
             <button
               type="button"
-              onClick={() => navigate('/activites')}
+              onClick={() => {
+                if (formData.type === 'locale') {
+                  navigate('/activites-locales');
+                } else if (formData.type === 'voyage') {
+                  navigate('/activites-voyages');
+                } else {
+                  navigate('/activities');
+                }
+              }}
               className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-sahara focus:ring-offset-2"
             >
               Annuler
