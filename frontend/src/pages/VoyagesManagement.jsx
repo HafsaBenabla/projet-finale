@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaPlus, FaArrowLeft, FaEdit, FaTrash, FaSpinner, FaTimes } from 'react-icons/fa';
+import { FaPlus, FaArrowLeft, FaEdit, FaTrash, FaSpinner, FaTimes, FaSyncAlt } from 'react-icons/fa';
 import axios from 'axios';
 import { Form, Button, Row, Col } from 'react-bootstrap';
 import ImageUploader from '../components/ImageUploader';
@@ -631,6 +631,20 @@ const VoyagesManagement = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
+              <div className="mb-4 p-3 bg-gray-100 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p>Nombre de voyages: <span className="font-semibold">{voyages.length}</span></p>
+                  </div>
+                  <button
+                    onClick={() => setRefreshTrigger(prev => prev + 1)}
+                    className="flex items-center bg-sahara hover:bg-sahara/90 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    <FaSyncAlt className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+                    <span>Actualiser</span>
+                  </button>
+                </div>
+              </div>
               <table className="min-w-full bg-white rounded-lg overflow-hidden shadow-lg">
                 <thead className="bg-gray-100">
                   <tr>

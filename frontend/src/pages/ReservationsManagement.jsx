@@ -270,15 +270,20 @@ const ReservationsManagement = () => {
           </div>
 
           {/* Refresh Button */}
-          <div className="flex justify-end">
-            <button
-              onClick={fetchReservations}
-              disabled={loading}
-              className="flex items-center space-x-2 bg-sahara hover:bg-sahara/90 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <FaSyncAlt className="mr-2" />
-              <span>Actualiser</span>
-            </button>
+          <div className="mb-4 p-3 bg-gray-100 rounded-lg">
+            <div className="flex justify-between items-center">
+              <div>
+                <p>Nombre de réservations: <span className="font-semibold">{reservations.length}</span></p>
+              </div>
+              <button
+                onClick={fetchReservations}
+                disabled={loading}
+                className="flex items-center bg-sahara hover:bg-sahara/90 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                <FaSyncAlt className={`mr-2 ${loading ? 'animate-spin' : ''}`} />
+                <span>Actualiser</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -434,9 +439,6 @@ const ReservationsManagement = () => {
                   )}
                 </tbody>
               </table>
-            </div>
-            <div className="mt-4 text-right text-sm text-gray-600">
-              Total: {filteredReservations.length} réservation(s)
             </div>
           </div>
         )}
