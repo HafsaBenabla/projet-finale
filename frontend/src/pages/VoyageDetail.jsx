@@ -7,148 +7,6 @@ import { useAuth } from '../context/AuthContext';
 import VoyageReactionPanel from '../components/VoyageReactionPanel';
 import VoyageComments from '../components/VoyageComments';
 
-// Activités disponibles par ville
-const activitiesByCity = {
-  Marrakech: [
-    {
-      id: 'mrk1',
-      title: "Cours de Cuisine au Riad",
-      description: "Apprenez à préparer le couscous, les tajines et les pâtisseries marocaines avec un chef local dans un riad traditionnel",
-      duration: 4,
-      maxParticipants: 8,
-      price: 450,
-      image: "https://images.pexels.com/photos/7262776/pexels-photo-7262776.jpeg"
-    },
-    {
-      id: 'mrk2',
-      title: "Tour des Jardins Historiques",
-      description: "Visite guidée des jardins Majorelle, Menara et de l'Agdal, découvrez l'histoire et la botanique de ces lieux exceptionnels",
-      duration: 5,
-      maxParticipants: 12,
-      price: 350,
-      image: "https://images.pexels.com/photos/4110939/pexels-photo-4110939.jpeg"
-    },
-    {
-      id: 'mrk3',
-      title: "Soirée dans le Désert d'Agafay",
-      description: "Dîner sous les étoiles, spectacle de folklore et nuit en camp de luxe dans le désert aux portes de Marrakech",
-      duration: 16,
-      maxParticipants: 10,
-      price: 890,
-      image: "https://images.pexels.com/photos/4553618/pexels-photo-4553618.jpeg"
-    }
-  ],
-  Fès: [
-    {
-      id: 'fes1',
-      title: "Atelier de Mosaïque Zellige",
-      description: "Initiez-vous à l'art ancestral du zellige avec des maîtres artisans dans la médina de Fès",
-      duration: 3,
-      maxParticipants: 6,
-      price: 400,
-      image: "https://images.pexels.com/photos/6152103/pexels-photo-6152103.jpeg"
-    },
-    {
-      id: 'fes2',
-      title: "Visite des Tanneries",
-      description: "Découvrez le processus traditionnel de tannage du cuir et visitez les célèbres tanneries Chouara",
-      duration: 2,
-      maxParticipants: 8,
-      price: 200,
-      image: "https://images.pexels.com/photos/4502973/pexels-photo-4502973.jpeg"
-    },
-    {
-      id: 'fes3',
-      title: "Circuit Artisanal",
-      description: "Visitez les ateliers de tissage, de poterie et de travail du cuivre dans la plus ancienne médina du monde",
-      duration: 4,
-      maxParticipants: 8,
-      price: 300,
-      image: "https://images.pexels.com/photos/5998120/pexels-photo-5998120.jpeg"
-    }
-  ],
-  Chefchaouen: [
-    {
-      id: 'chf1',
-      title: "Randonnée dans le Rif",
-      description: "Randonnée guidée dans les montagnes du Rif avec vue panoramique sur la ville bleue",
-      duration: 6,
-      maxParticipants: 10,
-      price: 300,
-      image: "https://images.pexels.com/photos/4490710/pexels-photo-4490710.jpeg"
-    },
-    {
-      id: 'chf2',
-      title: "Atelier Photo dans la Médina Bleue",
-      description: "Session photo guidée dans les ruelles les plus photogéniques de Chefchaouen avec un photographe professionnel",
-      duration: 3,
-      maxParticipants: 6,
-      price: 250,
-      image: "https://images.pexels.com/photos/4388164/pexels-photo-4388164.jpeg"
-    }
-  ],
-  Essaouira: [
-    {
-      id: 'ess1',
-      title: "Cours de Surf",
-      description: "Initiation ou perfectionnement au surf sur les spots réputés d'Essaouira avec un moniteur qualifié",
-      duration: 3,
-      maxParticipants: 8,
-      price: 350,
-      image: "https://images.pexels.com/photos/1654489/pexels-photo-1654489.jpeg"
-    },
-    {
-      id: 'ess2',
-      title: "Pêche Traditionnelle",
-      description: "Sortie en mer avec des pêcheurs locaux et préparation de votre pêche avec un chef",
-      duration: 5,
-      maxParticipants: 6,
-      price: 400,
-      image: "https://images.pexels.com/photos/2886266/pexels-photo-2886266.jpeg"
-    }
-  ],
-  Merzouga: [
-    {
-      id: 'mrz1',
-      title: "Nuit sous les Étoiles",
-      description: "Bivouac de luxe dans les dunes de l'Erg Chebbi avec dîner traditionnel et spectacle musical",
-      duration: 14,
-      maxParticipants: 12,
-      price: 800,
-      image: "https://images.pexels.com/photos/4553618/pexels-photo-4553618.jpeg"
-    },
-    {
-      id: 'mrz2',
-      title: "Balade à Dos de Dromadaire",
-      description: "Traversée des dunes au coucher du soleil suivie d'une pause thé avec les nomades",
-      duration: 3,
-      maxParticipants: 10,
-      price: 300,
-      image: "https://images.pexels.com/photos/4577791/pexels-photo-4577791.jpeg"
-    }
-  ],
-  Rabat: [
-    {
-      id: 'rbt1',
-      title: "Tour Historique",
-      description: "Visite guidée de la Kasbah des Oudayas, de la Tour Hassan et du Mausolée Mohammed V",
-      duration: 4,
-      maxParticipants: 15,
-      price: 250,
-      image: "https://images.pexels.com/photos/3250638/pexels-photo-3250638.jpeg"
-    },
-    {
-      id: 'rbt2',
-      title: "Atelier de Tapis",
-      description: "Découverte du tissage traditionnel des tapis marocains avec des artisanes locales",
-      duration: 3,
-      maxParticipants: 8,
-      price: 300,
-      image: "https://images.pexels.com/photos/6192554/pexels-photo-6192554.jpeg"
-    }
-  ]
-};
-
 const VoyageDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -173,6 +31,9 @@ const VoyageDetail = () => {
 
   const [selectedActivities, setSelectedActivities] = useState([]);
   const [reservationStatus, setReservationStatus] = useState(null);
+
+  // Ajout d'un state pour les activités disponibles
+  const [availableActivities, setAvailableActivities] = useState([]);
 
   useEffect(() => {
     const fetchVoyage = async () => {
@@ -200,11 +61,13 @@ const VoyageDetail = () => {
         setVoyage(data);
         setCommentCount(data.commentCount || 0);
         
-        // Si le voyage a des activités associées, nous les récupérons ici
+        // Si le voyage a des activités associées, nous les utilisons directement
         if (data.activities && data.activities.length > 0) {
           console.log('Activités associées au voyage:', data.activities);
+          setAvailableActivities(data.activities);
         } else {
           console.log('Aucune activité associée à ce voyage');
+          setAvailableActivities([]);
         }
         
         setLoading(false);
@@ -217,11 +80,6 @@ const VoyageDetail = () => {
     fetchVoyage();
   }, [id]);
 
-  // Récupérer les activités disponibles pour la destination
-  const availableActivities = useMemo(() => {
-    return activitiesByCity[voyage?.destination] || [];
-  }, [voyage?.destination]);
-  
   // Fonction pour faire défiler jusqu'à la section des commentaires
   const scrollToComments = () => {
     if (commentsRef.current) {
@@ -245,6 +103,15 @@ const VoyageDetail = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Vérifier si le nombre de personnes ne dépasse pas le nombre de places disponibles
+    if (name === 'nombrePersonnes') {
+      const nombrePersonnes = parseInt(value, 10);
+      if (nombrePersonnes > voyage.availableSpots) {
+        return; // Ne pas mettre à jour si la valeur dépasse le nombre de places disponibles
+      }
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -253,9 +120,9 @@ const VoyageDetail = () => {
 
   const handleActivitySelection = (activity) => {
     setSelectedActivities(prev => {
-      const isSelected = prev.some(a => a.id === activity.id);
+      const isSelected = prev.some(a => a._id === activity._id);
       if (isSelected) {
-        return prev.filter(a => a.id !== activity.id);
+        return prev.filter(a => a._id !== activity._id);
       } else {
         return [...prev, activity];
       }
@@ -285,12 +152,20 @@ const VoyageDetail = () => {
     }
     
     try {
+      // Préparer les activités sélectionnées
+      const activitiesData = selectedActivities.map(activity => ({
+        id: activity._id,
+        name: activity.name,
+        price: activity.price
+      }));
+      
       console.log('=== Envoi de la requête de réservation ===', {
         type: 'voyage',
         voyageId: voyage._id,
         dateReservation: formData.dateDepart,
         userId: user.userId,
-        formData
+        formData,
+        activitiesSelectionnees: activitiesData
       });
 
       const response = await fetch('http://localhost:5000/api/reservations', {
@@ -303,7 +178,9 @@ const VoyageDetail = () => {
           type: 'voyage',
           voyageId: voyage._id,
           nombrePersonnes: parseInt(formData.nombrePersonnes, 10),
-          dateReservation: formData.dateDepart
+          dateReservation: formData.dateDepart,
+          activitiesSelectionnees: activitiesData,
+          prixTotal: calculateTotalPrice()
         }),
       });
 
@@ -673,43 +550,91 @@ const VoyageDetail = () => {
             <div className="bg-white rounded-2xl shadow-lg p-8">
               <h2 className="text-3xl font-semibold mb-6 text-gray-800 flex items-center gap-3">
                 <FaHiking className="text-sahara" />
-                Activités proposées
+                Activités disponibles
               </h2>
               
-              {voyage.activities && voyage.activities.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {voyage.activities.map(activity => (
-                    <div key={activity._id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                      <div className="h-40 overflow-hidden">
-                        <img 
-                          src={activity.image} 
-                          alt={activity.name} 
-                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = "https://images.pexels.com/photos/2662116/pexels-photo-2662116.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1";
-                          }}
-                        />
-                      </div>
-                      <div className="p-4">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">{activity.name}</h3>
-                        <p className="text-gray-600 text-sm mb-3 line-clamp-2">{activity.description}</p>
-                        <div className="flex justify-between text-sm">
-                          <div className="flex items-center gap-1 text-gray-700">
-                            <FaClock className="text-sahara" />
-                            <span>{activity.duration}h</span>
+              {availableActivities && availableActivities.length > 0 ? (
+                <div className="space-y-6">
+                  <p className="text-gray-600 mb-4">
+                    Cliquez sur une activité pour l'ajouter à votre voyage. Cliquez à nouveau pour la retirer.
+                    <span className="block mt-1 text-sm italic">Les activités sélectionnées seront ajoutées au prix total du voyage.</span>
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {availableActivities.map(activity => {
+                      const isSelected = selectedActivities.some(a => a._id === activity._id);
+                      
+                      return (
+                        <div 
+                          key={activity._id} 
+                          className={`relative border rounded-lg overflow-hidden shadow-sm transition-all cursor-pointer hover:shadow-md ${
+                            isSelected 
+                              ? 'border-sahara border-2 ring-2 ring-sahara/30' 
+                              : 'border-gray-200 hover:border-sahara/50'
+                          }`}
+                          onClick={() => handleActivitySelection(activity)}
+                        >
+                          {/* Badge de sélection avec icône au lieu du texte */}
+                          {isSelected && (
+                            <div className="absolute top-2 right-2 bg-sahara text-white p-2 rounded-full z-10 shadow-md">
+                              <FaCheck size={16} />
+                            </div>
+                          )}
+                          
+                          <div className="relative h-48 overflow-hidden">
+                            <img 
+                              src={activity.image} 
+                              alt={activity.name} 
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "https://images.pexels.com/photos/2662116/pexels-photo-2662116.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1";
+                              }}
+                            />
                           </div>
-                          <div className="flex items-center gap-1 font-medium text-sahara">
-                            <span>{activity.price} MAD</span>
+                          
+                          <div className="p-4">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-2">{activity.name}</h3>
+                            <p className="text-gray-600 text-sm mb-3 line-clamp-2">{activity.description}</p>
+                            
+                            <div className="flex justify-between text-sm">
+                              <div className="flex items-center gap-1 text-gray-700">
+                                <FaClock className="text-sahara" />
+                                <span>{activity.duration}h</span>
+                              </div>
+                              <div className="flex items-center gap-1 font-medium text-sahara">
+                                <span>{activity.price} MAD</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {selectedActivities.length > 0 && (
+                    <div className="mt-6 bg-sahara/10 p-4 rounded-lg">
+                      <h3 className="font-semibold text-lg text-gray-800 mb-2">Activités sélectionnées ({selectedActivities.length})</h3>
+                      <ul className="space-y-2">
+                        {selectedActivities.map(activity => (
+                          <li key={activity._id} className="flex justify-between">
+                            <span className="text-gray-700">{activity.name}</span>
+                            <span className="font-medium text-sahara">{activity.price} MAD</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="mt-4 pt-4 border-t border-sahara/20 flex justify-between">
+                        <span className="font-medium">Total activités</span>
+                        <span className="font-bold text-sahara">
+                          {selectedActivities.reduce((sum, activity) => sum + activity.price, 0)} MAD
+                        </span>
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-6 text-gray-500">
-                  <p>Aucune activité spécifique n'est associée à ce voyage pour le moment.</p>
+                  <p>Aucune activité n'est disponible pour ce voyage pour le moment.</p>
                 </div>
               )}
             </div>
@@ -751,13 +676,13 @@ const VoyageDetail = () => {
                       {selectedActivities.map(activity => (
                         <div key={activity._id} className="flex justify-between items-center mb-2 text-sm">
                           <span className="opacity-80">{activity.name}</span>
-                          <span>{activity.price} MAD</span>
+                          <span>{activity.price} MAD × {formData.nombrePersonnes} = {activity.price * formData.nombrePersonnes} MAD</span>
                         </div>
                       ))}
                       <div className="flex justify-between items-center pt-4 text-lg">
                         <span className="font-medium">Total activités</span>
                         <span className="font-semibold">
-                          {selectedActivities.reduce((sum, activity) => sum + activity.price, 0)} MAD
+                          {selectedActivities.reduce((sum, activity) => sum + activity.price, 0) * formData.nombrePersonnes} MAD
                         </span>
                       </div>
                     </div>
@@ -799,6 +724,39 @@ const VoyageDetail = () => {
               </h2>
 
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Affichage des activités sélectionnées */}
+                {selectedActivities.length > 0 && (
+                  <div className="p-4 bg-gray-50 rounded-lg mb-4">
+                    <h3 className="font-medium text-gray-700 mb-2">Activités incluses dans votre réservation:</h3>
+                    <ul className="space-y-1 text-sm">
+                      {selectedActivities.map(activity => (
+                        <li key={activity._id} className="flex justify-between">
+                          <span>{activity.name}</span>
+                          <span className="font-medium">{activity.price} MAD × {formData.nombrePersonnes} = {activity.price * formData.nombrePersonnes} MAD</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between text-sm">
+                      <span className="font-medium">Total activités:</span>
+                      <span className="font-bold text-sahara">
+                        {selectedActivities.reduce((sum, activity) => sum + activity.price, 0) * formData.nombrePersonnes} MAD
+                      </span>
+                    </div>
+                    <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between">
+                      <span className="font-medium">Prix total par personne:</span>
+                      <span className="font-bold text-sahara">
+                        {voyage.price + selectedActivities.reduce((sum, activity) => sum + activity.price, 0)} MAD
+                      </span>
+                    </div>
+                    <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between">
+                      <span className="font-medium">Prix total pour {formData.nombrePersonnes} personne(s):</span>
+                      <span className="font-bold text-sahara">
+                        {(voyage.price + selectedActivities.reduce((sum, activity) => sum + activity.price, 0)) * formData.nombrePersonnes} MAD
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-gray-700 font-medium mb-2" htmlFor="nom">
@@ -863,6 +821,13 @@ const VoyageDetail = () => {
                         max={voyage.availableSpots}
                         className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sahara focus:border-transparent transition-all"
                         required
+                        onKeyDown={(e) => {
+                          // Empêcher les valeurs supérieures au max en bloquant la saisie clavier
+                          const newValue = e.target.value + e.key;
+                          if (!isNaN(newValue) && parseInt(newValue, 10) > voyage.availableSpots) {
+                            e.preventDefault();
+                          }
+                        }}
                       />
                       <span className="ml-2 text-gray-500">/ {voyage.availableSpots} disponibles</span>
                     </div>
