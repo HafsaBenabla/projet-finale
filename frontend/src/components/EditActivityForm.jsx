@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import ImageUploader from './ImageUploader';
 import { Form, Button, Row, Col } from 'react-bootstrap';
+import axios from 'axios';
 
 const EditActivityForm = ({ activity, onClose, onUpdate }) => {
   const [formData, setFormData] = useState({
@@ -15,7 +16,9 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
     maxParticipants: '',
     isWeekendOnly: false,
     category: '',
-    timeSlots: []
+    timeSlots: [],
+    voyageName: '',
+    voyageId: ''
   });
   
   // Pour gérer les créneaux horaires temporaires avant de les ajouter
@@ -28,6 +31,21 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [voyages, setVoyages] = useState([]);
+
+  // Chargement des voyages existants
+  useEffect(() => {
+    const fetchVoyages = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/voyages');
+        setVoyages(response.data);
+      } catch (error) {
+        console.error('Erreur lors du chargement des voyages:', error);
+      }
+    };
+    
+    fetchVoyages();
+  }, []);
 
   // Pour générer automatiquement les dates du week-end
   const getUpcomingWeekendDates = () => {
@@ -95,7 +113,8 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
         isWeekendOnly: activity.isWeekendOnly || false,
         category: activity.category || '',
         voyageId: activity.voyageId || '',
-        timeSlots: activity.timeSlots || []
+        timeSlots: activity.timeSlots || [],
+        voyageName: activity.voyageName || ''
       });
     }
   }, [activity]);
@@ -486,6 +505,31 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
                   </Row>
                 </div>
               </div>
+            )}
+
+            {/* Champ pour le nom de voyage - visible uniquement si le type est "voyage" */}
+            {formData.type === 'voyage' && (
+              <Row>
+                <Col md={12}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Voyage associé</Form.Label>
+                    <Form.Select
+                      name="voyageId"
+                      value={formData.voyageId}
+                      onChange={handleChange}
+                      required
+                      className="rounded-lg"
+                    >
+                      <option value="">Sélectionnez un voyage</option>
+                      {voyages.map((voyage) => (
+                        <option key={voyage._id} value={voyage._id}>
+                          {voyage.title} - {voyage.destination}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+              </Row>
             )}
 
             <Form.Group className="mb-4">

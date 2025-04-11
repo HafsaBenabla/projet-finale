@@ -15,6 +15,7 @@ const ActivitiesManagement = () => {
   const [activityToDelete, setActivityToDelete] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [formError, setFormError] = useState(null);
+  const [voyages, setVoyages] = useState([]);
   
   // États pour le formulaire d'activité
   const [activityData, setActivityData] = useState({
@@ -28,7 +29,9 @@ const ActivitiesManagement = () => {
     maxParticipants: '',
     isWeekendOnly: false,
     category: '',
-    timeSlots: []
+    timeSlots: [],
+    voyageName: '',
+    voyageId: ''
   });
   
   // Pour gérer les créneaux horaires temporaires avant de les ajouter
@@ -39,6 +42,20 @@ const ActivitiesManagement = () => {
     availableSpots: ''
   });
 
+  // Chargement des voyages existants
+  useEffect(() => {
+    const fetchVoyages = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/voyages');
+        setVoyages(response.data);
+      } catch (error) {
+        console.error('Erreur lors du chargement des voyages:', error);
+      }
+    };
+    
+    fetchVoyages();
+  }, [refreshTrigger]);
+  
   // Pour générer automatiquement les dates du week-end
   const getUpcomingWeekendDates = () => {
     const today = new Date();
@@ -223,7 +240,9 @@ const ActivitiesManagement = () => {
           maxParticipants: '',
           isWeekendOnly: false,
           category: '',
-          timeSlots: []
+          timeSlots: [],
+          voyageName: '',
+          voyageId: ''
         });
         
         // Fermer le formulaire et rafraîchir la liste
@@ -330,6 +349,31 @@ const ActivitiesManagement = () => {
                   </Form.Group>
                 </Col>
               </Row>
+
+              {/* Champ pour le nom de voyage - visible uniquement si le type est "voyage" */}
+              {activityData.type === 'voyage' && (
+                <Row>
+                  <Col md={12}>
+                    <Form.Group className="mb-4">
+                      <Form.Label>Voyage associé</Form.Label>
+                      <Form.Select
+                        name="voyageId"
+                        value={activityData.voyageId}
+                        onChange={handleActivityChange}
+                        required
+                        className="rounded-lg"
+                      >
+                        <option value="">Sélectionnez un voyage</option>
+                        {voyages.map((voyage) => (
+                          <option key={voyage._id} value={voyage._id}>
+                            {voyage.title} - {voyage.destination}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              )}
 
               <Row>
                 <Col md={4}>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaMapMarkerAlt, FaClock, FaInfoCircle, FaWalking, FaCalendarCheck, FaCheck, FaBuilding, FaComment } from 'react-icons/fa';
+import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaMapMarkerAlt, FaClock, FaInfoCircle, FaWalking, FaCalendarCheck, FaCheck, FaBuilding, FaComment, FaListUl, FaHiking, FaMapSigns, FaStar } from 'react-icons/fa';
 import ActivitySelectionCard from '../components/ActivitySelectionCard';
 import { useVoyages } from '../context/VoyagesContext';
 import { useAuth } from '../context/AuthContext';
@@ -184,6 +184,14 @@ const VoyageDetail = () => {
         const data = await response.json();
         setVoyage(data);
         setCommentCount(data.commentCount || 0);
+        
+        // Si le voyage a des activités associées, nous les récupérons ici
+        if (data.activities && data.activities.length > 0) {
+          console.log('Activités associées au voyage:', data.activities);
+        } else {
+          console.log('Aucune activité associée à ce voyage');
+        }
+        
         setLoading(false);
       } catch (err) {
         setError(err.message);
@@ -635,6 +643,51 @@ const VoyageDetail = () => {
                   <span className="text-gray-700">Transport depuis votre hôtel</span>
                 </li>
               </ul>
+            </div>
+
+            {/* Section Activités Associées */}
+            <div className="bg-white rounded-2xl shadow-lg p-8">
+              <h2 className="text-3xl font-semibold mb-6 text-gray-800 flex items-center gap-3">
+                <FaHiking className="text-sahara" />
+                Activités proposées
+              </h2>
+              
+              {voyage.activities && voyage.activities.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {voyage.activities.map(activity => (
+                    <div key={activity._id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                      <div className="h-40 overflow-hidden">
+                        <img 
+                          src={activity.image} 
+                          alt={activity.name} 
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://images.pexels.com/photos/2662116/pexels-photo-2662116.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1";
+                          }}
+                        />
+                      </div>
+                      <div className="p-4">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">{activity.name}</h3>
+                        <p className="text-gray-600 text-sm mb-3 line-clamp-2">{activity.description}</p>
+                        <div className="flex justify-between text-sm">
+                          <div className="flex items-center gap-1 text-gray-700">
+                            <FaClock className="text-sahara" />
+                            <span>{activity.duration}h</span>
+                          </div>
+                          <div className="flex items-center gap-1 font-medium text-sahara">
+                            <span>{activity.price} MAD</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <p>Aucune activité spécifique n'est associée à ce voyage pour le moment.</p>
+                </div>
+              )}
             </div>
 
             {/* Section Commentaires - avec une référence React */}
