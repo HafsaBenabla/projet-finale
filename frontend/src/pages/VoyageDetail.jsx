@@ -6,16 +6,18 @@ import { useVoyages } from '../context/VoyagesContext';
 import { useAuth } from '../context/AuthContext';
 import VoyageReactionPanel from '../components/VoyageReactionPanel';
 import VoyageComments from '../components/VoyageComments';
+import LoadingSpinner from '../components/LoadingSpinner';
+import ErrorMessage from '../components/ErrorMessage';
+import CommentSection from '../components/CommentSection';
+import { formatDate } from '../utils/format';
+import axios from 'axios';
 
 const VoyageDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { refreshVoyages } = useVoyages();
+  const { refreshVoyages, loading, error, voyage, fetchVoyage } = useVoyages();
   const { user, token, isAuthenticated } = useAuth();
-  const [voyage, setVoyage] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const commentsRef = useRef(null);
   
   // Ajout d'un state pour suivre le compteur de commentaires
@@ -35,50 +37,28 @@ const VoyageDetail = () => {
   // Ajout d'un state pour les activités disponibles
   const [availableActivities, setAvailableActivities] = useState([]);
 
-  useEffect(() => {
-    const fetchVoyage = async () => {
-      try {
-        const response = await fetch(`http://localhost:5000/api/voyages/${id}`);
-        if (!response.ok) {
-          throw new Error('Voyage non trouvé');
-        }
-        const data = await response.json();
-        console.log('Détails du voyage reçus:', data);
-        
-        // Log spécifique pour les informations d'hébergement
-        console.log('Informations d\'hébergement:', {
-          hebergement: data.hebergement,
-          hebergementImage: data.hebergementImage,
-          typeHebergement: data.typeHebergement,
-          descriptionHebergement: data.descriptionHebergement
-        });
-        
-        // Si les données d'hébergement sont manquantes, on les initialise avec des valeurs par défaut
-        if (!data.hebergement) {
-          data.hebergement = "Hébergement standard";
-        }
-        
-        setVoyage(data);
-        setCommentCount(data.commentCount || 0);
-        
-        // Si le voyage a des activités associées, nous les utilisons directement
-        if (data.activities && data.activities.length > 0) {
-          console.log('Activités associées au voyage:', data.activities);
-          setAvailableActivities(data.activities);
-        } else {
-          console.log('Aucune activité associée à ce voyage');
-          setAvailableActivities([]);
-        }
-        
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-      }
-    };
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
 
-    fetchVoyage();
-  }, [id]);
+  useEffect(() => {
+    fetchVoyage(id);
+  }, [id, fetchVoyage]);
+
+  useEffect(() => {
+    if (voyage && voyage.activities && voyage.activities.length > 0) {
+      setAvailableActivities(voyage.activities);
+    }
+  }, [voyage]);
+
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        nom: user.firstName + ' ' + user.lastName,
+        email: user.email,
+        telephone: user.phone || ''
+      }));
+    }
+  }, [user]);
 
   // Fonction pour faire défiler jusqu'à la section des commentaires
   const scrollToComments = () => {
@@ -132,6 +112,7 @@ const VoyageDetail = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setReservationStatus(null);
+    setLoadingSubmit(true);
     
     console.log('=== Début de la création de réservation ===', {
       isAuthenticated,
@@ -145,6 +126,7 @@ const VoyageDetail = () => {
         type: 'error',
         message: 'Veuillez vous connecter pour effectuer une réservation'
       });
+      setLoadingSubmit(false);
       setTimeout(() => {
         navigate('/login');
       }, 2000);
@@ -154,88 +136,74 @@ const VoyageDetail = () => {
     try {
       // Préparer les activités sélectionnées
       const activitiesData = selectedActivities.map(activity => ({
-        id: activity._id,
+        activityId: activity._id,
         name: activity.name,
         price: activity.price
       }));
       
-      console.log('=== Envoi de la requête de réservation ===', {
-        type: 'voyage',
+      const totalPrice = (voyage.price + selectedActivities.reduce((sum, activity) => sum + activity.price, 0)) * formData.nombrePersonnes;
+      
+      // Construire l'objet de réservation
+      const reservationData = {
+        userId: user._id,
         voyageId: voyage._id,
-        dateReservation: formData.dateDepart,
-        userId: user.userId,
-        formData,
-        activitiesSelectionnees: activitiesData
-      });
-
-      const response = await fetch('http://localhost:5000/api/reservations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          type: 'voyage',
-          voyageId: voyage._id,
-          nombrePersonnes: parseInt(formData.nombrePersonnes, 10),
-          dateReservation: formData.dateDepart,
-          activitiesSelectionnees: activitiesData,
-          prixTotal: calculateTotalPrice()
-        }),
-      });
-
-      const data = await response.json();
-      console.log('=== Réponse de la création de réservation ===', {
-        status: response.status,
-        ok: response.ok,
-        data
+        nombrePersonnes: formData.nombrePersonnes,
+        dateDepart: formData.dateDepart,
+        activities: activitiesData,
+        totalPrice: totalPrice,
+        clientInfo: {
+          firstName: formData.nom.split(' ')[0],
+          lastName: formData.nom.split(' ').slice(1).join(' '),
+          email: formData.email,
+          phone: formData.telephone
+        }
+      };
+      
+      console.log('Données de réservation:', reservationData);
+      
+      // Envoyer la réservation
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL}/reservations`,
+        reservationData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      
+      console.log('Réponse de création de réservation:', response.data);
+      
+      // Afficher le message de confirmation
+      setReservationStatus({
+        type: 'success',
+        message: 'Votre réservation a été confirmée avec succès! Vous recevrez un email de confirmation.'
       });
       
-      if (response.ok) {
-        console.log('Réservation créée avec succès:', data);
-        setReservationStatus({
-          type: 'success',
-          message: 'Réservation effectuée avec succès!'
-        });
-
-        // Réinitialiser le formulaire
-        setFormData({
-          nom: '',
-          email: '',
-          telephone: '',
-          nombrePersonnes: 1,
-          dateDepart: ''
-        });
-        
-        // Rafraîchir les données du voyage
-        refreshVoyages();
-        
-        // Recharger les données du voyage
-        const voyageResponse = await fetch(`http://localhost:5000/api/voyages/${voyage._id}`);
-        if (voyageResponse.ok) {
-          const updatedVoyage = await voyageResponse.json();
-          setVoyage(updatedVoyage);
-        }
-
-        // Rediriger vers la page de profil après un court délai
-        console.log('Redirection vers le profil dans 2 secondes...');
-        setTimeout(() => {
-          navigate('/profile');
-        }, 2000);
-      } else {
-        console.error('Erreur lors de la création de la réservation:', data);
-        throw new Error(data.message || 'Erreur lors de la réservation');
-      }
-    } catch (err) {
-      console.error('=== Erreur détaillée lors de la création de la réservation ===', {
-        message: err.message,
-        name: err.name,
-        stack: err.stack
+      // Réinitialiser le formulaire
+      setFormData({
+        nom: user ? user.firstName + ' ' + user.lastName : '',
+        email: user ? user.email : '',
+        telephone: user ? user.phone || '' : '',
+        nombrePersonnes: 1,
+        dateDepart: ''
       });
+      
+      // Naviguer vers la page des réservations après un délai
+      setTimeout(() => {
+        navigate('/mes-reservations');
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Erreur lors de la création de la réservation:', error);
+      
       setReservationStatus({
         type: 'error',
-        message: err.message
+        message: error.response?.data?.message || 'Une erreur est survenue lors de la réservation.'
       });
+    } finally {
+      setLoadingSubmit(false);
     }
   };
 
@@ -270,30 +238,9 @@ const VoyageDetail = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-sahara"></div>
-      </div>
-    );
-  }
-
-  if (error || !voyage) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Erreur</h2>
-          <p className="text-gray-600">{error || 'Voyage non trouvé'}</p>
-          <button
-            onClick={() => navigate('/voyages')}
-            className="mt-4 px-6 py-2 bg-sahara text-white rounded-full"
-          >
-            Retour aux voyages
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage message={error} />;
+  if (!voyage) return <ErrorMessage message="Voyage non trouvé" />;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -529,7 +476,7 @@ const VoyageDetail = () => {
                   <div className="bg-sahara/20 p-2 rounded-full">
                     <FaCalendarAlt className="text-sahara" />
                   </div>
-                  <span className="text-gray-700">Annulation gratuite jusqu'à 48h avant le départ</span>
+                  <span className="text-gray-700">Annulation gratuite jusqu'à 7 jours avant le départ</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <div className="bg-sahara/20 p-2 rounded-full">
@@ -539,9 +486,15 @@ const VoyageDetail = () => {
                 </li>
                 <li className="flex items-center gap-3">
                   <div className="bg-sahara/20 p-2 rounded-full">
-                    <FaMapMarkerAlt className="text-sahara" />
+                    <FaWalking className="text-sahara" />
                   </div>
-                  <span className="text-gray-700">Transport depuis votre hôtel</span>
+                  <span className="text-gray-700">Programme flexible selon les conditions</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="bg-sahara/20 p-2 rounded-full">
+                    <FaBuilding className="text-sahara" />
+                  </div>
+                  <span className="text-gray-700">Hébergement confortable en hôtels traditionnels</span>
                 </li>
               </ul>
             </div>
@@ -567,44 +520,39 @@ const VoyageDetail = () => {
                       return (
                         <div 
                           key={activity._id} 
-                          className={`relative border rounded-lg overflow-hidden shadow-sm transition-all cursor-pointer hover:shadow-md ${
+                          className={`border rounded-lg overflow-hidden shadow-sm transition-all cursor-pointer hover:shadow-md ${
                             isSelected 
                               ? 'border-sahara border-2 ring-2 ring-sahara/30' 
-                              : 'border-gray-200 hover:border-sahara/50'
+                              : 'border-gray-200'
                           }`}
                           onClick={() => handleActivitySelection(activity)}
                         >
-                          {/* Badge de sélection avec icône au lieu du texte */}
-                          {isSelected && (
-                            <div className="absolute top-2 right-2 bg-sahara text-white p-2 rounded-full z-10 shadow-md">
-                              <FaCheck size={16} />
-                            </div>
-                          )}
-                          
-                          <div className="relative h-48 overflow-hidden">
+                          <div className="relative">
                             <img 
                               src={activity.image} 
                               alt={activity.name} 
-                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                              className="w-full h-48 object-cover"
                               onError={(e) => {
                                 e.target.onerror = null;
-                                e.target.src = "https://images.pexels.com/photos/2662116/pexels-photo-2662116.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1";
+                                e.target.src = 'https://via.placeholder.com/300x200?text=Image+non+disponible';
                               }}
                             />
+                            {isSelected && (
+                              <div className="absolute top-2 right-2 bg-sahara text-white text-xs px-2 py-1 rounded-full font-semibold">
+                                Sélectionnée
+                              </div>
+                            )}
                           </div>
                           
                           <div className="p-4">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-2">{activity.name}</h3>
-                            <p className="text-gray-600 text-sm mb-3 line-clamp-2">{activity.description}</p>
-                            
-                            <div className="flex justify-between text-sm">
-                              <div className="flex items-center gap-1 text-gray-700">
-                                <FaClock className="text-sahara" />
-                                <span>{activity.duration}h</span>
+                            <h3 className="font-semibold text-lg mb-1">{activity.name}</h3>
+                            <p className="text-gray-600 text-sm mb-2 line-clamp-2">{activity.description}</p>
+                            <div className="flex justify-between items-center mt-3">
+                              <div className="flex items-center">
+                                <FaClock className="text-gray-500 mr-1" />
+                                <span className="text-sm text-gray-600">{activity.duration} heures</span>
                               </div>
-                              <div className="flex items-center gap-1 font-medium text-sahara">
-                                <span>{activity.price} MAD</span>
-                              </div>
+                              <div className="font-semibold text-sahara">{activity.price} MAD</div>
                             </div>
                           </div>
                         </div>
@@ -613,18 +561,21 @@ const VoyageDetail = () => {
                   </div>
                   
                   {selectedActivities.length > 0 && (
-                    <div className="mt-6 bg-sahara/10 p-4 rounded-lg">
-                      <h3 className="font-semibold text-lg text-gray-800 mb-2">Activités sélectionnées ({selectedActivities.length})</h3>
-                      <ul className="space-y-2">
+                    <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <h3 className="font-semibold text-lg mb-3">Activités sélectionnées</h3>
+                      <ul className="space-y-2 mb-3">
                         {selectedActivities.map(activity => (
-                          <li key={activity._id} className="flex justify-between">
-                            <span className="text-gray-700">{activity.name}</span>
-                            <span className="font-medium text-sahara">{activity.price} MAD</span>
+                          <li key={activity._id} className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <FaCheck className="text-green-500 mr-2" />
+                              <span>{activity.name}</span>
+                            </div>
+                            <span className="font-medium">{activity.price} MAD</span>
                           </li>
                         ))}
                       </ul>
-                      <div className="mt-4 pt-4 border-t border-sahara/20 flex justify-between">
-                        <span className="font-medium">Total activités</span>
+                      <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
+                        <span className="font-medium">Total activités:</span>
                         <span className="font-bold text-sahara">
                           {selectedActivities.reduce((sum, activity) => sum + activity.price, 0)} MAD
                         </span>
@@ -645,7 +596,7 @@ const VoyageDetail = () => {
                 <FaComment className="text-sahara text-2xl" />
                 <h2 className="text-3xl font-semibold text-gray-800">Commentaires</h2>
               </div>
-              <VoyageComments voyageId={voyage._id} onCommentAdded={handleCommentAdded} />
+              <CommentSection voyageId={voyage._id} />
             </div>
           </div>
 
@@ -853,9 +804,9 @@ const VoyageDetail = () => {
                   <button
                     type="submit"
                     className="w-full bg-sahara text-white py-4 rounded-lg font-semibold text-lg hover:bg-sahara/90 transition-colors flex items-center justify-center gap-2"
-                    disabled={loading}
+                    disabled={loadingSubmit}
                   >
-                    {loading ? (
+                    {loadingSubmit ? (
                       <>
                         <svg className="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />

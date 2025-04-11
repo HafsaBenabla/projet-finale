@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaUser, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaPhone, FaTrash, FaSpinner, FaTimes, FaPlus, FaPencilAlt, FaPlane, FaBuilding, FaHiking, FaCog, FaEye, FaEllipsisV } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaPhone, FaTrash, FaSpinner, FaTimes, FaPlus, FaPencilAlt, FaPlane, FaBuilding, FaHiking, FaCog, FaEye, FaEllipsisV, FaCalendarCheck, FaListUl, FaBell, FaExclamation, FaCheck, FaInfo } from 'react-icons/fa';
 import './ProfileStyles.css';
 
 const Profile = () => {
@@ -42,6 +42,38 @@ const Profile = () => {
   
   // État pour le chargement des données administratives
   const [loadingAdminData, setLoadingAdminData] = useState(false);
+
+  // État pour les paramètres admin
+  const [adminSettings, setAdminSettings] = useState({
+    logo: '/logo.png',
+    siteName: 'MaghrebXplore',
+    slogan: 'Découvrez les trésors cachés du Maroc',
+    welcomeMessage: 'Bienvenue sur votre espace administrateur MaghrebXplore',
+    todoList: [
+      { id: 1, task: 'Ajouter des activités pour la ville de Chefchaouen', completed: false },
+      { id: 2, task: 'Mettre à jour les photos de la page d\'accueil', completed: false },
+      { id: 3, task: 'Confirmer les réservations en attente', completed: false },
+      { id: 4, task: 'Ajouter un nouveau circuit dans le désert', completed: false }
+    ],
+    notifications: [] // Initialiser avec un tableau vide
+  });
+
+  // État pour les notifications réelles
+  const [realNotifications, setRealNotifications] = useState({
+    loading: false,
+    error: null,
+    data: []
+  });
+
+  // State pour les notifications rapides de l'admin
+  const [adminNotifications, setAdminNotifications] = useState({
+    reservationsToday: 0,
+    fullTrips: 0,
+    newUserMessages: 0
+  });
+
+  // Ajout d'un nouvel état pour contrôler l'affichage du formulaire d'ajout de tâche
+  const [showNewTaskForm, setShowNewTaskForm] = useState(false);
 
   // Effet pour animer la barre de progression lorsqu'une notification est affichée
   useEffect(() => {
@@ -400,6 +432,183 @@ const Profile = () => {
     }
   };
 
+  // Fonction pour mettre à jour les paramètres admin
+  const updateAdminSetting = (field, value) => {
+    setAdminSettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Fonction pour marquer une tâche comme terminée
+  const toggleTodoCompletion = (todoId) => {
+    setAdminSettings(prev => ({
+      ...prev,
+      todoList: prev.todoList.map(todo => 
+        todo.id === todoId ? { ...todo, completed: !todo.completed } : todo
+      )
+    }));
+  };
+
+  // Fonction pour ajouter une nouvelle tâche
+  const addTodoItem = (task) => {
+    const newId = Math.max(0, ...adminSettings.todoList.map(todo => todo.id)) + 1;
+    setAdminSettings(prev => ({
+      ...prev,
+      todoList: [...prev.todoList, { id: newId, task, completed: false }]
+    }));
+  };
+
+  // Effet pour récupérer les notifications admin
+  useEffect(() => {
+    if (isAuthenticated && user?.isAdmin) {
+      // Récupérer les vraies données depuis l'API
+      const fetchAdminData = async () => {
+        try {
+          setRealNotifications(prev => ({ ...prev, loading: true, error: null }));
+          
+          // Configuration pour les appels API
+          const config = {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          };
+          
+          // Récupérer les dernières réservations
+          const reservationsUrl = `http://localhost:5000/api/reservations/recent`;
+          const reservationsResponse = await axios.get(reservationsUrl, config).catch(() => ({ data: [] }));
+          
+          // Récupérer les derniers utilisateurs créés
+          const usersUrl = `http://localhost:5000/api/users/recent`;
+          const usersResponse = await axios.get(usersUrl, config).catch(() => ({ data: [] }));
+          
+          // Récupérer les réservations en attente
+          const pendingUrl = `http://localhost:5000/api/reservations/pending`;
+          const pendingResponse = await axios.get(pendingUrl, config).catch(() => ({ data: [] }));
+          
+          // Récupérer les derniers avis
+          const reviewsUrl = `http://localhost:5000/api/reviews/recent`;
+          const reviewsResponse = await axios.get(reviewsUrl, config).catch(() => ({ data: [] }));
+          
+          // Créer des notifications à partir des réponses
+          const notifications = [];
+          
+          // Ajouter les notifications de réservations récentes
+          if (reservationsResponse.data && reservationsResponse.data.length > 0) {
+            reservationsResponse.data.forEach(reservation => {
+              const reservationType = reservation.voyage ? 'voyage' : 'activité';
+              const title = reservation.voyage?.title || reservation.activite?.name || 'non spécifié';
+              notifications.push({
+                id: `res-${reservation._id}`,
+                message: `Nouvelle réservation pour ${reservationType}: ${title}`,
+                date: formatDate(reservation.dateReservation || reservation.createdAt),
+                type: 'success'
+              });
+            });
+          }
+          
+          // Ajouter les notifications d'utilisateurs récents
+          if (usersResponse.data && usersResponse.data.length > 0) {
+            usersResponse.data.forEach(user => {
+              notifications.push({
+                id: `user-${user._id}`,
+                message: `Nouveau compte créé: ${user.username || user.email}`,
+                date: formatDate(user.createdAt),
+                type: 'info'
+              });
+            });
+          }
+          
+          // Ajouter les notifications de réservations en attente
+          if (pendingResponse.data && pendingResponse.data.length > 0) {
+            notifications.push({
+              id: 'pending',
+              message: `${pendingResponse.data.length} réservation(s) en attente de confirmation`,
+              date: 'À traiter',
+              type: 'warning'
+            });
+          }
+          
+          // Ajouter les notifications d'avis récents
+          if (reviewsResponse.data && reviewsResponse.data.length > 0) {
+            reviewsResponse.data.forEach(review => {
+              notifications.push({
+                id: `review-${review._id}`,
+                message: `Nouvel avis ${review.rating} étoiles pour ${review.voyageTitle || review.activityName || 'un élément'}`,
+                date: formatDate(review.createdAt),
+                type: 'success'
+              });
+            });
+          }
+          
+          // Si aucune notification n'a été récupérée, créer une notification d'information
+          if (notifications.length === 0) {
+            notifications.push({
+              id: 'no-data',
+              message: 'Aucune activité récente à signaler',
+              date: 'Maintenant',
+              type: 'info'
+            });
+          }
+          
+          // Trier par date (les plus récentes en premier)
+          notifications.sort((a, b) => {
+            if (a.date === 'Maintenant' || a.date === 'Aujourd\'hui') return -1;
+            if (b.date === 'Maintenant' || b.date === 'Aujourd\'hui') return 1;
+            if (a.date === 'Hier') return -1;
+            if (b.date === 'Hier') return 1;
+            return 0;
+          });
+          
+          // Mettre à jour l'état des notifications
+          setRealNotifications({
+            loading: false,
+            error: null,
+            data: notifications
+          });
+          
+          // Mettre à jour les paramètres admin avec les nouvelles notifications
+          setAdminSettings(prev => ({
+            ...prev,
+            notifications: notifications
+          }));
+          
+        } catch (error) {
+          console.error("Erreur lors de la récupération des notifications:", error);
+          setRealNotifications({
+            loading: false,
+            error: "Impossible de récupérer les notifications",
+            data: []
+          });
+        }
+      };
+      
+      fetchAdminData();
+    }
+  }, [isAuthenticated, user?.isAdmin, token]);
+
+  // Fonction pour formater une date relative
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Date inconnue';
+    
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Aujourd\'hui';
+    if (diffDays === 1) return 'Hier';
+    if (diffDays < 7) return `Il y a ${diffDays} jours`;
+    
+    // Si plus de 7 jours, on affiche la date complète
+    return date.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
   if (!isAuthenticated) {
     return null;
   }
@@ -546,69 +755,209 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Section d'administration - visible uniquement pour les administrateurs */}
+        {/* Section admin personnalisée - visible uniquement pour les administrateurs */}
         {user?.isAdmin && (
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 sm:mb-6 border-b border-gray-200 pb-2 flex items-center">
-              <FaCog className="mr-2 text-orange-500" />
-              Administration
-            </h3>
+            {/* En-tête personnalisable avec logo et nom */}
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 border-b border-gray-200 pb-4">
+              <div className="flex items-center mb-4 md:mb-0">
+                <div 
+                  className="h-12 w-12 bg-orange-100 rounded-lg mr-4 flex items-center justify-center overflow-hidden cursor-pointer"
+                  onClick={() => {
+                    const newLogo = prompt('Entrez l\'URL de votre nouveau logo:', adminSettings?.logo || 'https://via.placeholder.com/150x50?text=LOGO');
+                    if (newLogo) updateAdminSetting('logo', newLogo);
+                  }}
+                >
+                  {adminSettings?.logo ? (
+                    <img 
+                      src={adminSettings.logo} 
+                      alt="Logo" 
+                      className="h-full w-full object-contain p-1" 
+                      onError={(e) => {
+                        console.error("Erreur de chargement du logo:", e);
+                        e.target.onerror = null;
+                        e.target.src = 'https://via.placeholder.com/100x100?text=LOGO';
+                      }}
+                    />
+                  ) : (
+                    <span className="text-orange-500 font-bold text-sm">LOGO</span>
+                  )}
+                </div>
+                <div>
+                  <h2 
+                    className="text-2xl font-bold text-gray-800 cursor-pointer" 
+                    onClick={() => {
+                      const newName = prompt('Entrez le nouveau nom de la plateforme:', adminSettings?.siteName || 'VOYAGES MAROC');
+                      if (newName) updateAdminSetting('siteName', newName);
+                    }}
+                  >
+                    {adminSettings?.siteName || 'VOYAGES MAROC'}
+                  </h2>
+                  <p className="text-sm text-gray-500 italic">Cliquez pour modifier le logo ou le nom</p>
+                </div>
+              </div>
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-              {/* Carte Gestion des Voyages */}
-              <div className="admin-card bg-gradient-to-br from-sky-50 to-sky-100 rounded-lg p-4 sm:p-5 shadow-md border border-sky-200 hover:shadow-lg transition-all cursor-pointer"
-                   onClick={() => setShowAdminModal({...showAdminModal, voyage: true})}>
-                <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 rounded-full bg-sky-500 flex items-center justify-center text-white">
-                    <FaPlane className="text-2xl" />
-                  </div>
+            {/* Message d'accueil personnalisable */}
+            <div 
+              className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded mb-6 cursor-pointer" 
+              onClick={() => {
+                const newMessage = prompt('Entrez votre nouveau message d\'accueil:', adminSettings?.welcomeMessage || 'Bienvenue sur le tableau de bord administrateur');
+                if (newMessage) updateAdminSetting('welcomeMessage', newMessage);
+              }}
+            >
+              <p className="text-orange-700">{adminSettings?.welcomeMessage || 'Bienvenue sur votre espace administrateur Voyages Maroc'}</p>
+              <p className="text-sm text-orange-500 mt-1 italic">Cliquez pour modifier ce message</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Bloc Notifications */}
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                    <FaBell className="mr-2 text-orange-500" />
+                    Notifications
+                  </h3>
+                  {realNotifications.loading && (
+                    <div className="text-sm text-gray-500 flex items-center">
+                      <FaSpinner className="animate-spin mr-2" />
+                      Chargement...
+                    </div>
+                  )}
                 </div>
-                <h4 className="text-center text-lg font-semibold text-sky-700 mb-2">Gestion des Voyages</h4>
-                <p className="text-center text-sm text-sky-600">
-                  Ajouter, modifier ou supprimer des voyages
-                </p>
-                <div className="flex justify-center mt-4">
-                  <button className="bg-sky-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-sky-700 transition-colors">
-                    Gérer
-                  </button>
+                <div className="p-4">
+                  {realNotifications.error ? (
+                    <div className="py-4 text-center text-red-500">
+                      <p>{realNotifications.error}</p>
+                      <p className="text-sm mt-2">Les notifications ne peuvent pas être chargées pour le moment.</p>
+                    </div>
+                  ) : adminSettings?.notifications && adminSettings.notifications.length > 0 ? (
+                    <ul className="divide-y divide-gray-200">
+                      {adminSettings.notifications.map((notif, index) => (
+                        <li key={index} className="py-3">
+                          <div className="flex items-start">
+                            <div className={`flex-shrink-0 p-1 rounded-full ${
+                              notif.type === 'success' ? 'bg-green-100' : 
+                              notif.type === 'warning' ? 'bg-yellow-100' : 
+                              notif.type === 'error' ? 'bg-red-100' : 'bg-blue-100'
+                            }`}>
+                              {notif.type === 'success' ? <FaCheck className="text-green-500" /> : 
+                               notif.type === 'warning' ? <FaExclamation className="text-yellow-500" /> :
+                               notif.type === 'error' ? <FaTimes className="text-red-500" /> :
+                               <FaInfo className="text-blue-500" />}
+                            </div>
+                            <div className="ml-3 flex-1">
+                              <p className="text-sm font-medium text-gray-800">{notif.message}</p>
+                              <p className="text-xs text-gray-500">{notif.date}</p>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : realNotifications.loading ? (
+                    <div className="py-6 text-center text-gray-500">
+                      <div className="flex justify-center mb-3">
+                        <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                      <p>Chargement des notifications...</p>
+                    </div>
+                  ) : (
+                    <div className="py-6 text-center text-gray-500">
+                      <p>Aucune notification récente</p>
+                      <p className="text-sm mt-2">Les activités importantes apparaîtront ici</p>
+                    </div>
+                  )}
                 </div>
               </div>
               
-              {/* Carte Gestion des Agences */}
-              <div className="admin-card bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 sm:p-5 shadow-md border border-purple-200 hover:shadow-lg transition-all cursor-pointer"
-                   onClick={() => setShowAdminModal({...showAdminModal, agence: true})}>
-                <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 rounded-full bg-purple-500 flex items-center justify-center text-white">
-                    <FaBuilding className="text-2xl" />
+              {/* Bloc "À faire" (Admin todo) */}
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                    <FaListUl className="mr-2 text-orange-500" />
+                    À faire
+                  </h3>
+                </div>
+                <div className="p-4">
+                  <ul className="space-y-3">
+                    {adminSettings?.todoList && adminSettings.todoList.length > 0 ? (
+                      adminSettings.todoList.map(todo => (
+                        <li key={todo.id} className="flex items-center gap-2">
+                          <input 
+                            type="checkbox" 
+                            checked={todo.completed} 
+                            onChange={() => toggleTodoCompletion(todo.id)}
+                            className="form-checkbox h-5 w-5 text-orange-500 rounded"
+                          />
+                          <span className={`flex-1 ${todo.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                            {todo.task}
+                          </span>
+                          <button 
+                            className="text-red-400 hover:text-red-600"
+                            onClick={() => setAdminSettings(prev => ({
+                              ...prev,
+                              todoList: prev.todoList.filter(item => item.id !== todo.id)
+                            }))}
+                          >
+                            <FaTimes />
+                          </button>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="py-6 text-center text-gray-500">
+                        Aucune tâche en attente
+                      </li>
+                    )}
+                  </ul>
+                  
+                  {/* Nouvelle section pour ajouter une tâche */}
+                  <div className="mt-4 pt-3 border-t border-gray-200">
+                    {/* État pour afficher/masquer le formulaire d'ajout de tâche */}
+                    {showNewTaskForm ? (
+                      <form onSubmit={(e) => {
+                        e.preventDefault();
+                        const task = e.target.elements.newTask.value.trim();
+                        if (task) {
+                          addTodoItem(task);
+                          e.target.reset();
+                          setShowNewTaskForm(false);
+                        }
+                      }} className="space-y-2">
+                        <input 
+                          type="text" 
+                          name="newTask"
+                          placeholder="Ajouter une nouvelle tâche..." 
+                          className="w-full border-gray-300 rounded focus:ring-orange-500 focus:border-orange-500"
+                          autoFocus
+                        />
+                        <div className="flex justify-end space-x-2">
+                          <button 
+                            type="button"
+                            onClick={() => setShowNewTaskForm(false)}
+                            className="px-3 py-1 text-gray-600 hover:text-gray-800"
+                          >
+                            Annuler
+                          </button>
+                          <button 
+                            type="submit"
+                            className="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600 transition-colors"
+                          >
+                            Ajouter
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="flex justify-center">
+                        <button 
+                          onClick={() => setShowNewTaskForm(true)}
+                          className="flex items-center justify-center w-full py-2 bg-gray-50 hover:bg-gray-100 text-orange-500 rounded-lg transition-colors"
+                        >
+                          <FaPlus className="mr-2" />
+                          Ajouter une tâche
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </div>
-                <h4 className="text-center text-lg font-semibold text-purple-700 mb-2">Gestion des Agences</h4>
-                <p className="text-center text-sm text-purple-600">
-                  Ajouter, modifier ou supprimer des agences
-                </p>
-                <div className="flex justify-center mt-4">
-                  <button className="bg-purple-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-purple-700 transition-colors">
-                    Gérer
-                  </button>
-                </div>
-              </div>
-              
-              {/* Carte Gestion des Activités */}
-              <div className="admin-card bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 sm:p-5 shadow-md border border-green-200 hover:shadow-lg transition-all cursor-pointer"
-                   onClick={() => setShowAdminModal({...showAdminModal, activite: true})}>
-                <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center text-white">
-                    <FaHiking className="text-2xl" />
-                  </div>
-                </div>
-                <h4 className="text-center text-lg font-semibold text-green-700 mb-2">Gestion des Activités</h4>
-                <p className="text-center text-sm text-green-600">
-                  Ajouter, modifier ou supprimer des activités
-                </p>
-                <div className="flex justify-center mt-4">
-                  <button className="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 transition-colors">
-                    Gérer
-                  </button>
                 </div>
               </div>
             </div>
@@ -772,22 +1121,6 @@ const Profile = () => {
               </p>
             )}
           </div>
-          
-          {/* Pied de page */}
-          <div className="bg-orange-50 rounded-lg shadow-sm p-4 sm:p-5 mb-4 sm:mb-6 text-center border border-orange-100">
-            <h3 className="text-base sm:text-lg font-semibold text-orange-700 mb-2 sm:mb-3">Besoin d'assistance ?</h3>
-            <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">
-              Notre équipe de service client est disponible pour vous aider avec toutes vos questions ou préoccupations.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3">
-              <button className="bg-white text-orange-600 px-3 py-2 rounded-md shadow-sm border border-orange-200 hover:bg-orange-100 transition-colors font-medium text-sm sm:text-base" data-tooltip="Contacter le service client">
-                Contactez-nous
-              </button>
-              <button className="bg-orange-600 text-white px-3 py-2 rounded-md shadow-sm hover:bg-orange-700 transition-colors font-medium text-sm sm:text-base" data-tooltip="Consulter la documentation d'aide">
-                Centre d'aide
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Modale pour ajouter/modifier le numéro de téléphone - adaptée pour mobile */}
@@ -850,326 +1183,6 @@ const Profile = () => {
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
-        
-        {/* Modales pour les actions d'administration */}
-        {showAdminModal.voyage && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 admin-modal-backdrop p-3 sm:p-0">
-            <div className="bg-white rounded-lg shadow-xl p-4 sm:p-6 w-full max-w-4xl mx-0 sm:mx-4 admin-modal-content">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg sm:text-xl font-semibold text-sky-700 flex items-center">
-                  <FaPlane className="mr-2" /> Gestion des Voyages
-                </h3>
-                <button 
-                  onClick={() => setShowAdminModal({...showAdminModal, voyage: false})}
-                  className="text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <FaTimes className="w-5 h-5" />
-                </button>
-              </div>
-              
-              <div className="mb-4 flex justify-between items-center">
-                <div>
-                  <h4 className="text-md font-medium text-gray-700">Liste des voyages disponibles</h4>
-                </div>
-                <button 
-                  onClick={() => handleAdminAction('voyage', 'ajouter')}
-                  className="flex items-center bg-sky-600 text-white px-3 py-2 rounded hover:bg-sky-700 transition-colors"
-                >
-                  <FaPlus className="mr-2" />
-                  Ajouter un voyage
-                </button>
-              </div>
-              
-              {loadingAdminData ? (
-                <div className="text-center py-8">
-                  <FaSpinner className="animate-spin text-sky-500 text-3xl mx-auto mb-2" />
-                  <p className="text-gray-500">Chargement des voyages...</p>
-                </div>
-              ) : adminData.voyages.length > 0 ? (
-                <div className="overflow-auto max-h-96">
-                  <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-                        <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Titre</th>
-                        <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destination</th>
-                        <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix</th>
-                        <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Places</th>
-                        <th className="py-2 px-4 border-b text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {adminData.voyages.map((voyage) => (
-                        <tr key={voyage._id} className="hover:bg-gray-50">
-                          <td className="py-2 px-4">
-                            {voyage.image ? (
-                              <img src={voyage.image} alt={voyage.title} className="h-12 w-16 object-cover rounded" />
-                            ) : (
-                              <div className="h-12 w-16 bg-gray-200 rounded flex items-center justify-center">
-                                <FaPlane className="text-gray-400" />
-                              </div>
-                            )}
-                          </td>
-                          <td className="py-2 px-4 font-medium text-gray-900">{voyage.title}</td>
-                          <td className="py-2 px-4 text-gray-500">{voyage.destination}</td>
-                          <td className="py-2 px-4 text-gray-500">{voyage.prix} €</td>
-                          <td className="py-2 px-4 text-gray-500">{voyage.placesDisponibles}</td>
-                          <td className="py-2 px-4">
-                            <div className="flex justify-center space-x-2">
-                              <button 
-                                onClick={() => handleAdminAction('voyage', 'voir', voyage._id)}
-                                className="text-blue-500 hover:text-blue-700"
-                                title="Voir les détails"
-                              >
-                                <FaEye />
-                              </button>
-                              <button 
-                                onClick={() => handleAdminAction('voyage', 'modifier', voyage._id)}
-                                className="text-yellow-500 hover:text-yellow-700"
-                                title="Modifier"
-                              >
-                                <FaPencilAlt />
-                              </button>
-                              <button 
-                                onClick={() => handleAdminAction('voyage', 'supprimer', voyage._id)}
-                                className="text-red-500 hover:text-red-700"
-                                title="Supprimer"
-                              >
-                                <FaTrash />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-8 bg-gray-50 rounded-lg">
-                  <p className="text-gray-500">Aucun voyage disponible.</p>
-                  <button 
-                    onClick={() => handleAdminAction('voyage', 'ajouter')}
-                    className="mt-3 inline-flex items-center text-sky-600 hover:text-sky-800"
-                  >
-                    <FaPlus className="mr-1" /> Ajouter votre premier voyage
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        
-        {showAdminModal.agence && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 admin-modal-backdrop p-3 sm:p-0">
-            <div className="bg-white rounded-lg shadow-xl p-4 sm:p-6 w-full max-w-4xl mx-0 sm:mx-4 admin-modal-content">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg sm:text-xl font-semibold text-purple-700 flex items-center">
-                  <FaBuilding className="mr-2" /> Gestion des Agences
-                </h3>
-                <button 
-                  onClick={() => setShowAdminModal({...showAdminModal, agence: false})}
-                  className="text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <FaTimes className="w-5 h-5" />
-                </button>
-              </div>
-              
-              <div className="mb-4 flex justify-between items-center">
-                <div>
-                  <h4 className="text-md font-medium text-gray-700">Liste des agences partenaires</h4>
-                </div>
-                <button 
-                  onClick={() => handleAdminAction('agence', 'ajouter')}
-                  className="flex items-center bg-purple-600 text-white px-3 py-2 rounded hover:bg-purple-700 transition-colors"
-                >
-                  <FaPlus className="mr-2" />
-                  Ajouter une agence
-                </button>
-              </div>
-              
-              {loadingAdminData ? (
-                <div className="text-center py-8">
-                  <FaSpinner className="animate-spin text-purple-500 text-3xl mx-auto mb-2" />
-                  <p className="text-gray-500">Chargement des agences...</p>
-                </div>
-              ) : adminData.agences.length > 0 ? (
-                <div className="overflow-auto max-h-96">
-                  <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Logo</th>
-                        <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
-                        <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Adresse</th>
-                        <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-                        <th className="py-2 px-4 border-b text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {adminData.agences.map((agence) => (
-                        <tr key={agence._id} className="hover:bg-gray-50">
-                          <td className="py-2 px-4">
-                            {agence.logo ? (
-                              <img src={agence.logo} alt={agence.nom} className="h-12 w-16 object-cover rounded" />
-                            ) : (
-                              <div className="h-12 w-16 bg-gray-200 rounded flex items-center justify-center">
-                                <FaBuilding className="text-gray-400" />
-                              </div>
-                            )}
-                          </td>
-                          <td className="py-2 px-4 font-medium text-gray-900">{agence.nom}</td>
-                          <td className="py-2 px-4 text-gray-500">{agence.adresse}</td>
-                          <td className="py-2 px-4 text-gray-500">{agence.telephone || agence.email}</td>
-                          <td className="py-2 px-4">
-                            <div className="flex justify-center space-x-2">
-                              <button 
-                                onClick={() => handleAdminAction('agence', 'voir', agence._id)}
-                                className="text-blue-500 hover:text-blue-700"
-                                title="Voir les détails"
-                              >
-                                <FaEye />
-                              </button>
-                              <button 
-                                onClick={() => handleAdminAction('agence', 'modifier', agence._id)}
-                                className="text-yellow-500 hover:text-yellow-700"
-                                title="Modifier"
-                              >
-                                <FaPencilAlt />
-                              </button>
-                              <button 
-                                onClick={() => handleAdminAction('agence', 'supprimer', agence._id)}
-                                className="text-red-500 hover:text-red-700"
-                                title="Supprimer"
-                              >
-                                <FaTrash />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-8 bg-gray-50 rounded-lg">
-                  <p className="text-gray-500">Aucune agence partenaire disponible.</p>
-                  <button 
-                    onClick={() => handleAdminAction('agence', 'ajouter')}
-                    className="mt-3 inline-flex items-center text-purple-600 hover:text-purple-800"
-                  >
-                    <FaPlus className="mr-1" /> Ajouter votre première agence
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        
-        {showAdminModal.activite && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 admin-modal-backdrop p-3 sm:p-0">
-            <div className="bg-white rounded-lg shadow-xl p-4 sm:p-6 w-full max-w-4xl mx-0 sm:mx-4 admin-modal-content">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg sm:text-xl font-semibold text-green-700 flex items-center">
-                  <FaHiking className="mr-2" /> Gestion des Activités
-                </h3>
-                <button 
-                  onClick={() => setShowAdminModal({...showAdminModal, activite: false})}
-                  className="text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <FaTimes className="w-5 h-5" />
-                </button>
-              </div>
-              
-              <div className="mb-4 flex justify-between items-center">
-                <div>
-                  <h4 className="text-md font-medium text-gray-700">Liste des activités disponibles</h4>
-                </div>
-                <button 
-                  onClick={() => handleAdminAction('activite', 'ajouter')}
-                  className="flex items-center bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 transition-colors"
-                >
-                  <FaPlus className="mr-2" />
-                  Ajouter une activité
-                </button>
-              </div>
-              
-              {loadingAdminData ? (
-                <div className="text-center py-8">
-                  <FaSpinner className="animate-spin text-green-500 text-3xl mx-auto mb-2" />
-                  <p className="text-gray-500">Chargement des activités...</p>
-                </div>
-              ) : adminData.activites.length > 0 ? (
-                <div className="overflow-auto max-h-96">
-                  <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
-                        <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Titre</th>
-                        <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lieu</th>
-                        <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix</th>
-                        <th className="py-2 px-4 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durée</th>
-                        <th className="py-2 px-4 border-b text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {adminData.activites.map((activite) => (
-                        <tr key={activite._id} className="hover:bg-gray-50">
-                          <td className="py-2 px-4">
-                            {activite.image ? (
-                              <img src={activite.image} alt={activite.titre} className="h-12 w-16 object-cover rounded" />
-                            ) : (
-                              <div className="h-12 w-16 bg-gray-200 rounded flex items-center justify-center">
-                                <FaHiking className="text-gray-400" />
-                              </div>
-                            )}
-                          </td>
-                          <td className="py-2 px-4 font-medium text-gray-900">{activite.titre}</td>
-                          <td className="py-2 px-4 text-gray-500">{activite.lieu}</td>
-                          <td className="py-2 px-4 text-gray-500">{activite.prix} €</td>
-                          <td className="py-2 px-4 text-gray-500">{activite.duree}</td>
-                          <td className="py-2 px-4">
-                            <div className="flex justify-center space-x-2">
-                              <button 
-                                onClick={() => handleAdminAction('activite', 'voir', activite._id)}
-                                className="text-blue-500 hover:text-blue-700"
-                                title="Voir les détails"
-                              >
-                                <FaEye />
-                              </button>
-                              <button 
-                                onClick={() => handleAdminAction('activite', 'modifier', activite._id)}
-                                className="text-yellow-500 hover:text-yellow-700"
-                                title="Modifier"
-                              >
-                                <FaPencilAlt />
-                              </button>
-                              <button 
-                                onClick={() => handleAdminAction('activite', 'supprimer', activite._id)}
-                                className="text-red-500 hover:text-red-700"
-                                title="Supprimer"
-                              >
-                                <FaTrash />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="text-center py-8 bg-gray-50 rounded-lg">
-                  <p className="text-gray-500">Aucune activité disponible.</p>
-                  <button 
-                    onClick={() => handleAdminAction('activite', 'ajouter')}
-                    className="mt-3 inline-flex items-center text-green-600 hover:text-green-800"
-                  >
-                    <FaPlus className="mr-1" /> Ajouter votre première activité
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         )}
