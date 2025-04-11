@@ -6,6 +6,8 @@ const ActivitesVoyages = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [voyagesById, setVoyagesById] = useState({}); // Pour stocker les voyages par ID
+  const [searchingVoyage, setSearchingVoyage] = useState(false); // État de chargement pour la recherche de voyage
 
   useEffect(() => {
     const fetchActivities = async () => {
@@ -33,6 +35,150 @@ const ActivitesVoyages = () => {
 
     fetchActivities();
   }, []);
+
+  // Effet pour vérifier les IDs de voyage des activités
+  useEffect(() => {
+    if (activities.length > 0) {
+      console.log('Vérification des IDs de voyage pour les activités chargées:');
+      activities.forEach((activity, index) => {
+        console.log(`Activité ${index + 1} - ${activity.name}:`, {
+          id: activity._id,
+          voyageId: activity.voyageId,
+          type: activity.type
+        });
+      });
+      
+      // Vérifier les activités sans ID de voyage
+      const activitiesWithoutVoyageId = activities.filter(a => !a.voyageId);
+      if (activitiesWithoutVoyageId.length > 0) {
+        console.warn('Activités sans ID de voyage:', activitiesWithoutVoyageId.map(a => a.name));
+      }
+    }
+  }, [activities]);
+
+  // Fonction pour trouver un voyage associé à une activité
+  const getVoyageByActivity = async (activityId) => {
+    try {
+      console.log(`Recherche du voyage pour l'activité ${activityId}...`);
+      // D'abord, essayer de récupérer l'activité pour voir si elle contient déjà le voyageId
+      const activityResponse = await axios.get(`http://localhost:5000/api/activities/${activityId}`);
+      
+      if (activityResponse.data && activityResponse.data.voyageId) {
+        // Si voyageId est un objet avec un _id
+        if (typeof activityResponse.data.voyageId === 'object' && activityResponse.data.voyageId._id) {
+          console.log(`Voyage trouvé directement depuis l'activité:`, activityResponse.data.voyageId._id);
+          return activityResponse.data.voyageId._id;
+        }
+        // Si voyageId est directement une chaîne
+        if (typeof activityResponse.data.voyageId === 'string') {
+          console.log(`Voyage trouvé directement depuis l'activité:`, activityResponse.data.voyageId);
+          return activityResponse.data.voyageId;
+        }
+      }
+      
+      // Si on n'a pas trouvé avec la méthode directe, essayer de chercher parmi tous les voyages
+      console.log('Recherche du voyage parmi tous les voyages...');
+      const response = await axios.get(`http://localhost:5000/api/voyages`);
+      
+      if (Array.isArray(response.data)) {
+        // Parcourir les voyages pour trouver celui qui contient cette activité
+        const voyage = response.data.find(v => 
+          v.activities && v.activities.some(a => {
+            // Comparer l'ID de l'activité, qu'il soit un objet ou une chaîne
+            if (typeof a === 'object' && a._id) {
+              return a._id === activityId;
+            }
+            return a === activityId;
+          })
+        );
+        
+        if (voyage) {
+          console.log(`Voyage trouvé par recherche parmi les voyages:`, voyage._id);
+          // Mettre à jour le cache des voyages
+          setVoyagesById(prev => ({
+            ...prev,
+            [activityId]: voyage._id
+          }));
+          return voyage._id;
+        } else {
+          console.warn(`Aucun voyage trouvé pour l'activité ${activityId}`);
+          return null;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error(`Erreur lors de la recherche du voyage pour l'activité ${activityId}:`, error);
+      return null;
+    }
+  };
+
+  // Fonction utilitaire pour extraire un ID valide à partir d'un objet ou d'une chaîne
+  const extractValidId = (idOrObject) => {
+    if (!idOrObject) return null;
+    
+    // Si c'est un objet avec un _id
+    if (typeof idOrObject === 'object' && idOrObject._id) {
+      return idOrObject._id.toString();
+    }
+    // Si c'est déjà une chaîne
+    if (typeof idOrObject === 'string') {
+      return idOrObject;
+    }
+    // Cas de dernier recours: essayer de convertir en chaîne
+    try {
+      return String(idOrObject);
+    } catch (e) {
+      console.error("Impossible de convertir l'ID en chaîne:", e);
+      return null;
+    }
+  };
+
+  // Fonction pour naviguer vers le voyage d'une activité
+  const navigateToVoyage = async (activity) => {
+    setSearchingVoyage(true); // Début de la recherche
+    try {
+      console.log('Activité complète:', activity);
+      console.log('Type de voyageId:', typeof activity.voyageId);
+      console.log('Valeur de voyageId:', activity.voyageId);
+      
+      // Traiter le voyageId pour s'assurer qu'il est au bon format
+      let voyageIdToUse = extractValidId(activity.voyageId);
+      
+      if (voyageIdToUse) {
+        console.log('ID du voyage à utiliser:', voyageIdToUse);
+        window.location.href = `/voyage/${voyageIdToUse}`;
+      } else if (voyagesById[activity._id]) {
+        // Si nous avons déjà trouvé ce voyage dans notre cache
+        voyageIdToUse = extractValidId(voyagesById[activity._id]);
+        console.log('Utilisation du voyageId depuis le cache:', voyageIdToUse);
+        
+        if (voyageIdToUse) {
+          window.location.href = `/voyage/${voyageIdToUse}`;
+        } else {
+          console.error('ID de voyage du cache invalide');
+          alert('ID de voyage invalide.');
+          setSearchingVoyage(false); // Fin de la recherche
+        }
+      } else {
+        // Essayer de trouver le voyage par l'activité
+        const voyageId = await getVoyageByActivity(activity._id);
+        const validVoyageId = extractValidId(voyageId);
+        
+        if (validVoyageId) {
+          console.log('Utilisation du voyageId trouvé via l\'API:', validVoyageId);
+          window.location.href = `/voyage/${validVoyageId}`;
+        } else {
+          console.error('Erreur: ID du voyage introuvable pour cette activité');
+          alert('Impossible d\'accéder aux détails du voyage. Voyage non trouvé.');
+          setSearchingVoyage(false); // Fin de la recherche
+        }
+      }
+    } catch (error) {
+      console.error('Erreur lors de la navigation vers le voyage:', error);
+      alert('Une erreur est survenue lors de la tentative d\'accès au voyage.');
+      setSearchingVoyage(false); // Fin de la recherche en cas d'erreur
+    }
+  };
 
   const formatPrice = (price) => {
     return `${price.toLocaleString()} DH`;
@@ -135,11 +281,19 @@ const ActivitesVoyages = () => {
                       Voir les détails
                     </button>
                     <button 
-                      onClick={() => window.location.href = `/activities/${activity._id}?reserver=true`}
+                      onClick={() => {
+                        console.log('ID du voyage:', activity.voyageId);
+                        navigateToVoyage(activity);
+                      }}
                       className="px-4 py-2 bg-sahara text-white rounded-full hover:bg-sahara/90 transition-colors"
-                      disabled={activity.availableSpots <= 0}
+                      disabled={searchingVoyage}
                     >
-                      Réserver
+                      {searchingVoyage ? (
+                        <>
+                          <FaSpinner className="inline-block animate-spin mr-2" />
+                          Recherche...
+                        </>
+                      ) : 'Voir le voyage'}
                     </button>
                   </div>
                 </div>
