@@ -128,11 +128,26 @@ const VoyageDetail = () => {
         console.log('Après désélection:', newSelection);
         return newSelection;
       } else {
-        const newSelection = [...prev, activity];
+        // Ajouter l'activité avec un nombre de personnes par défaut égal au nombre de personnes du voyage
+        const newSelection = [...prev, { 
+          ...activity, 
+          participantCount: formData.nombrePersonnes || 1
+        }];
         console.log('Après sélection:', newSelection);
         return newSelection;
       }
     });
+  };
+
+  // Nouvelle fonction pour gérer le changement du nombre de participants pour une activité
+  const handleActivityParticipantChange = (activityId, count) => {
+    setSelectedActivities(prev => 
+      prev.map(activity => 
+        activity._id === activityId 
+          ? { ...activity, participantCount: parseInt(count, 10) } 
+          : activity
+      )
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -164,10 +179,16 @@ const VoyageDetail = () => {
       const activitiesData = selectedActivities.map(activity => ({
         activityId: activity._id,
         name: activity.name,
-        price: activity.price
+        price: activity.price,
+        participantCount: activity.participantCount || formData.nombrePersonnes
       }));
       
-      const totalPrice = (voyage.price + selectedActivities.reduce((sum, activity) => sum + activity.price, 0)) * formData.nombrePersonnes;
+      // Calculer le prix total avec les nombres de participants spécifiques par activité
+      const activitiesTotal = selectedActivities.reduce(
+        (sum, activity) => sum + (activity.price * activity.participantCount), 0
+      );
+      
+      const totalPrice = (voyage.price * formData.nombrePersonnes) + activitiesTotal;
       
       // Construire l'objet de réservation
       const reservationData = {
@@ -515,10 +536,7 @@ const VoyageDetail = () => {
                               ? 'border-sahara border-[5px] shadow-[0_0_20px_rgba(255,140,56,0.7)] bg-orange-50 scale-[1.02]' 
                               : 'border-gray-200 hover:scale-[1.01]'
                           }`}
-                          onClick={() => {
-                            console.log('Clic sur activité détecté -', activity.name);
-                            handleActivitySelection(activity);
-                          }}
+                          onClick={() => handleActivitySelection(activity)}
                         >
                           <div className="relative">
                             <img 
@@ -539,12 +557,6 @@ const VoyageDetail = () => {
                           
                           <div className="p-4">
                             <h3 className="font-semibold text-lg mb-1">{activity.name}</h3>
-                            <div className="flex items-center mb-2">
-                              {[...Array(5)].map((_, i) => (
-                                <FaStar key={i} className="text-yellow-500 mr-0.5 text-sm" />
-                              ))}
-                              <span className="text-xs text-gray-500 ml-1">(5.0)</span>
-                            </div>
                             <p className="text-gray-600 text-sm mb-2 line-clamp-2">{activity.description}</p>
                             <div className="flex justify-between items-center mt-3">
                               <div className="flex items-center">
@@ -553,6 +565,28 @@ const VoyageDetail = () => {
                               </div>
                               <div className="font-semibold text-sahara">{activity.price} MAD</div>
                             </div>
+                            
+                            {/* Champ de saisie du nombre de participants pour l'activité */}
+                            {isSelected && (
+                              <div className="mt-3 pt-3 border-t border-gray-200">
+                                <div className="flex items-center">
+                                  <label className="text-sm text-gray-600 mr-2">Nombre de participants:</label>
+                                  <input
+                                    type="number"
+                                    value={selectedActivities.find(a => a._id === activity._id)?.participantCount || 1}
+                                    onChange={(e) => {
+                                      // Empêcher les valeurs négatives et 0
+                                      const value = Math.max(1, parseInt(e.target.value, 10) || 1);
+                                      handleActivityParticipantChange(activity._id, value);
+                                    }}
+                                    min="1"
+                                    max={voyage.availableSpots}
+                                    className="w-16 text-center px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-sahara"
+                                    onClick={(e) => e.stopPropagation()} // Empêcher la désélection de l'activité lors du clic sur l'input
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -603,13 +637,13 @@ const VoyageDetail = () => {
                       {selectedActivities.map(activity => (
                         <div key={activity._id} className="flex justify-between items-center mb-2 text-sm">
                           <span className="opacity-80">{activity.name}</span>
-                          <span>{activity.price} MAD × {formData.nombrePersonnes} = {activity.price * formData.nombrePersonnes} MAD</span>
+                          <span>{activity.price} MAD × {activity.participantCount} = {activity.price * activity.participantCount} MAD</span>
                         </div>
                       ))}
                       <div className="flex justify-between items-center pt-4 text-lg">
                         <span className="font-medium">Total activités</span>
                         <span className="font-semibold">
-                          {selectedActivities.reduce((sum, activity) => sum + activity.price, 0) * formData.nombrePersonnes} MAD
+                          {selectedActivities.reduce((sum, activity) => sum + activity.price * activity.participantCount, 0)} MAD
                         </span>
                       </div>
                     </div>
@@ -618,25 +652,24 @@ const VoyageDetail = () => {
                     <div className="pt-4">
                       <div className="flex justify-between items-center">
                         <div>
-                          <p className="font-medium">Prix total par personne</p>
-                          <p className="text-sm opacity-80">Voyage + Activités</p>
+                          <p className="font-medium">Prix du voyage</p>
+                          <p className="text-sm opacity-80">{formData.nombrePersonnes} × {voyage.price} MAD</p>
                         </div>
-                        <span className="text-2xl font-bold">
-                          {voyage.price + selectedActivities.reduce((sum, activity) => sum + activity.price, 0)} MAD
+                        <span className="text-xl font-bold">
+                          {voyage.price * formData.nombrePersonnes} MAD
                         </span>
                       </div>
-                      {formData.nombrePersonnes > 1 && (
-                        <div className="mt-4 pt-4 border-t border-white/20">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <p className="font-medium">Prix total pour {formData.nombrePersonnes} personnes</p>
-                            </div>
-                            <span className="text-2xl font-bold">
-                              {(voyage.price + selectedActivities.reduce((sum, activity) => sum + activity.price, 0)) * formData.nombrePersonnes} MAD
-                            </span>
+                      <div className="mt-4 pt-4 border-t border-white/20">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">Prix total</p>
+                            <p className="text-sm opacity-80">Voyage + Activités</p>
                           </div>
+                          <span className="text-2xl font-bold">
+                            {(voyage.price * formData.nombrePersonnes) + selectedActivities.reduce((sum, activity) => sum + activity.price * activity.participantCount, 0)} MAD
+                          </span>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </>
                 )}
