@@ -64,7 +64,7 @@ function ActivityCard({
         </div>
         
         {type === 'locale' && isWeekendOnly && (
-          <div className="absolute bottom-3 left-3 bg-blue-500/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium">
+          <div className="absolute bottom-3 left-3 bg-sahara/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium">
             Weekend
           </div>
         )}
@@ -110,7 +110,7 @@ function ActivityCard({
                       {slots.map((slot, idx) => (
                         <div key={idx} className="flex items-center justify-between text-gray-600">
                           <span>⏰ {slot.startTime} - {slot.endTime}</span>
-                          <span className="text-blue-600">💺 {slot.availableSpots} places</span>
+                          <span className="text-sahara">💺 {slot.availableSpots} places</span>
                         </div>
                       ))}
                     </div>

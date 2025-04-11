@@ -8,50 +8,13 @@ import HotelCard from "../components/HotelCard";
 import ActivityCard from "../components/ActivityCard";
 import AccommodationCard from "../components/AccommodationCard";
 
-const activities = [
-  { 
-    id: 'desert-tour',
-    name: 'Circuit des Villes Impériales',
-    image: 'https://i.pinimg.com/736x/4c/bf/1f/4cbf1f5b6e463f34bb9e71337a4a72b6.jpg',
-    voyageId: '1',
-    description: 'Explorez les médinas historiques et les monuments majestueux',
-    duration: '8+ jours',
-    price: 8900
-  },
-  { 
-    id: 'sahara-adventure',
-    name: 'Escapade dans le Sahara',
-    image: 'https://i.pinimg.com/236x/94/c2/74/94c2746c843628602c37fed233b9a72a.jpg',
-    voyageId: '2',
-    description: 'Vivez une expérience unique sous les étoiles du Sahara',
-    duration: '4-7 jours',
-    price: 6500
-  },
-  { 
-    id: 'fes-discovery',
-    name: 'Découverte de Fès',
-    image: 'https://i.pinimg.com/236x/2d/27/d1/2d27d13abdbe5c99863a189aa39e18b0.jpg',
-    voyageId: '3',
-    description: 'Immersion dans la plus ancienne médina du monde',
-    duration: '2-3 jours',
-    price: 3500
-  },
-  { 
-    id: 'atlas-trek',
-    name: 'Trek dans l\'Atlas',
-    image: 'https://i.pinimg.com/236x/0b/77/76/0b7776713ea85f3cbc97b2289e16a22d.jpg',
-    voyageId: '5',
-    description: 'Randonnée spectaculaire dans les montagnes de l\'Atlas',
-    duration: '4-7 jours',
-    price: 5500
-  }
-];
-
 const Home = () => {
   const [luxuryAccommodations, setLuxuryAccommodations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [allVoyages, setAllVoyages] = useState([]);
   const [voyagesWithAccommodation, setVoyagesWithAccommodation] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [loadingActivities, setLoadingActivities] = useState(true);
 
   useEffect(() => {
     // Fetch voyages data when component mounts
@@ -111,7 +74,25 @@ const Home = () => {
       }
     };
     
+    // Nouvelle fonction pour récupérer les activités
+    const fetchActivities = async () => {
+      try {
+        setLoadingActivities(true);
+        const response = await fetch('http://localhost:5000/api/activities');
+        const data = await response.json();
+        console.log('Activités récupérées:', data);
+        
+        // Limiter à 4 activités pour l'affichage sur la page d'accueil
+        setActivities(data.slice(0, 4));
+      } catch (error) {
+        console.error('Error fetching activities:', error);
+      } finally {
+        setLoadingActivities(false);
+      }
+    };
+    
     fetchVoyages();
+    fetchActivities(); // Appeler la fonction pour charger les activités
   }, []);
 
   return (
@@ -210,20 +191,53 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {activities.map((activity) => (
-              <ActivityCard 
-                key={activity.id}
-                id={activity.id}
-                name={activity.name}
-                image={activity.image}
-                description={activity.description}
-                duration={activity.duration}
-                price={activity.price}
-                voyageId={activity.voyageId}
-              />
-            ))}
-          </div>
+          {loadingActivities ? (
+            <div className="col-span-full text-center py-10">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-sahara"></div>
+              <p className="mt-2 text-gray-600">Chargement des activités...</p>
+            </div>
+          ) : (
+            <>
+              {activities.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {activities.map((activity) => (
+                    <ActivityCard 
+                      key={activity._id}
+                      id={activity._id}
+                      name={activity.name}
+                      image={activity.image}
+                      description={activity.description}
+                      duration={activity.duration}
+                      price={activity.price}
+                      voyageId={activity.voyageId}
+                      city={activity.city}
+                      maxParticipants={activity.maxParticipants}
+                      type={activity.type || 'locale'}
+                      isWeekendOnly={activity.isWeekendOnly}
+                      timeSlots={activity.timeSlots}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10 bg-gray-100 rounded-lg">
+                  <p className="text-gray-600">Aucune activité n'est disponible pour le moment.</p>
+                  <p className="text-gray-500 mt-2">Ajoutez des activités pour les voir apparaître ici.</p>
+                </div>
+              )}
+              
+              {/* Bouton pour voir plus d'activités si nécessaire */}
+              {activities.length > 4 && (
+                <div className="text-center mt-8">
+                  <Link 
+                    to="/activites" 
+                    className="inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-lg hover:bg-sahara/90 transition-colors"
+                  >
+                    Voir plus d'activités
+                  </Link>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </section>
 
