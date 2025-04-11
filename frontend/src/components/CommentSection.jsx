@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaUser, FaStar, FaPaperPlane, FaClock, FaTrash, FaSpinner } from 'react-icons/fa';
+import { FaUser, FaPaperPlane, FaClock, FaTrash, FaSpinner, FaCalendarAlt } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
@@ -14,7 +14,6 @@ const CommentSection = ({ voyageId }) => {
   const { user, isAuthenticated, token } = useAuth();
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
-  const [rating, setRating] = useState(5);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -29,12 +28,73 @@ const CommentSection = ({ voyageId }) => {
   const fetchComments = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${process.env.REACT_APP_API_URL}/comments/voyage/${voyageId}`);
-      setComments(response.data || []);
+      console.log("Récupération des commentaires pour le voyage ID:", voyageId);
+      
+      // S'assurer que l'ID du voyage est valide
+      if (!voyageId) {
+        console.error("ID de voyage invalide:", voyageId);
+        setError("ID de voyage invalide");
+        setLoading(false);
+        return;
+      }
+
+      const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/voyages/${voyageId}/comments`;
+      console.log("URL de l'API pour récupérer les commentaires:", apiUrl);
+      
+      // Ajouter un timeout pour s'assurer que la requête ne bloque pas indéfiniment
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 secondes timeout
+      
+      console.log("Tentative de récupération des commentaires avec axios...");
+      const response = await axios.get(apiUrl, { 
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      console.log("Réponse brute du serveur:", response);
+      console.log("Status de la réponse:", response.status);
+      console.log("Commentaires récupérés:", response.data);
+      
+      if (Array.isArray(response.data)) {
+        console.log(`${response.data.length} commentaires trouvés`);
+        setComments(response.data);
+      } else {
+        console.error("Les données reçues ne sont pas un tableau:", response.data);
+        setComments([]);
+      }
+      
       setError(null);
     } catch (err) {
       console.error('Erreur lors de la récupération des commentaires:', err);
-      setError('Impossible de charger les commentaires');
+      console.error('Message d\'erreur:', err.message);
+      if (err.response) {
+        console.error('Données de réponse d\'erreur:', err.response.data);
+        console.error('Statut d\'erreur:', err.response.status);
+        console.error('En-têtes d\'erreur:', err.response.headers);
+      }
+      setError(`Impossible de charger les commentaires: ${err.message}`);
+      
+      // Alternative : essayer de récupérer avec fetch
+      try {
+        console.log("Tentative avec l'API Fetch comme alternative...");
+        const fetchResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/voyages/${voyageId}/comments`);
+        console.log("Statut fetch:", fetchResponse.status);
+        
+        if (fetchResponse.ok) {
+          const data = await fetchResponse.json();
+          console.log("Données récupérées avec fetch:", data);
+          if (Array.isArray(data)) {
+            setComments(data);
+            setError(null);
+          }
+        } else {
+          console.error("Échec de la requête fetch:", fetchResponse.statusText);
+        }
+      } catch (fetchErr) {
+        console.error("Erreur avec fetch également:", fetchErr);
+      }
     } finally {
       setLoading(false);
     }
@@ -54,14 +114,17 @@ const CommentSection = ({ voyageId }) => {
       setSubmitting(true);
       
       const commentData = {
-        text: newComment,
-        rating,
+        content: newComment,  // Changer text en content pour correspondre au modèle de données
         voyageId,
         userId: user._id
       };
       
+      console.log("Envoi d'un nouveau commentaire:", commentData);
+      const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/voyages/${voyageId}/comments`;
+      console.log("URL de l'API pour ajouter un commentaire:", apiUrl);
+      
       const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/comments`,
+        apiUrl,
         commentData,
         {
           headers: {
@@ -71,12 +134,13 @@ const CommentSection = ({ voyageId }) => {
         }
       );
       
+      console.log("Réponse du serveur après ajout du commentaire:", response.data);
+      
       // Ajouter le nouveau commentaire à la liste
       setComments([response.data, ...comments]);
       
       // Réinitialiser le formulaire
       setNewComment('');
-      setRating(5);
       
       // Notification du commentaire ajouté
       console.log('Commentaire ajouté avec succès');
@@ -98,8 +162,11 @@ const CommentSection = ({ voyageId }) => {
     try {
       setDeleting(commentId);
       
+      const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/comments/${commentId}`;
+      console.log("URL de l'API pour supprimer un commentaire:", apiUrl);
+      
       await axios.delete(
-        `${process.env.REACT_APP_API_URL}/comments/${commentId}`,
+        apiUrl,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -131,26 +198,6 @@ const CommentSection = ({ voyageId }) => {
       {isAuthenticated ? (
         <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-3">Ajouter un commentaire</h3>
-          
-          {/* Sélection d'étoiles pour la note */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Votre note</label>
-            <div className="flex items-center">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => setRating(star)}
-                  className="focus:outline-none p-1"
-                >
-                  <FaStar 
-                    className={`text-xl ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`} 
-                  />
-                </button>
-              ))}
-              <span className="ml-2 text-sm text-gray-600">{rating}/5</span>
-            </div>
-          </div>
           
           {/* Champ de texte du commentaire */}
           <div className="mb-4">
@@ -228,34 +275,19 @@ const CommentSection = ({ voyageId }) => {
                       )}
                     </div>
                     <div className="ml-3">
-                      <h4 className="font-medium text-gray-800">
-                        {comment.user?.firstName} {comment.user?.lastName}
+                      <h4 className="font-medium text-gray-800 text-base">
+                        {comment.user?.firstName || comment.userName || 'Utilisateur'}
                       </h4>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <FaClock className="mr-1" />
-                        <span>{formatDate(comment.createdAt)}</span>
-                      </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <FaStar
-                          key={i}
-                          className={`${
-                            i < comment.rating ? 'text-yellow-400' : 'text-gray-300'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    
+                  <div className="flex flex-col items-end">
                     {/* Bouton de suppression (visible uniquement pour l'auteur) */}
                     {isAuthenticated && user?._id === comment.user?._id && (
                       <button
                         onClick={() => handleDelete(comment._id)}
                         disabled={deleting === comment._id}
-                        className="ml-4 text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
+                        className="text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50"
                         title="Supprimer ce commentaire"
                       >
                         {deleting === comment._id ? (
@@ -265,11 +297,17 @@ const CommentSection = ({ voyageId }) => {
                         )}
                       </button>
                     )}
+                    <div className="text-sm text-gray-500 mt-1">
+                      <div className="flex items-center">
+                        <FaCalendarAlt className="text-sahara mr-1 text-xs" />
+                        <span className="text-xs">{formatDate(comment.createdAt)}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
                 <div className="mt-3 text-gray-700">
-                  <p>{comment.text}</p>
+                  <p>{comment.content || comment.text || 'Aucun contenu'}</p>
                 </div>
               </div>
             ))}

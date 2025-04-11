@@ -564,7 +564,7 @@ router.get('/admin/all', adminAuth, async (req, res) => {
     
     // Récupérer toutes les réservations avec les informations associées
     const reservations = await Reservation.find()
-      .populate('user', 'name email')
+      .populate('user', 'username firstName lastName email phone')
       .populate('voyage', 'title destination price duration image')
       .populate('activite', 'name city price duration image')
       .sort({ dateReservation: -1 });

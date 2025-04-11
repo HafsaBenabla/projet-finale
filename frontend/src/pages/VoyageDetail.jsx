@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaMapMarkerAlt, FaClock, FaInfoCircle, FaWalking, FaCalendarCheck, FaCheck, FaBuilding, FaComment, FaListUl, FaHiking, FaMapSigns, FaStar } from 'react-icons/fa';
 import ActivitySelectionCard from '../components/ActivitySelectionCard';
@@ -9,18 +9,18 @@ import VoyageComments from '../components/VoyageComments';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import CommentSection from '../components/CommentSection';
-import { formatDate } from '../utils/format';
 import axios from 'axios';
 
 const VoyageDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { refreshVoyages, loading, error, voyage, fetchVoyage } = useVoyages();
+  const { loading, error } = useVoyages();
   const { user, token, isAuthenticated } = useAuth();
   const commentsRef = useRef(null);
   
-  // Ajout d'un state pour suivre le compteur de commentaires
+  // Ajout d'un state pour le voyage et le compteur de commentaires
+  const [voyage, setVoyage] = useState(null);
   const [commentCount, setCommentCount] = useState(0);
 
   const [formData, setFormData] = useState({
@@ -31,7 +31,14 @@ const VoyageDetail = () => {
     dateDepart: ''
   });
 
+  // Modification temporaire pour tester
   const [selectedActivities, setSelectedActivities] = useState([]);
+  
+  // Ajout d'un useEffect pour déboguer les changements d'état
+  useEffect(() => {
+    console.log('selectedActivities a changé:', selectedActivities);
+  }, [selectedActivities]);
+
   const [reservationStatus, setReservationStatus] = useState(null);
 
   // Ajout d'un state pour les activités disponibles
@@ -39,22 +46,38 @@ const VoyageDetail = () => {
 
   const [loadingSubmit, setLoadingSubmit] = useState(false);
 
-  useEffect(() => {
-    fetchVoyage(id);
-  }, [id, fetchVoyage]);
+  // Fonction pour récupérer les détails du voyage
+  const fetchVoyageDetails = async () => {
+    try {
+      const response = await axios.get(`http://localhost:5000/api/voyages/${id}`);
+      setVoyage(response.data);
+      
+      if (response.data && response.data.activities && response.data.activities.length > 0) {
+        setAvailableActivities(response.data.activities);
+      }
+      
+      setCommentCount(response.data.commentCount || 0);
+    } catch (err) {
+      console.error("Erreur lors de la récupération du voyage:", err);
+    }
+  };
 
   useEffect(() => {
-    if (voyage && voyage.activities && voyage.activities.length > 0) {
-      setAvailableActivities(voyage.activities);
-    }
-  }, [voyage]);
+    fetchVoyageDetails();
+  }, [id]);
 
   useEffect(() => {
     if (user) {
       setFormData(prev => ({
         ...prev,
-        nom: user.firstName + ' ' + user.lastName,
-        email: user.email,
+        nom: user.firstName && user.lastName 
+          ? `${user.firstName} ${user.lastName}` 
+          : user.firstName 
+            ? user.firstName 
+            : user.lastName 
+              ? user.lastName 
+              : '',
+        email: user.email || '',
         telephone: user.phone || ''
       }));
     }
@@ -75,17 +98,11 @@ const VoyageDetail = () => {
     }
   }, [loading, location.hash]);
   
-  // Calculer le prix total
-  const calculateTotalPrice = () => {
-    const activitiesPrice = selectedActivities.reduce((sum, activity) => sum + activity.price, 0);
-    return voyage.price * formData.nombrePersonnes + activitiesPrice * formData.nombrePersonnes;
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
     // Vérifier si le nombre de personnes ne dépasse pas le nombre de places disponibles
-    if (name === 'nombrePersonnes') {
+    if (name === 'nombrePersonnes' && voyage) {
       const nombrePersonnes = parseInt(value, 10);
       if (nombrePersonnes > voyage.availableSpots) {
         return; // Ne pas mettre à jour si la valeur dépasse le nombre de places disponibles
@@ -99,12 +116,21 @@ const VoyageDetail = () => {
   };
 
   const handleActivitySelection = (activity) => {
+    console.log('Clic sur activité:', activity.name);
+    console.log('État actuel selectedActivities:', selectedActivities);
+    
     setSelectedActivities(prev => {
       const isSelected = prev.some(a => a._id === activity._id);
+      console.log('Cette activité est-elle déjà sélectionnée?', isSelected);
+      
       if (isSelected) {
-        return prev.filter(a => a._id !== activity._id);
+        const newSelection = prev.filter(a => a._id !== activity._id);
+        console.log('Après désélection:', newSelection);
+        return newSelection;
       } else {
-        return [...prev, activity];
+        const newSelection = [...prev, activity];
+        console.log('Après sélection:', newSelection);
+        return newSelection;
       }
     });
   };
@@ -163,7 +189,7 @@ const VoyageDetail = () => {
       
       // Envoyer la réservation
       const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/reservations`,
+        'http://localhost:5000/api/reservations',
         reservationData,
         {
           headers: {
@@ -207,38 +233,7 @@ const VoyageDetail = () => {
     }
   };
 
-  // Gestionnaire pour mettre à jour le compteur de commentaires
-  const handleCommentAdded = async (action = 'add') => {
-    try {
-      // Déterminer si on incrémente ou décrémente le compteur
-      const increment = action === 'add' ? 1 : -1;
-      
-      // Mettre à jour le compteur directement pour une réponse immédiate de l'interface
-      setCommentCount(prevCount => Math.max(0, prevCount + increment));
-      
-      // Mettre à jour les données du voyage
-      if (voyage) {
-        const newCount = Math.max(0, (voyage.commentCount || 0) + increment);
-        setVoyage({
-          ...voyage,
-          commentCount: newCount
-        });
-      }
-      
-      // Facultativement, récupérer le nombre exact de commentaires depuis le serveur
-      const response = await fetch(`http://localhost:5000/api/voyages/${id}`);
-      if (response.ok) {
-        const updatedVoyage = await response.json();
-        setCommentCount(updatedVoyage.commentCount || 0);
-        setVoyage(updatedVoyage);
-      }
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour du nombre de commentaires:", error);
-      // En cas d'erreur, on garde au moins l'incrémentation/décrémentation locale
-    }
-  };
-
-  if (loading) return <LoadingSpinner />;
+  if (loading && !voyage) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error} />;
   if (!voyage) return <ErrorMessage message="Voyage non trouvé" />;
 
@@ -508,11 +503,6 @@ const VoyageDetail = () => {
               
               {availableActivities && availableActivities.length > 0 ? (
                 <div className="space-y-6">
-                  <p className="text-gray-600 mb-4">
-                    Cliquez sur une activité pour l'ajouter à votre voyage. Cliquez à nouveau pour la retirer.
-                    <span className="block mt-1 text-sm italic">Les activités sélectionnées seront ajoutées au prix total du voyage.</span>
-                  </p>
-                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {availableActivities.map(activity => {
                       const isSelected = selectedActivities.some(a => a._id === activity._id);
@@ -520,12 +510,15 @@ const VoyageDetail = () => {
                       return (
                         <div 
                           key={activity._id} 
-                          className={`border rounded-lg overflow-hidden shadow-sm transition-all cursor-pointer hover:shadow-md ${
+                          className={`border rounded-lg overflow-hidden shadow-sm transition-all duration-300 transform cursor-pointer hover:shadow-md ${
                             isSelected 
-                              ? 'border-sahara border-2 ring-2 ring-sahara/30' 
-                              : 'border-gray-200'
+                              ? 'border-sahara border-[5px] shadow-[0_0_20px_rgba(255,140,56,0.7)] bg-orange-50 scale-[1.02]' 
+                              : 'border-gray-200 hover:scale-[1.01]'
                           }`}
-                          onClick={() => handleActivitySelection(activity)}
+                          onClick={() => {
+                            console.log('Clic sur activité détecté -', activity.name);
+                            handleActivitySelection(activity);
+                          }}
                         >
                           <div className="relative">
                             <img 
@@ -538,7 +531,7 @@ const VoyageDetail = () => {
                               }}
                             />
                             {isSelected && (
-                              <div className="absolute top-2 right-2 bg-sahara text-white text-xs px-2 py-1 rounded-full font-semibold">
+                              <div className="absolute top-2 right-2 bg-sahara text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-lg animate-pulse">
                                 Sélectionnée
                               </div>
                             )}
@@ -546,6 +539,12 @@ const VoyageDetail = () => {
                           
                           <div className="p-4">
                             <h3 className="font-semibold text-lg mb-1">{activity.name}</h3>
+                            <div className="flex items-center mb-2">
+                              {[...Array(5)].map((_, i) => (
+                                <FaStar key={i} className="text-yellow-500 mr-0.5 text-sm" />
+                              ))}
+                              <span className="text-xs text-gray-500 ml-1">(5.0)</span>
+                            </div>
                             <p className="text-gray-600 text-sm mb-2 line-clamp-2">{activity.description}</p>
                             <div className="flex justify-between items-center mt-3">
                               <div className="flex items-center">
@@ -559,29 +558,6 @@ const VoyageDetail = () => {
                       );
                     })}
                   </div>
-                  
-                  {selectedActivities.length > 0 && (
-                    <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <h3 className="font-semibold text-lg mb-3">Activités sélectionnées</h3>
-                      <ul className="space-y-2 mb-3">
-                        {selectedActivities.map(activity => (
-                          <li key={activity._id} className="flex justify-between items-center">
-                            <div className="flex items-center">
-                              <FaCheck className="text-green-500 mr-2" />
-                              <span>{activity.name}</span>
-                            </div>
-                            <span className="font-medium">{activity.price} MAD</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
-                        <span className="font-medium">Total activités:</span>
-                        <span className="font-bold text-sahara">
-                          {selectedActivities.reduce((sum, activity) => sum + activity.price, 0)} MAD
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="text-center py-6 text-gray-500">
@@ -675,39 +651,6 @@ const VoyageDetail = () => {
               </h2>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Affichage des activités sélectionnées */}
-                {selectedActivities.length > 0 && (
-                  <div className="p-4 bg-gray-50 rounded-lg mb-4">
-                    <h3 className="font-medium text-gray-700 mb-2">Activités incluses dans votre réservation:</h3>
-                    <ul className="space-y-1 text-sm">
-                      {selectedActivities.map(activity => (
-                        <li key={activity._id} className="flex justify-between">
-                          <span>{activity.name}</span>
-                          <span className="font-medium">{activity.price} MAD × {formData.nombrePersonnes} = {activity.price * formData.nombrePersonnes} MAD</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between text-sm">
-                      <span className="font-medium">Total activités:</span>
-                      <span className="font-bold text-sahara">
-                        {selectedActivities.reduce((sum, activity) => sum + activity.price, 0) * formData.nombrePersonnes} MAD
-                      </span>
-                    </div>
-                    <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between">
-                      <span className="font-medium">Prix total par personne:</span>
-                      <span className="font-bold text-sahara">
-                        {voyage.price + selectedActivities.reduce((sum, activity) => sum + activity.price, 0)} MAD
-                      </span>
-                    </div>
-                    <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between">
-                      <span className="font-medium">Prix total pour {formData.nombrePersonnes} personne(s):</span>
-                      <span className="font-bold text-sahara">
-                        {(voyage.price + selectedActivities.reduce((sum, activity) => sum + activity.price, 0)) * formData.nombrePersonnes} MAD
-                      </span>
-                    </div>
-                  </div>
-                )}
-
                 <div className="space-y-4">
                   <div>
                     <label className="block text-gray-700 font-medium mb-2" htmlFor="nom">

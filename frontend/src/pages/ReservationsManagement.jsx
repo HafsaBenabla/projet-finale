@@ -115,7 +115,9 @@ const ReservationsManagement = () => {
   const filteredReservations = reservations
     .filter(res => {
       // Apply search term filter
-      const searchString = `${res.user?.name || ''} ${res.user?.email || ''} ${
+      const searchString = `${res.clientInfo?.firstName || ''} ${res.clientInfo?.lastName || ''} ${
+        res.user?.username || ''} ${res.user?.firstName || ''} ${res.user?.lastName || ''} ${
+        res.user?.email || ''} ${res.clientInfo?.email || ''} ${
         res.voyage?.title || ''} ${res.voyage?.destination || ''} ${
         res.activite?.name || ''} ${res.activite?.city || ''}`.toLowerCase();
       
@@ -372,10 +374,12 @@ const ReservationsManagement = () => {
                           </td>
                           <td className="py-3 px-4 text-sm">
                             <div className="text-gray-900">
-                              {reservation.user?.name || 'Utilisateur inconnu'}
+                              {reservation.clientInfo?.firstName && reservation.clientInfo?.lastName ? 
+                                `${reservation.clientInfo.firstName} ${reservation.clientInfo.lastName}` : 
+                                reservation.user?.username || 'Utilisateur inconnu'}
                             </div>
                             <div className="text-gray-500 text-xs">
-                              {reservation.user?.email || ''}
+                              {reservation.clientInfo?.email || reservation.user?.email || ''}
                             </div>
                           </td>
                           <td className="py-3 px-4 text-sm">
