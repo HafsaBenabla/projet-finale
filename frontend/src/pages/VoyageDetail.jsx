@@ -182,6 +182,21 @@ const VoyageDetail = () => {
           throw new Error('Voyage non trouvé');
         }
         const data = await response.json();
+        console.log('Détails du voyage reçus:', data);
+        
+        // Log spécifique pour les informations d'hébergement
+        console.log('Informations d\'hébergement:', {
+          hebergement: data.hebergement,
+          hebergementImage: data.hebergementImage,
+          typeHebergement: data.typeHebergement,
+          descriptionHebergement: data.descriptionHebergement
+        });
+        
+        // Si les données d'hébergement sont manquantes, on les initialise avec des valeurs par défaut
+        if (!data.hebergement) {
+          data.hebergement = "Hébergement standard";
+        }
+        
         setVoyage(data);
         setCommentCount(data.commentCount || 0);
         
@@ -459,31 +474,40 @@ const VoyageDetail = () => {
                   <h3 className="text-xl font-semibold mb-3 text-sahara">Hébergement</h3>
                   {voyage.hebergement ? (
                     <div className="space-y-4">
-                      <div className="flex items-start gap-4">
+                      <div className="flex flex-col items-center gap-4">
                         {voyage.hebergementImage && (
                           <img 
                             src={voyage.hebergementImage?.startsWith('http') 
                               ? voyage.hebergementImage 
                               : `http://localhost:5000${voyage.hebergementImage}`} 
                             alt={voyage.hebergement}
-                            className="w-20 h-20 object-cover rounded-lg"
+                            className="w-full h-48 object-cover rounded-lg shadow-md"
                             onError={(e) => {
                               e.target.onerror = null;
                               e.target.src = 'https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg';
                             }}
                           />
                         )}
-                        <div>
-                          <h4 className="font-medium text-gray-900">{voyage.hebergement}</h4>
+                        <div className="text-center w-full">
+                          <h4 className="font-medium text-xl text-gray-900">{voyage.hebergement}</h4>
                           <p className="text-sm text-gray-600 mt-1">{voyage.typeHebergement || 'Hébergement standard'}</p>
                         </div>
                       </div>
-                      {voyage.descriptionHebergement && (
-                        <p className="text-gray-700 text-sm">{voyage.descriptionHebergement}</p>
-                      )}
                     </div>
                   ) : (
-                    <p className="text-gray-600">Information sur l'hébergement non disponible</p>
+                    <div className="space-y-4">
+                      <div className="flex flex-col items-center gap-4">
+                        <img 
+                          src="https://images.pexels.com/photos/271624/pexels-photo-271624.jpeg"
+                          alt="Hébergement standard"
+                          className="w-full h-48 object-cover rounded-lg shadow-md"
+                        />
+                        <div className="text-center w-full">
+                          <h4 className="font-medium text-xl text-gray-900">Hébergement inclus</h4>
+                          <p className="text-sm text-gray-600 mt-1">Logement confortable pendant votre séjour</p>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
                 

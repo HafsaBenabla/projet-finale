@@ -233,13 +233,37 @@ router.get('/:id/reaction', debugReactionMiddleware, async (req, res) => {
 // Route pour obtenir un voyage par son ID
 router.get('/:id', async (req, res) => {
     try {
+        console.log('Récupération du voyage ID:', req.params.id);
         const voyage = await Voyage.findById(req.params.id).populate('activities');
         
         if (!voyage) {
             return res.status(404).json({ message: 'Voyage non trouvé' });
         }
         
-        res.json(voyage);
+        // Convertir le document Mongoose en objet JavaScript
+        const voyageObj = voyage.toObject();
+        
+        // S'assurer que les champs d'hébergement existent
+        if (!voyageObj.hebergement) {
+            voyageObj.hebergement = "Hébergement standard";
+        }
+        
+        if (!voyageObj.typeHebergement) {
+            voyageObj.typeHebergement = "Hôtel confortable";
+        }
+        
+        if (!voyageObj.descriptionHebergement) {
+            voyageObj.descriptionHebergement = "Hébergement confortable sélectionné pour votre confort pendant le voyage.";
+        }
+        
+        // Logs pour le débogage
+        console.log('Informations d\'hébergement formatées:', {
+            hebergement: voyageObj.hebergement,
+            typeHebergement: voyageObj.typeHebergement,
+            descriptionHebergement: voyageObj.descriptionHebergement
+        });
+        
+        res.json(voyageObj);
     } catch (error) {
         console.error('Erreur lors de la récupération du voyage:', error);
         res.status(500).json({ message: error.message });

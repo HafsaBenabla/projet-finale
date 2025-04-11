@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaClock, FaCheck, FaSpinner, FaUser, FaEnvelope, FaPhone } from 'react-icons/fa';
+import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaClock, FaCheck, FaSpinner, FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -525,258 +525,60 @@ const ActivityDetail = () => {
 
             {/* Formulaire de réservation intégré dans la page */}
             <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-semibold mb-6">Réserver cette activité</h2>
+              <h2 className="text-2xl font-semibold mb-6">Détails supplémentaires</h2>
               
-              {reservationSuccess ? (
-                <div className="bg-green-50 text-green-700 p-6 rounded-lg text-center">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">Réservation confirmée !</h3>
-                  <p className="mb-1">Votre réservation pour {activity.name} a été effectuée avec succès.</p>
-                  <p>Un email de confirmation a été envoyé à {clientInfo.email}.</p>
-                  <button 
-                    onClick={() => setReservationSuccess(false)}
-                    className="mt-4 px-4 py-2 bg-sahara text-white rounded-full hover:bg-sahara/90 transition-colors"
-                  >
-                    Faire une autre réservation
-                  </button>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 text-gray-700">
+                  <FaMapMarkerAlt className="text-sahara flex-shrink-0" />
+                  <span>Lieu: {activity.city}</span>
                 </div>
-              ) : (
-                <form onSubmit={handleReservationSubmit}>
-                  {reservationError && (
-                    <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6">
-                      {reservationError}
-                    </div>
-                  )}
+                
+                <div className="flex items-center gap-3 text-gray-700">
+                  <FaClock className="text-sahara flex-shrink-0" />
+                  <span>Durée: {formatDuration(activity.duration)}</span>
+                </div>
+                
+                <div className="flex items-center gap-3 text-gray-700">
+                  <FaUsers className="text-sahara flex-shrink-0" />
+                  <span>Taille du groupe: {activity.maxParticipants} personnes maximum</span>
+                </div>
+                
+                <div className="flex items-center gap-3 text-gray-700">
+                  <FaMoneyBillWave className="text-sahara flex-shrink-0" />
+                  <span>Prix: {activity.price.toLocaleString()} DH par personne</span>
+                </div>
+                
+                {activity.category && (
+                  <div className="flex items-center gap-3 text-gray-700">
+                    <FaCheck className="text-sahara flex-shrink-0" />
+                    <span>Catégorie: {activity.category}</span>
+                  </div>
+                )}
+              </div>
+            </div>
 
-                  {!hasAvailableSlots ? (
-                    <div className="bg-orange-50 text-orange-700 p-4 rounded-lg mb-6">
-                      {activity.type === 'locale' 
-                        ? "Aucun créneau disponible pour cette activité." 
-                        : "Cette activité est complète."}
-                    </div>
-                  ) : (
-                    <>
-                      {/* Affichage du créneau sélectionné pour les activités locales */}
-                      {activity.type === 'locale' && (
-                        <div className="mb-6">
-                          <label className="block text-gray-700 font-medium mb-2">
-                            <div className="flex items-center gap-2">
-                              <FaCalendarAlt className="text-sahara" />
-                              Date et heure de l'activité
-                            </div>
-                          </label>
-                          
-                          {selectedTimeSlot ? (
-                            <div className="bg-sahara/10 p-4 rounded-lg">
-                              <div className="flex flex-col">
-                                <div className="mb-2">
-                                  <span className="font-medium">Date : </span>
-                                  <span>{formatDate(selectedTimeSlot.date)}</span>
-                                </div>
-                                <div>
-                                  <span className="font-medium">Horaire : </span>
-                                  <span>{selectedTimeSlot.startTime} - {selectedTimeSlot.endTime}</span>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="border border-orange-300 bg-orange-50 text-orange-700 p-4 rounded-lg">
-                              Veuillez sélectionner un créneau horaire parmi les créneaux disponibles.
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      {/* Date de départ pour les activités de voyage */}
-                      {activity.type === 'voyage' && (
-                        <div className="mb-6">
-                          <label className="block text-gray-700 font-medium mb-2">
-                            <div className="flex items-center gap-2">
-                              <FaCalendarAlt className="text-sahara" />
-                              Date de départ
-                            </div>
-                          </label>
-                          <input
-                            type="date"
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sahara"
-                            required
-                            min={new Date().toISOString().split('T')[0]}
-                          />
-                        </div>
-                      )}
-
-                      {/* Nombre de personnes */}
-                      <div className="mb-6">
-                        <label className="block text-gray-700 font-medium mb-2">
-                          <div className="flex items-center gap-2">
-                            <FaUsers className="text-sahara" />
-                            Nombre de personnes
-                          </div>
-                        </label>
-                        
-                        <div className="flex items-center">
-                          <button 
-                            type="button"
-                            className="px-4 py-2 border border-gray-300 rounded-l-lg text-xl"
-                            onClick={() => handleNumberOfPersonsChange(-1)}
-                          >
-                            -
-                          </button>
-                          <div className="px-6 py-2 border-t border-b border-gray-300 text-center min-w-[60px]">
-                            {clientInfo.numberOfPersons}
-                          </div>
-                          <button 
-                            type="button"
-                            className="px-4 py-2 border border-gray-300 rounded-r-lg text-xl"
-                            onClick={() => handleNumberOfPersonsChange(1)}
-                          >
-                            +
-                          </button>
-                        </div>
-
-                        <div className="mt-2 text-sm text-gray-600">
-                          {activity.type === 'locale' 
-                            ? selectedTimeSlot
-                              ? `Places disponibles: ${selectedTimeSlot.availableSpots}`
-                              : "Veuillez sélectionner un créneau horaire"
-                            : `Places disponibles: ${activity.availableSpots || 0}`}
-                        </div>
-                        
-                        {/* Affichage des places restantes après réservation */}
-                        {(activity.type === 'locale' && selectedTimeSlot && clientInfo.numberOfPersons > 0) && (
-                          <div className="mt-1 text-sm font-medium">
-                            Places restantes après réservation: 
-                            <span className={`ml-1 ${selectedTimeSlot.availableSpots - clientInfo.numberOfPersons < 3 ? 'text-orange-600' : 'text-green-600'}`}>
-                              {selectedTimeSlot.availableSpots - clientInfo.numberOfPersons}
-                            </span>
-                          </div>
-                        )}
-                        
-                        {(activity.type === 'voyage' && activity.availableSpots && clientInfo.numberOfPersons > 0) && (
-                          <div className="mt-1 text-sm font-medium">
-                            Places restantes après réservation:
-                            <span className={`ml-1 ${activity.availableSpots - clientInfo.numberOfPersons < 3 ? 'text-orange-600' : 'text-green-600'}`}>
-                              {activity.availableSpots - clientInfo.numberOfPersons}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Champs pour les informations personnelles */}
-                      <div className="grid grid-cols-2 gap-4 mb-6">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            <div className="flex items-center gap-1">
-                              <FaUser className="text-sahara text-xs" />
-                              Prénom*
-                            </div>
-                          </label>
-                          <input
-                            type="text"
-                            name="firstName"
-                            value={clientInfo.firstName}
-                            onChange={handleClientInfoChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sahara"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            <div className="flex items-center gap-1">
-                              <FaUser className="text-sahara text-xs" />
-                              Nom*
-                            </div>
-                          </label>
-                          <input
-                            type="text"
-                            name="lastName"
-                            value={clientInfo.lastName}
-                            onChange={handleClientInfoChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sahara"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          <div className="flex items-center gap-1">
-                            <FaEnvelope className="text-sahara text-xs" />
-                            Email*
-                          </div>
-                        </label>
-                        <input
-                          type="email"
-                          name="email"
-                          value={clientInfo.email}
-                          onChange={handleClientInfoChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sahara"
-                          required
-                        />
-                      </div>
-
-                      <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          <div className="flex items-center gap-1">
-                            <FaPhone className="text-sahara text-xs" />
-                            Téléphone*
-                          </div>
-                        </label>
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={clientInfo.phone}
-                          onChange={handleClientInfoChange}
-                          placeholder="+212 XXXXXXXXX"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sahara"
-                          required
-                        />
-                      </div>
-
-                      {/* Prix total */}
-                      <div className="bg-sahara/10 rounded-lg p-4 mb-6">
-                        <div className="flex justify-between items-center text-lg font-semibold">
-                          <span>Prix total</span>
-                          <span className="text-sahara">{activity.price * clientInfo.numberOfPersons} DH</span>
-                        </div>
-                        <div className="text-sm text-gray-500 mt-1">
-                          {activity.price} DH x {clientInfo.numberOfPersons} {clientInfo.numberOfPersons > 1 ? 'personnes' : 'personne'}
-                        </div>
-                      </div>
-
-                      <button 
-                        type="submit"
-                        disabled={isSubmitting || !isAuthenticated || !hasAvailableSlots || (activity.type === 'locale' && !selectedTimeSlot)}
-                        className={`w-full py-3 rounded-xl font-semibold transition-colors ${
-                          isSubmitting || !isAuthenticated || !hasAvailableSlots || (activity.type === 'locale' && !selectedTimeSlot)
-                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : 'bg-sahara text-white hover:bg-sahara/90'
-                        }`}
-                      >
-                        {isSubmitting ? 'Réservation en cours...' : 'Confirmer la réservation'}
-                      </button>
-                      
-                      {!isAuthenticated && (
-                        <p className="text-sm text-center mt-4 text-red-600">
-                          Vous devez être connecté pour effectuer une réservation.
-                        </p>
-                      )}
-                      
-                      {activity.type === 'locale' && !selectedTimeSlot && hasAvailableSlots && isAuthenticated && (
-                        <p className="text-sm text-center mt-4 text-orange-600">
-                          Veuillez sélectionner un créneau horaire pour continuer.
-                        </p>
-                      )}
-                    </>
-                  )}
-                </form>
-              )}
+            {/* Section sur l'activité */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-semibold mb-6">À propos de cette activité</h2>
+              
+              <div className="space-y-4">
+                <p className="text-gray-700">{activity.description}</p>
+                
+                <div className="flex items-center mt-4">
+                  <FaMapMarkerAlt className="text-sahara mr-2" />
+                  <span className="text-gray-700">{activity.city}</span>
+                </div>
+                
+                <div className="flex items-center">
+                  <FaClock className="text-sahara mr-2" />
+                  <span className="text-gray-700">{formatDuration(activity.duration)}</span>
+                </div>
+                
+                <div className="flex items-center">
+                  <FaUsers className="text-sahara mr-2" />
+                  <span className="text-gray-700">Max {activity.maxParticipants} participants</span>
+                </div>
+              </div>
             </div>
           </div>
 
