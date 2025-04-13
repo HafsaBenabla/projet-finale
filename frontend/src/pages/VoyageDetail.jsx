@@ -107,6 +107,16 @@ const VoyageDetail = () => {
       if (nombrePersonnes > voyage.availableSpots) {
         return; // Ne pas mettre à jour si la valeur dépasse le nombre de places disponibles
       }
+      
+      // Si le nombre de personnes diminue, ajuster le nombre de participants des activités
+      if (nombrePersonnes < formData.nombrePersonnes) {
+        setSelectedActivities(prev => 
+          prev.map(activity => ({
+            ...activity,
+            participantCount: Math.min(activity.participantCount, nombrePersonnes)
+          }))
+        );
+      }
     }
     
     setFormData(prev => ({
@@ -141,10 +151,14 @@ const VoyageDetail = () => {
 
   // Nouvelle fonction pour gérer le changement du nombre de participants pour une activité
   const handleActivityParticipantChange = (activityId, count) => {
+    // S'assurer que le nombre de participants ne dépasse pas le nombre de personnes du voyage
+    const maxParticipants = formData.nombrePersonnes;
+    const safeCount = Math.min(parseInt(count, 10), maxParticipants);
+    
     setSelectedActivities(prev => 
       prev.map(activity => 
         activity._id === activityId 
-          ? { ...activity, participantCount: parseInt(count, 10) } 
+          ? { ...activity, participantCount: safeCount } 
           : activity
       )
     );
@@ -580,10 +594,18 @@ const VoyageDetail = () => {
                                       handleActivityParticipantChange(activity._id, value);
                                     }}
                                     min="1"
-                                    max={voyage.availableSpots}
+                                    max={formData.nombrePersonnes}
                                     className="w-16 text-center px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-sahara"
                                     onClick={(e) => e.stopPropagation()} // Empêcher la désélection de l'activité lors du clic sur l'input
+                                    onKeyDown={(e) => {
+                                      // Empêcher la saisie de valeurs supérieures au max
+                                      const newValue = e.target.value + e.key;
+                                      if (!isNaN(newValue) && parseInt(newValue, 10) > formData.nombrePersonnes) {
+                                        e.preventDefault();
+                                      }
+                                    }}
                                   />
+                                  <span className="ml-2 text-xs text-gray-500">/ {formData.nombrePersonnes} max</span>
                                 </div>
                               </div>
                             )}
