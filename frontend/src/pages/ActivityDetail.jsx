@@ -497,6 +497,161 @@ const ActivityDetail = () => {
                     );
                   })}
                 </div>
+                
+                {/* Formulaire de réservation qui apparaît lorsqu'un créneau est sélectionné */}
+                {selectedTimeSlot && (
+                  <div className="mt-8 border-t border-gray-200 pt-6">
+                    <h3 className="text-xl font-semibold mb-4">Réserver ce créneau</h3>
+                    
+                    {reservationSuccess ? (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-800">
+                        <h4 className="font-semibold text-lg mb-2">Réservation confirmée !</h4>
+                        <p>Votre réservation a été enregistrée avec succès. Vous recevrez bientôt un email de confirmation.</p>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleReservationSubmit} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-gray-700 mb-2" htmlFor="firstName">Prénom</label>
+                            <input 
+                              type="text" 
+                              id="firstName" 
+                              name="firstName"
+                              value={clientInfo.firstName}
+                              onChange={handleClientInfoChange}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sahara"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-gray-700 mb-2" htmlFor="lastName">Nom</label>
+                            <input 
+                              type="text" 
+                              id="lastName" 
+                              name="lastName"
+                              value={clientInfo.lastName}
+                              onChange={handleClientInfoChange}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sahara"
+                              required
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-gray-700 mb-2" htmlFor="email">Email</label>
+                            <input 
+                              type="email" 
+                              id="email" 
+                              name="email"
+                              value={clientInfo.email}
+                              onChange={handleClientInfoChange}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sahara"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-gray-700 mb-2" htmlFor="phone">Téléphone</label>
+                            <input 
+                              type="tel" 
+                              id="phone" 
+                              name="phone"
+                              value={clientInfo.phone}
+                              onChange={handleClientInfoChange}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sahara"
+                              required
+                            />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-gray-700 mb-2">Nombre de personnes</label>
+                          <div className="flex items-center">
+                            <button 
+                              type="button"
+                              onClick={() => handleNumberOfPersonsChange(-1)}
+                              className="px-3 py-1 bg-gray-200 rounded-l-lg hover:bg-gray-300"
+                              disabled={clientInfo.numberOfPersons <= 1}
+                            >
+                              -
+                            </button>
+                            <span className="px-4 py-1 border-t border-b border-gray-200">
+                              {clientInfo.numberOfPersons}
+                            </span>
+                            <button 
+                              type="button"
+                              onClick={() => handleNumberOfPersonsChange(1)}
+                              className="px-3 py-1 bg-gray-200 rounded-r-lg hover:bg-gray-300"
+                              disabled={clientInfo.numberOfPersons >= selectedTimeSlot.availableSpots}
+                            >
+                              +
+                            </button>
+                            <span className="ml-2 text-sm text-gray-600">
+                              (Maximum: {Math.min(selectedTimeSlot.availableSpots, activity.maxParticipants)} personnes)
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-2">
+                          <div className="bg-sahara/10 rounded-lg p-4">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium">Total</span>
+                              <span className="font-bold text-sahara text-xl">
+                                {(activity.price * clientInfo.numberOfPersons).toLocaleString()} DH
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {reservationError && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-800">
+                            {reservationError}
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center justify-between pt-4">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTimeSlot(null)}
+                            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                          >
+                            Annuler
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={isSubmitting || !isAuthenticated}
+                            className={`px-6 py-2 bg-sahara text-white rounded-lg font-medium ${
+                              isSubmitting || !isAuthenticated ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sahara/90'
+                            }`}
+                          >
+                            {isSubmitting ? (
+                              <span className="flex items-center">
+                                <FaSpinner className="animate-spin mr-2" />
+                                Traitement...
+                              </span>
+                            ) : isAuthenticated ? (
+                              'Réserver maintenant'
+                            ) : (
+                              'Connectez-vous pour réserver'
+                            )}
+                          </button>
+                        </div>
+                        
+                        {!isAuthenticated && (
+                          <p className="text-sm text-gray-600 text-center mt-2">
+                            Vous devez être connecté pour effectuer une réservation.{' '}
+                            <span 
+                              className="text-sahara cursor-pointer hover:underline"
+                              onClick={() => navigate('/login')}
+                            >
+                              Se connecter
+                            </span>
+                          </p>
+                        )}
+                      </form>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             
@@ -522,64 +677,6 @@ const ActivityDetail = () => {
                 </div>
               </div>
             )}
-
-            {/* Formulaire de réservation intégré dans la page */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-semibold mb-6">Détails supplémentaires</h2>
-              
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 text-gray-700">
-                  <FaMapMarkerAlt className="text-sahara flex-shrink-0" />
-                  <span>Lieu: {activity.city}</span>
-                </div>
-                
-                <div className="flex items-center gap-3 text-gray-700">
-                  <FaClock className="text-sahara flex-shrink-0" />
-                  <span>Durée: {formatDuration(activity.duration)}</span>
-                </div>
-                
-                <div className="flex items-center gap-3 text-gray-700">
-                  <FaUsers className="text-sahara flex-shrink-0" />
-                  <span>Taille du groupe: {activity.maxParticipants} personnes maximum</span>
-                </div>
-                
-                <div className="flex items-center gap-3 text-gray-700">
-                  <FaMoneyBillWave className="text-sahara flex-shrink-0" />
-                  <span>Prix: {activity.price.toLocaleString()} DH par personne</span>
-                </div>
-                
-                {activity.category && (
-                  <div className="flex items-center gap-3 text-gray-700">
-                    <FaCheck className="text-sahara flex-shrink-0" />
-                    <span>Catégorie: {activity.category}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Section sur l'activité */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-semibold mb-6">À propos de cette activité</h2>
-              
-              <div className="space-y-4">
-                <p className="text-gray-700">{activity.description}</p>
-                
-                <div className="flex items-center mt-4">
-                  <FaMapMarkerAlt className="text-sahara mr-2" />
-                  <span className="text-gray-700">{activity.city}</span>
-                </div>
-                
-                <div className="flex items-center">
-                  <FaClock className="text-sahara mr-2" />
-                  <span className="text-gray-700">{formatDuration(activity.duration)}</span>
-                </div>
-                
-                <div className="flex items-center">
-                  <FaUsers className="text-sahara mr-2" />
-                  <span className="text-gray-700">Max {activity.maxParticipants} participants</span>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Sidebar */}
@@ -589,6 +686,10 @@ const ActivityDetail = () => {
               
               <div className="space-y-4 mb-8">
                 <div className="flex items-center gap-3 text-gray-600">
+                  <FaMapMarkerAlt className="text-sahara flex-shrink-0" />
+                  <span>Lieu: {activity.city}</span>
+                </div>
+                <div className="flex items-center gap-3 text-gray-600">
                   <FaUsers className="text-sahara flex-shrink-0" />
                   <span>Groupe de {activity.maxParticipants} personnes maximum</span>
                 </div>
@@ -596,12 +697,6 @@ const ActivityDetail = () => {
                   <FaClock className="text-sahara flex-shrink-0" />
                   <span>Durée: {formatDuration(activity.duration)}</span>
                 </div>
-                {activity.city && (
-                  <div className="flex items-center gap-3 text-gray-600">
-                    <FaCheck className="text-sahara flex-shrink-0" />
-                    <span>Lieu: {activity.city}</span>
-                  </div>
-                )}
                 {activity.category && (
                   <div className="flex items-center gap-3 text-gray-600">
                     <FaCheck className="text-sahara flex-shrink-0" />
