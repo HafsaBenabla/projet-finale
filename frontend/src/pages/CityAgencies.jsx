@@ -141,8 +141,8 @@ function CityAgencies() {
     return (
       <div key={agency._id} className="bg-white overflow-hidden group transition-all duration-700 hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.1)] relative rounded-xl border border-gray-100 hover:border-orange-200/50">
         <div className="flex flex-col h-full">
-          {/* Image de l'agence avec overlay élégant */}
-          <div className="relative h-56 overflow-hidden">
+          {/* Image de l'agence avec overlay élégant - hauteur réduite */}
+          <div className="relative h-44 overflow-hidden">
             <img 
               src={agency.image}
               alt={`Agence ${agency.name}`}
@@ -158,8 +158,8 @@ function CityAgencies() {
             </div>
             
             {/* Nom et ville en overlay sur l'image */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 z-20">
-              <h3 className="text-xl font-light text-white mb-3 tracking-wider shadow-text">{agency.name}</h3>
+            <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
+              <h3 className="text-xl font-light text-white mb-2 tracking-wider shadow-text">{agency.name}</h3>
               <div className="flex items-center">
                 <div className="flex items-center text-white/90 text-xs bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
                   <FaMapMarkerAlt className="mr-2" size={12} />
@@ -169,84 +169,71 @@ function CityAgencies() {
             </div>
           </div>
           
-          {/* Informations de l'agence */}
-          <div className="p-6 flex-grow flex flex-col justify-between">
-            {/* Description élégante */}
-            <div className="mb-6 text-center border-2 border-orange-300 rounded-lg p-5 bg-orange-50/30 shadow-sm">
-              <p className="text-gray-600 italic text-lg font-light leading-relaxed line-clamp-2 before:content-['\22'] after:content-['\22'] before:text-orange-400 after:text-orange-400 before:text-xl after:text-xl">
+          {/* Informations de l'agence - section compactée */}
+          <div className="p-4 flex-grow flex flex-col justify-between">
+            {/* Description élégante - version compacte */}
+            <div className="mb-4 text-center">
+              <p className="text-gray-600 italic text-sm font-light leading-relaxed line-clamp-3 before:content-['\22'] after:content-['\22'] before:text-orange-400 after:text-orange-400 before:text-lg after:text-lg">
                 {agency.description}
               </p>
             </div>
             
-            {/* Informations de contact avec design luxueux */}
-            <div className="flex flex-col mb-6 gap-4">
-              <div className="flex items-center gap-3 group/item transition-all duration-300">
-                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shadow-sm border border-orange-200">
-                  <FaCompass className="text-orange-500" size={16} />
+            {/* Informations générales de l'agence au lieu des contacts directs */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="flex items-center gap-2 group/item transition-all duration-300">
+                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shadow-sm border border-orange-200">
+                  <FaStar className="text-orange-500" size={14} />
                 </div>
-                <span className="text-base font-light text-gray-600">{agency.address}</span>
+                <span className="text-xs font-light text-gray-600 truncate">
+                  Agence {agency.stars >= 4 ? 'premium' : 'partenaire'}
+                </span>
               </div>
               
-              <div className="flex items-center gap-3 group/item transition-all duration-300">
-                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shadow-sm border border-orange-200">
-                  <FaPhone className="text-orange-500" size={16} />
+              <div className="flex items-center gap-2 group/item transition-all duration-300">
+                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shadow-sm border border-orange-200">
+                  <FaUsers className="text-orange-500" size={14} />
                 </div>
-                <a href={`tel:${agency.phone}`} className="text-base text-gray-600 hover:text-orange-500 transition-colors font-light">
-                  {agency.phone}
-                </a>
-              </div>
-              
-              <div className="flex items-center gap-3 group/item transition-all duration-300">
-                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shadow-sm border border-orange-200">
-                  <FaEnvelope className="text-orange-500" size={16} />
-                </div>
-                <a href={`mailto:${agency.email}`} className="text-base text-gray-600 hover:text-orange-500 transition-colors font-light">
-                  {agency.email}
-                </a>
+                <span className="text-xs text-gray-600 font-light truncate">
+                  {voyages.length > 0 ? `${voyages.length} voyages proposés` : 'Voyages personnalisés'}
+                </span>
               </div>
             </div>
 
-            {/* Section des voyages avec design luxueux */}
+            {/* Section des voyages - version compacte */}
             <div>
               {!isLoading && voyages.length === 0 && !agencyVoyages[agency._id] && (
                 <button 
                   onClick={() => navigateToAgencyVoyages(agency._id, agency.name)}
-                  className="w-full py-3.5 text-sm bg-orange-500 text-white uppercase tracking-widest font-light hover:bg-orange-600 transition-all flex items-center justify-center shadow-sm hover:shadow-md border border-orange-600/50 rounded-lg"
+                  className="w-full py-2.5 text-xs bg-orange-500 text-white uppercase tracking-widest font-light hover:bg-orange-600 transition-all flex items-center justify-center shadow-sm hover:shadow-md border border-orange-600/50 rounded-lg"
                 >
                   Découvrir les voyages <FaAngleRight className="ml-2" size={12} />
                 </button>
               )}
               
               {isLoading && (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-9 w-9 border-[2px] border-orange-100 border-t-orange-400"></div>
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-7 w-7 border-[2px] border-orange-100 border-t-orange-400"></div>
                 </div>
               )}
               
               {voyages.length === 0 && agencyVoyages[agency._id] && (
-                <div className="text-center p-5 bg-gradient-to-r from-orange-50/30 to-white rounded-md border border-orange-100/50">
-                  <p className="text-gray-400 text-sm py-1 font-light italic">
+                <div className="text-center p-2 bg-gradient-to-r from-orange-50/30 to-white rounded-md border border-orange-100/50">
+                  <p className="text-gray-400 text-xs py-1 font-light italic">
                     Aucun voyage disponible pour le moment
                   </p>
-                  <button 
-                    onClick={() => navigateToAgencyVoyages(agency._id, agency.name)}
-                    className="mt-3 px-4 py-2 bg-orange-100 text-orange-600 text-xs font-light hover:bg-orange-200 transition-all rounded-lg"
-                  >
-                    Rechercher dans tous les voyages
-                  </button>
                 </div>
               )}
               
               {voyages.length > 0 && (
                 <>
-                  <div className="space-y-5">
-                    {voyages.slice(0, 2).map(voyage => (
+                  <div className="space-y-2">
+                    {voyages.slice(0, 1).map(voyage => (
                       <div 
                         key={voyage._id}
-                        className="flex items-center p-4 bg-gradient-to-r from-white to-orange-50/10 rounded-lg cursor-pointer hover:shadow-md transition-all border border-orange-200/40 hover:border-orange-300/50 group/voyage"
+                        className="flex items-center p-2 bg-gradient-to-r from-white to-orange-50/10 rounded-lg cursor-pointer hover:shadow-md transition-all border border-orange-200/40 hover:border-orange-300/50 group/voyage"
                         onClick={() => navigateToVoyage(voyage._id)}
                       >
-                        <div className="relative h-20 w-28 overflow-hidden rounded-md shadow-sm mr-4">
+                        <div className="relative h-16 w-20 overflow-hidden rounded-md shadow-sm mr-3">
                           <img 
                             src={voyage.image}
                             alt={voyage.title}
@@ -256,29 +243,29 @@ function CityAgencies() {
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                         </div>
                         <div className="flex-grow min-w-0">
-                          <div className="mb-2">
-                            <h5 className="font-light text-base mb-1 truncate group-hover/voyage:text-orange-500 transition-colors">{voyage.title}</h5>
-                            <div className="flex items-center text-sm text-gray-500 mb-2">
-                              <span className="bg-orange-100 px-2 py-0.5 rounded-full text-orange-700 text-xs font-medium">{voyage.destination}</span>
+                          <div className="mb-1">
+                            <h5 className="font-light text-sm mb-1 truncate group-hover/voyage:text-orange-500 transition-colors">{voyage.title}</h5>
+                            <div className="flex items-center text-xs text-gray-500">
+                              <span className="bg-orange-100 px-1.5 py-0.5 rounded-full text-orange-700 text-[10px] font-medium">{voyage.destination}</span>
                               {voyage.duration && (
-                                <span className="ml-2 text-xs text-gray-400">{voyage.duration} jours</span>
+                                <span className="ml-2 text-[10px] text-gray-400">{voyage.duration} jours</span>
                               )}
                             </div>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="font-medium text-orange-500">{voyage.price ? `${voyage.price.toLocaleString()} DH` : 'Sur demande'}</span>
+                            <span className="font-medium text-sm text-orange-500">{voyage.price ? `${voyage.price.toLocaleString()} DH` : 'Sur demande'}</span>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
                   
-                  {voyages.length > 2 && (
+                  {voyages.length > 1 && (
                     <button 
                       onClick={() => navigateToAgencyVoyages(agency._id, agency.name)}
-                      className="w-full mt-5 py-2.5 bg-orange-100 text-orange-600 text-sm font-light hover:bg-orange-200 transition-all flex items-center justify-center rounded-lg"
+                      className="w-full mt-2 py-1.5 bg-orange-100 text-orange-600 text-xs font-light hover:bg-orange-200 transition-all flex items-center justify-center rounded-lg"
                     >
-                      Voir tous les voyages ({voyages.length}) <FaChevronRight className="ml-2" size={10} />
+                      Voir tous les voyages ({voyages.length}) <FaChevronRight className="ml-2" size={8} />
                     </button>
                   )}
                 </>
@@ -324,7 +311,7 @@ function CityAgencies() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-screen-xl mx-auto">
             {agencies.map(renderAgencyCard)}
           </div>
         )}

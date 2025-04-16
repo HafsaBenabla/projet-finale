@@ -18,6 +18,7 @@ const VoyageDetail = () => {
   const { loading, error } = useVoyages();
   const { user, token, isAuthenticated } = useAuth();
   const commentsRef = useRef(null);
+  const activitiesRef = useRef(null);
   
   // Ajout d'un state pour le voyage et le compteur de commentaires
   const [voyage, setVoyage] = useState(null);
@@ -54,6 +55,23 @@ const VoyageDetail = () => {
       
       if (response.data && response.data.activities && response.data.activities.length > 0) {
         setAvailableActivities(response.data.activities);
+        
+        // Si une activité était sélectionnée dans la navigation, la présélectionner
+        if (location.state && location.state.selectedActivityId) {
+          const selectedActivityId = location.state.selectedActivityId;
+          console.log("Activité à présélectionner:", selectedActivityId);
+          
+          // Trouver l'activité correspondante
+          const activityToSelect = response.data.activities.find(activity => activity._id === selectedActivityId);
+          
+          if (activityToSelect) {
+            console.log("Activité trouvée, présélection:", activityToSelect.name);
+            setSelectedActivities([{ 
+              ...activityToSelect, 
+              participantCount: formData.nombrePersonnes || 1
+            }]);
+          }
+        }
       }
       
       setCommentCount(response.data.commentCount || 0);
@@ -65,6 +83,33 @@ const VoyageDetail = () => {
   useEffect(() => {
     fetchVoyageDetails();
   }, [id]);
+
+  // Effet pour détecter les changements dans l'état de navigation (si l'utilisateur revient en arrière puis revient)
+  useEffect(() => {
+    if (location.state && location.state.selectedActivityId && availableActivities.length > 0) {
+      const selectedActivityId = location.state.selectedActivityId;
+      const activityToSelect = availableActivities.find(activity => activity._id === selectedActivityId);
+      
+      if (activityToSelect && !selectedActivities.some(a => a._id === selectedActivityId)) {
+        setSelectedActivities([{ 
+          ...activityToSelect, 
+          participantCount: formData.nombrePersonnes || 1
+        }]);
+
+        // Ajouter une animation de mise en évidence pour l'activité présélectionnée
+        setTimeout(() => {
+          const activityElement = document.getElementById(`activity-${selectedActivityId}`);
+          if (activityElement) {
+            activityElement.classList.add('highlight-activity');
+            // Retirer l'animation après quelques secondes
+            setTimeout(() => {
+              activityElement.classList.remove('highlight-activity');
+            }, 3000);
+          }
+        }, 500);
+      }
+    }
+  }, [location.state, availableActivities]);
 
   useEffect(() => {
     if (user) {
@@ -90,13 +135,28 @@ const VoyageDetail = () => {
     }
   };
 
+  // Fonction pour faire défiler jusqu'à la section des activités
+  const scrollToActivities = () => {
+    if (activitiesRef.current) {
+      activitiesRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   // Effet pour gérer la navigation par fragment d'URL
   useEffect(() => {
     // Vérifier si le chargement est terminé et si l'URL contient le fragment #comments
     if (!loading && location.hash === '#comments') {
       scrollToComments();
     }
-  }, [loading, location.hash]);
+    
+    // Vérifier si l'utilisateur arrive depuis un clic sur une activité
+    if (!loading && location.state && (location.state.showActivities || location.state.selectedActivityId)) {
+      // Petit délai pour s'assurer que le DOM est prêt
+      setTimeout(() => {
+        scrollToActivities();
+      }, 300);
+    }
+  }, [loading, location.hash, location.state]);
   
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -530,7 +590,7 @@ const VoyageDetail = () => {
             </div>
 
             {/* Section Activités Associées */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
+            <div className="bg-white rounded-2xl shadow-lg p-8" ref={activitiesRef}>
               <h2 className="text-3xl font-semibold mb-6 text-gray-800 flex items-center gap-3">
                 <FaHiking className="text-sahara" />
                 Activités disponibles
@@ -545,6 +605,7 @@ const VoyageDetail = () => {
                       return (
                         <div 
                           key={activity._id} 
+                          id={`activity-${activity._id}`}
                           className={`border rounded-lg overflow-hidden shadow-sm transition-all duration-300 transform cursor-pointer hover:shadow-md ${
                             isSelected 
                               ? 'border-sahara border-[5px] shadow-[0_0_20px_rgba(255,140,56,0.7)] bg-orange-50 scale-[1.02]' 
@@ -610,14 +671,14 @@ const VoyageDetail = () => {
                               </div>
                             )}
                           </div>
-                        </div>
+                        </div> 
                       );
                     })}
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-6 text-gray-500">
-                  <p>Aucune activité n'est disponible pour ce voyage pour le moment.</p>
+                <div className="text-center py-8">
+                  <p className="text-gray-600">Aucune activité n'est disponible pour ce voyage.</p>
                 </div>
               )}
             </div>

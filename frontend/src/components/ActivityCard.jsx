@@ -18,14 +18,50 @@ function ActivityCard({
 }) {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  const handleClick = () => {
-    if (type === 'voyage') {
-      navigate(`/voyage/${voyageId}`);
+  // Fonction simplifiée de navigation
+  const navigateToVoyage = (e) => {
+    if (e) e.stopPropagation();
+    if (isNavigating) return; // Éviter les clics multiples
+    
+    setIsNavigating(true);
+    
+    if (type === 'voyage' && voyageId) {
+      // S'assurer que voyageId est une chaîne de caractères valide
+      const vId = typeof voyageId === 'object' ? voyageId._id || voyageId.id || '' : voyageId;
+      
+      console.log(`Navigation vers le voyage avec ID: ${vId} pour l'activité: ${id}`);
+      
+      if (!vId || vId === '[object Object]') {
+        console.error("ID de voyage invalide:", voyageId);
+        alert("Désolé, ce voyage n'est pas disponible actuellement.");
+        navigate('/voyages');
+        setIsNavigating(false);
+        return;
+      }
+      
+      // Navigation directe avec l'état pour afficher les activités et présélectionner l'activité cliquée
+      navigate(`/voyage/${vId}`, { 
+        state: { 
+          showActivities: true,
+          selectedActivityId: id 
+        } 
+      });
+    } else if (type === 'voyage' && !voyageId) {
+      console.warn("Aucun voyageId associé à cette activité de voyage");
+      alert("Ce voyage n'est pas disponible actuellement.");
+      navigate('/voyages');
     } else {
-      navigate(`/activite/${id}`);
+      // Pour les activités locales
+      navigate(`/activities/${id}`);
     }
-  }
+    
+    // Réinitialiser l'état après un délai
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 500);
+  };
 
   // Formater les dates pour affichage
   const formatDate = (dateStr) => {
@@ -50,7 +86,7 @@ function ActivityCard({
     <div className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 w-full">
       <div 
         className="relative h-40 sm:h-48 overflow-hidden cursor-pointer"
-        onClick={handleClick}
+        onClick={navigateToVoyage}
       >
         <img 
           src={image} 
@@ -90,7 +126,10 @@ function ActivityCard({
           <div className="mb-3">
             <button 
               className="flex items-center justify-between w-full bg-gray-100 p-2 rounded-lg text-sm font-medium text-gray-700"
-              onClick={() => setExpanded(!expanded)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(!expanded);
+              }}
             >
               <span className="flex items-center">
                 <FaCalendarAlt className="mr-2 text-sahara" />
@@ -127,9 +166,10 @@ function ActivityCard({
           </div>
           <button 
             className="px-3 sm:px-4 py-1.5 sm:py-2 bg-sahara text-white rounded-full text-xs sm:text-sm font-medium hover:bg-sahara/90 transition-colors"
-            onClick={handleClick}
+            onClick={navigateToVoyage}
+            disabled={isNavigating}
           >
-            {type === 'voyage' ? 'Voir le Voyage' : 'Réserver'}
+            {isNavigating ? 'Chargement...' : (type === 'voyage' ? 'Voir le Voyage' : 'Réserver')}
           </button>
         </div>
       </div>

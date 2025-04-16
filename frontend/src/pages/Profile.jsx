@@ -72,6 +72,14 @@ const Profile = () => {
     newUserMessages: 0
   });
 
+  // État pour les commentaires de l'utilisateur
+  const [userComments, setUserComments] = useState({
+    loading: true,
+    error: null,
+    errorDetails: null,
+    data: []
+  });
+
   // Ajout d'un nouvel état pour contrôler l'affichage du formulaire d'ajout de tâche
   const [showNewTaskForm, setShowNewTaskForm] = useState(false);
 
@@ -153,6 +161,89 @@ const Profile = () => {
     }
   };
 
+  // Fonction pour récupérer les commentaires de l'utilisateur - isolée pour être appelée indépendamment
+  const fetchUserComments = async () => {
+    if (!isAuthenticated || !user?.userId || !token) {
+      console.log('Impossible de récupérer les commentaires: pas d\'authentification');
+      return;
+    }
+    
+    try {
+      setUserComments(prev => ({ ...prev, loading: true, error: null }));
+      
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      };
+
+      // Vérifier la structure de l'objet user et afficher plus d'informations de débogage
+      console.log('Informations utilisateur avant la requête:', {
+        userId: user.userId,
+        id: user.id,
+        _id: user._id, 
+        tokenPresent: !!token,
+        tokenLength: token ? token.length : 0
+      });
+
+      // Corriger l'URL pour correspondre à la structure réelle du backend
+      // Route réelle est app.use('/api', commentRoutes); + router.get('/user/:userId/comments', ...)
+      const commentsUrl = `http://localhost:5000/api/user/${user.userId}/comments`;
+      console.log('Envoi de la requête pour les commentaires à:', commentsUrl);
+      console.log('Headers de la requête:', config.headers);
+      
+      try {
+        const response = await axios.get(commentsUrl, config);
+        console.log('Commentaires récupérés avec succès:', response.data);
+        
+        setUserComments({
+          loading: false,
+          error: null,
+          data: response.data
+        });
+      } catch (requestError) {
+        console.error('Erreur spécifique de requête:', requestError);
+        
+        // Gestion plus détaillée des erreurs
+        let errorMessage = 'Impossible de charger vos commentaires. Veuillez réessayer plus tard.';
+        let errorDetails = '';
+        
+        if (requestError.response) {
+          // Erreur avec réponse du serveur
+          console.error('Détails de l\'erreur de réponse:', {
+            status: requestError.response.status,
+            statusText: requestError.response.statusText,
+            data: requestError.response.data
+          });
+          errorMessage = requestError.response.data?.message || errorMessage;
+          errorDetails = `Statut: ${requestError.response.status} ${requestError.response.statusText}`;
+        } else if (requestError.request) {
+          // Pas de réponse du serveur
+          console.error('Aucune réponse du serveur');
+          errorMessage = 'Le serveur ne répond pas. Veuillez vérifier votre connexion.';
+          errorDetails = 'Problème de connectivité réseau';
+        }
+        
+        setUserComments({
+          loading: false,
+          error: errorMessage,
+          errorDetails: errorDetails,
+          data: []
+        });
+      }
+    } catch (error) {
+      console.error('Erreur générale lors de la récupération des commentaires:', error);
+      setUserComments({
+        loading: false,
+        error: 'Une erreur inattendue s\'est produite. Veuillez réessayer plus tard.',
+        errorDetails: error.message || 'Erreur inconnue',
+        data: []
+      });
+    }
+  };
+
+  // Ajouter fetchUserComments à la liste des dépendances de l'effet
   useEffect(() => {
     const checkAuth = () => {
       console.log('=== Vérification de l\'authentification dans Profile ===', {
@@ -198,58 +289,34 @@ const Profile = () => {
         console.log('Headers de la requête:', config.headers);
         
         const voyagesResponse = await axios.get(voyagesUrl, config);
-        console.log('=== Réponse des réservations de voyages ===');
-        console.log('Status:', voyagesResponse.status);
-        console.log('Headers:', voyagesResponse.headers);
-        console.log('Données:', voyagesResponse.data);
 
         // Récupération des réservations d'activités
         const activitesUrl = `http://localhost:5000/api/reservations/activites/${user.userId}`;
         console.log('Envoi de la requête pour les activités à:', activitesUrl);
         
         const activitesResponse = await axios.get(activitesUrl, config);
-        console.log('=== Réponse des réservations d\'activités ===');
-        console.log('Status:', activitesResponse.status);
-        console.log('Données:', activitesResponse.data);
-        
+
+        console.log('Réponse pour les voyages:', voyagesResponse.data);
+        console.log('Réponse pour les activités:', activitesResponse.data);
+
         setReservations({
-          voyages: Array.isArray(voyagesResponse.data) ? voyagesResponse.data : [],
-          activites: Array.isArray(activitesResponse.data) ? activitesResponse.data : []
-        });
-        
-        console.log('=== État final des réservations ===', {
           voyages: voyagesResponse.data,
           activites: activitesResponse.data
         });
-        
-        setError(null);
-      } catch (err) {
-        console.error('=== Erreur détaillée lors de la récupération des réservations ===', {
-          message: err.message,
-          response: err.response?.data,
-          status: err.response?.status,
-          config: err.config,
-          user: user,
-          token: token ? 'Présent' : 'Absent'
-        });
-        
-        if (err.response?.status === 401) {
-          setError("Votre session a expiré. Veuillez vous reconnecter.");
-          setTimeout(() => {
-            navigate('/login');
-          }, 3000);
-        } else if (err.message === 'Network Error') {
-          setError("Impossible de se connecter au serveur. Veuillez vérifier que le serveur backend est en cours d'exécution.");
-        } else {
-          setError(err.response?.data?.message || "Une erreur est survenue lors de la récupération de vos réservations");
-        }
+
+        // Récupérer les commentaires de l'utilisateur après avoir récupéré les réservations
+        fetchUserComments();
+
+      } catch (error) {
+        console.error('Erreur lors de la récupération des réservations:', error);
+        setError('Erreur lors de la récupération des données. Veuillez réessayer plus tard.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchReservations();
-  }, [isAuthenticated, user, token, navigate]);
+  }, [isAuthenticated, user, token, navigate]);  // N'ajoutez pas fetchUserComments dans les dépendances pour éviter les boucles
 
   // Fonction pour annuler une réservation
   const handleCancelReservation = async (reservationId, type) => {
@@ -337,6 +404,61 @@ const Profile = () => {
     } finally {
       // Retirer l'ID de la liste des annulations en cours
       setCancelingReservations(prev => prev.filter(id => id !== reservationId));
+    }
+  };
+
+  // Fonction pour supprimer un commentaire
+  const handleDeleteComment = async (commentId, voyageId) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) {
+      return;
+    }
+
+    try {
+      // Corriger l'URL pour correspondre à la route backend /api/comments/:commentId
+      const url = `http://localhost:5000/api/comments/${commentId}`;
+      const response = await axios.delete(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Réponse de suppression du commentaire:', response.data);
+      
+      // Mettre à jour l'état des commentaires
+      setUserComments(prev => ({
+        ...prev,
+        data: prev.data.filter(comment => comment._id !== commentId)
+      }));
+      
+      // Afficher une notification de succès
+      setNotification({
+        message: 'Votre commentaire a été supprimé avec succès.',
+        type: 'success',
+        details: '',
+        timestamp: new Date().toLocaleTimeString()
+      });
+      
+      // Effacer la notification après 5 secondes
+      setTimeout(() => {
+        setNotification({ message: '', type: '', details: '', timestamp: '' });
+      }, 5000);
+      
+    } catch (error) {
+      console.error('Erreur lors de la suppression du commentaire:', error);
+      
+      // Afficher une notification d'erreur
+      setNotification({
+        message: 'Échec de la suppression du commentaire',
+        type: 'error',
+        details: error.response?.data?.message || error.message,
+        timestamp: new Date().toLocaleTimeString()
+      });
+      
+      // Effacer la notification après 8 secondes
+      setTimeout(() => {
+        setNotification({ message: '', type: '', details: '', timestamp: '' });
+      }, 8000);
     }
   };
 
@@ -1119,6 +1241,75 @@ const Profile = () => {
               <p className="text-gray-600 text-center py-4 bg-gray-50 rounded-lg">
                 Vous n'avez pas encore réservé d'activité.
               </p>
+            )}
+          </div>
+        </div>
+
+        {/* Section des Commentaires Utilisateur */}
+        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex justify-between items-center mb-4 sm:mb-6 border-b border-gray-200 pb-2">
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-800">Mes Commentaires</h3>
+            <button 
+              onClick={fetchUserComments}
+              className="text-sm px-3 py-1 bg-orange-100 text-orange-600 rounded hover:bg-orange-200 transition-colors flex items-center"
+              disabled={userComments.loading}
+            >
+              {userComments.loading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500 mr-2"></div>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              )}
+              {userComments.loading ? 'Chargement...' : 'Actualiser'}
+            </button>
+          </div>
+          
+          {/* Commentaires utilisateur */}
+          <div className="mt-4">
+            {userComments.loading && (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+              </div>
+            )}
+            
+            {userComments.error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded" role="alert">
+                <p className="font-medium">Une erreur s'est produite lors du chargement de vos commentaires:</p>
+                <p className="mt-1">{userComments.error}</p>
+                {userComments.errorDetails && (
+                  <p className="text-xs mt-1 text-red-600">{userComments.errorDetails}</p>
+                )}
+              </div>
+            )}
+            
+            {!userComments.loading && !userComments.error && userComments.data.length > 0 ? (
+              <div className="space-y-4">
+                {userComments.data.map(comment => (
+                  <div key={comment._id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex justify-between items-center">
+                      <h5 className="font-medium text-gray-800">{comment.voyage?.title || 'Voyage supprimé'}</h5>
+                      <small className="text-gray-500">{new Date(comment.createdAt).toLocaleDateString()}</small>
+                    </div>
+                    {comment.voyage && <p className="text-sm text-gray-600 mt-1">Destination: {comment.voyage.destination}</p>}
+                    <p className="mt-2 text-gray-700">{comment.content}</p>
+                    <div className="flex justify-end mt-3">
+                      <button 
+                        className="px-3 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 transition-colors"
+                        onClick={() => handleDeleteComment(comment._id, comment.voyageId)}
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              !userComments.loading && !userComments.error && (
+                <div className="bg-blue-50 border border-blue-300 text-blue-700 px-4 py-3 rounded" role="alert">
+                  Vous n'avez laissé aucun commentaire pour le moment.
+                </div>
+              )
             )}
           </div>
         </div>

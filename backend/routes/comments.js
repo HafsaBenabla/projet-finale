@@ -173,4 +173,80 @@ router.delete('/comments/:commentId', auth, async (req, res) => {
   }
 });
 
+// Récupérer les commentaires d'un utilisateur spécifique
+router.get('/user/:userId/comments', auth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Vérifier que l'utilisateur demande ses propres commentaires ou est admin
+    const currentUser = req.user;
+    
+    // Récupérer tous les formats possibles d'ID utilisateur actuel et requis
+    const currentUserIds = [
+      currentUser._id,
+      currentUser._id?.toString(),
+      currentUser.id,
+      currentUser.id?.toString(),
+      currentUser.userId,
+      currentUser.userId?.toString()
+    ].filter(Boolean);
+    
+    const requestedUserIds = [
+      userId,
+      userId.toString()
+    ].filter(Boolean);
+    
+    // Vérifier si l'utilisateur demande ses propres commentaires
+    let isAuthorized = false;
+    
+    // Vérifier chaque combinaison possible d'ID
+    for (const currentId of currentUserIds) {
+      for (const requestedId of requestedUserIds) {
+        if (currentId === requestedId) {
+          isAuthorized = true;
+          break;
+        }
+      }
+      if (isAuthorized) break;
+    }
+    
+    // Autoriser également si l'utilisateur est admin
+    if (currentUser.role === 'admin') {
+      isAuthorized = true;
+    }
+    
+    if (!isAuthorized) {
+      return res.status(403).json({ message: 'Vous ne pouvez pas accéder aux commentaires d\'un autre utilisateur' });
+    }
+    
+    // Récupérer tous les commentaires de l'utilisateur
+    const comments = await Comment.find({ userId: { $in: requestedUserIds } })
+      .sort({ createdAt: -1 });
+    
+    // Joindre les informations des voyages aux commentaires
+    const populatedComments = await Promise.all(comments.map(async (comment) => {
+      try {
+        const voyage = await Voyage.findById(comment.voyageId);
+        return {
+          ...comment.toObject(),
+          voyage: voyage ? {
+            _id: voyage._id,
+            title: voyage.title,
+            destination: voyage.destination,
+            image: voyage.image
+          } : null
+        };
+      } catch (error) {
+        console.error(`Erreur lors de la récupération du voyage ${comment.voyageId}:`, error);
+        return comment.toObject();
+      }
+    }));
+    
+    res.json(populatedComments);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des commentaires:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router; 
