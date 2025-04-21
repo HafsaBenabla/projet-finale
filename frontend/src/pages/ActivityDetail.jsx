@@ -195,7 +195,7 @@ const ActivityDetail = () => {
     e.preventDefault();
 
     if (!isAuthenticated) {
-      setReservationError('Vous devez être connecté pour effectuer une réservation.');
+      setReservationError('Vous devez être connecté pour réserver.');
       return;
     }
 
@@ -480,7 +480,8 @@ const ActivityDetail = () => {
                               isAvailable
                                 ? slot.availableSpots < 5 ? 'text-orange-600' : 'text-gray-600'
                                 : 'text-gray-400'
-                            }`}>
+                            }`}
+                            >
                               {isAvailable 
                                 ? `${slot.availableSpots} places restantes` 
                                 : 'Complet'
@@ -621,7 +622,7 @@ const ActivityDetail = () => {
                             type="submit"
                             disabled={isSubmitting || !isAuthenticated}
                             className={`px-6 py-2 bg-sahara text-white rounded-lg font-medium ${
-                              isSubmitting || !isAuthenticated ? 'opacity-50 cursor-not-allowed' : 'hover:bg-sahara/90'
+                              isSubmitting ? 'opacity-50 cursor-not-allowed' : isAuthenticated ? 'hover:bg-sahara/90' : 'opacity-50 cursor-not-allowed'
                             }`}
                           >
                             {isSubmitting ? (
@@ -639,7 +640,7 @@ const ActivityDetail = () => {
                         
                         {!isAuthenticated && (
                           <p className="text-sm text-gray-600 text-center mt-2">
-                            Vous devez être connecté pour effectuer une réservation.{' '}
+                            Vous devez être connecté pour réserver.{' '}
                             <span 
                               className="text-sahara cursor-pointer hover:underline"
                               onClick={() => navigate('/login')}
@@ -728,4 +729,4 @@ const ActivityDetail = () => {
   );
 };
 
-export default ActivityDetail; 
+export default ActivityDetail;

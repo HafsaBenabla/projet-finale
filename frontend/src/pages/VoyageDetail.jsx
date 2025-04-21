@@ -272,6 +272,7 @@ const VoyageDetail = () => {
         dateDepart: formData.dateDepart,
         activities: activitiesData,
         totalPrice: totalPrice,
+        type: 'voyage',
         clientInfo: {
           firstName: formData.nom.split(' ')[0],
           lastName: formData.nom.split(' ').slice(1).join(' '),
@@ -311,10 +312,8 @@ const VoyageDetail = () => {
         dateDepart: ''
       });
       
-      // Naviguer vers la page des réservations après un délai
-      setTimeout(() => {
-        navigate('/mes-reservations');
-      }, 3000);
+      // Naviguer vers la page de profil immédiatement
+      navigate('/profile');
       
     } catch (error) {
       console.error('Erreur lors de la création de la réservation:', error);

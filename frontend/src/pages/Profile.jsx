@@ -26,6 +26,14 @@ const Profile = () => {
   const [updatingPhone, setUpdatingPhone] = useState(false);
   const phoneInputRef = useRef(null);
   
+  // État pour la modale de confirmation d'annulation
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    reservationId: null,
+    type: null,
+    title: ''
+  });
+  
   // État pour les modales de gestion admin
   const [showAdminModal, setShowAdminModal] = useState({
     voyage: false,
@@ -320,9 +328,13 @@ const Profile = () => {
 
   // Fonction pour annuler une réservation
   const handleCancelReservation = async (reservationId, type) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir annuler cette réservation ?')) {
+    if (!confirmModal.show) {
+      // Si la modale n'est pas déjà affichée, on l'affiche d'abord
       return;
     }
+    
+    // On ferme la modale
+    setConfirmModal({ show: false, reservationId: null, type: null, title: '' });
 
     // Ajouter l'ID à la liste des annulations en cours
     setCancelingReservations(prev => [...prev, reservationId]);
@@ -333,7 +345,9 @@ const Profile = () => {
       // Utiliser axios.patch avec la route "/:id/annuler" dont nous savons qu'elle est fonctionnelle
       const response = await axios.patch(
         `http://localhost:5000/api/reservations/${reservationId}/annuler`, 
-        {}, // Corps vide
+        { 
+          type: type === 'voyages' ? 'voyage' : 'activite' // Envoyer le type au singulier comme attendu par le backend
+        },
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -405,6 +419,25 @@ const Profile = () => {
       // Retirer l'ID de la liste des annulations en cours
       setCancelingReservations(prev => prev.filter(id => id !== reservationId));
     }
+  };
+
+  // Fonction pour ouvrir la modale de confirmation d'annulation
+  const openCancelModal = (reservationId, type) => {
+    // Récupérer le titre de la réservation
+    const reservation = reservations[type].find(r => r._id === reservationId);
+    const reservationTitle = reservation 
+      ? (type === 'voyages' 
+          ? reservation.voyage?.title || 'ce voyage' 
+          : reservation.activite?.titre || 'cette activité')
+      : 'cette réservation';
+    
+    // Ouvrir la modale avec les informations
+    setConfirmModal({
+      show: true,
+      reservationId,
+      type,
+      title: reservationTitle
+    });
   };
 
   // Fonction pour supprimer un commentaire
@@ -777,48 +810,64 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Notification - adaptée pour mobile */}
+        {/* Notification - nouveau style moderne et amélioré */}
         {notification.message && (
           <div 
-            className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg border shadow-md relative overflow-hidden notification-enter notification-active ${
-              notification.type === 'success' 
-                ? 'bg-green-50 border-green-300 text-green-800' 
-                : 'bg-red-50 border-red-300 text-red-800'
-            }`}
+            className={`mb-4 sm:mb-6 rounded-lg overflow-hidden shadow-lg notification-enter notification-active transform transition-all duration-300 ease-in-out`}
           >
-            {/* Barre de progression */}
-            <div 
-              ref={progressBarRef}
-              className={`progress-bar ${
-                notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-              }`}
-            />
-            
-            {/* Icône de notification */}
-            <div className="flex items-start">
-              <div className={`p-1.5 sm:p-2 rounded-full mr-2 sm:mr-3 ${
-                notification.type === 'success' ? 'bg-green-100' : 'bg-red-100'
-              }`}>
-                {notification.type === 'success' ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                )}
+            <div className={`flex ${
+              notification.type === 'success' 
+                ? 'bg-gradient-to-r from-green-500 to-green-600' 
+                : 'bg-gradient-to-r from-red-500 to-red-600'
+            }`}>
+              {/* Icône de notification */}
+              <div className="flex-shrink-0 p-4 flex items-center justify-center">
+                <div className="rounded-full bg-white bg-opacity-30 p-2">
+                  {notification.type === 'success' ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </div>
               </div>
-              <div className="flex-1">
-                <h4 className="text-sm sm:text-md font-semibold mb-1">
+              
+              {/* Contenu de la notification */}
+              <div className="flex-1 p-4 text-white">
+                <h4 className="text-lg font-medium mb-1">
                   {notification.type === 'success' ? 'Opération réussie' : 'Erreur'}
                 </h4>
-                <p className="text-sm mb-1">{notification.message}</p>
+                <p className="opacity-90 mb-1">{notification.message}</p>
                 {notification.details && (
-                  <p className="text-xs opacity-80">{notification.details}</p>
+                  <p className="text-sm opacity-80">{notification.details}</p>
                 )}
-                <p className="text-xs opacity-60 mt-1 sm:mt-2">{notification.timestamp}</p>
+                <p className="text-xs opacity-70 mt-2">{notification.timestamp}</p>
               </div>
+              
+              {/* Bouton de fermeture */}
+              <div className="p-4 flex-shrink-0">
+                <button 
+                  onClick={() => setNotification({ message: '', type: '', details: '', timestamp: '' })}
+                  className="text-white opacity-70 hover:opacity-100 transition-opacity"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            {/* Barre de progression */}
+            <div className="relative h-1 bg-black bg-opacity-10">
+              <div 
+                ref={progressBarRef}
+                className={`progress-bar ${
+                  notification.type === 'success' ? 'bg-green-400' : 'bg-red-400'
+                }`}
+              />
             </div>
           </div>
         )}
@@ -1139,7 +1188,7 @@ const Profile = () => {
                       {/* Bouton d'annulation */}
                       {reservation.statut !== 'annulé' && (
                         <button
-                          onClick={() => handleCancelReservation(reservation._id, 'voyages')}
+                          onClick={() => openCancelModal(reservation._id, 'voyages')}
                           disabled={cancelingReservations.includes(reservation._id)}
                           className="mt-3 flex items-center justify-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs sm:text-sm disabled:opacity-50 cancel-button w-full"
                         >
@@ -1216,7 +1265,7 @@ const Profile = () => {
                       {/* Bouton d'annulation */}
                       {reservation.statut !== 'annulé' && (
                         <button
-                          onClick={() => handleCancelReservation(reservation._id, 'activites')}
+                          onClick={() => openCancelModal(reservation._id, 'activites')}
                           disabled={cancelingReservations.includes(reservation._id)}
                           className="mt-3 flex items-center justify-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs sm:text-sm disabled:opacity-50 cancel-button w-full"
                         >
@@ -1374,6 +1423,55 @@ const Profile = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modale de confirmation d'annulation */}
+        {confirmModal.show && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 notification-enter notification-active p-3 sm:p-0">
+            <div className="w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden">
+              {/* En-tête avec dégradé */}
+              <div className="bg-gradient-to-r from-red-500 to-orange-500 p-4 sm:p-5">
+                <div className="flex items-center">
+                  <div className="p-2 bg-white bg-opacity-30 rounded-full mr-4">
+                    <FaTrash className="h-5 w-5 text-white" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-medium text-white">
+                    Confirmer l'annulation
+                  </h3>
+                </div>
+              </div>
+              
+              {/* Contenu de la modale */}
+              <div className="p-4 sm:p-6">
+                <p className="text-gray-700 mb-2">
+                  Êtes-vous sûr de vouloir annuler votre réservation pour :
+                </p>
+                <p className="text-orange-600 font-semibold text-lg mb-4 border-l-4 border-orange-400 pl-3 py-1">
+                  {confirmModal.title}
+                </p>
+                <p className="text-gray-600 text-sm mb-5">
+                  Cette action est irréversible et libérera votre place pour d'autres utilisateurs.
+                </p>
+                
+                {/* Boutons d'action */}
+                <div className="flex flex-col sm:flex-row sm:justify-end mt-5 gap-3">
+                  <button
+                    onClick={() => setConfirmModal({ show: false, reservationId: null, type: null, title: '' })}
+                    className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={() => handleCancelReservation(confirmModal.reservationId, confirmModal.type)}
+                    className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex justify-center items-center"
+                  >
+                    <FaTrash className="mr-2" />
+                    Confirmer l'annulation
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

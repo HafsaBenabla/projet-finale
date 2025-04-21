@@ -406,18 +406,19 @@ const ReservationForm = ({ activity, onClose, onSuccess }) => {
               className={`w-full py-3 rounded-xl font-semibold transition-colors ${
                 (activity.type === 'locale' && (availableTimeSlots.length === 0 || !selectedTimeSlot)) || 
                 (activity.type === 'voyage' && !selectedDate) || 
-                isExceeded || 
-                !isAuthenticated
+                isExceeded
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-sahara text-white hover:bg-sahara/90'
+                  : !isAuthenticated
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-sahara text-white hover:bg-sahara/90'
               }`}
             >
-              Continuer
+              {!isAuthenticated ? 'Connectez-vous pour réserver' : 'Continuer'}
             </button>
             
             {!isAuthenticated && (
               <p className="text-sm text-center mt-4 text-red-600">
-                Vous devez être connecté pour effectuer une réservation.
+                Vous devez être connecté pour réserver.
               </p>
             )}
           </form>
@@ -541,12 +542,19 @@ const ReservationForm = ({ activity, onClose, onSuccess }) => {
                 type="submit"
                 disabled={loading || !isAuthenticated}
                 className={`flex-1 py-3 rounded-xl font-semibold transition-colors ${
-                  loading || !isAuthenticated
+                  loading 
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-sahara text-white hover:bg-sahara/90'
+                    : !isAuthenticated
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-sahara text-white hover:bg-sahara/90'
                 }`}
               >
-                {loading ? 'Réservation en cours...' : 'Confirmer la réservation'}
+                {loading 
+                  ? 'Réservation en cours...' 
+                  : !isAuthenticated 
+                    ? 'Connectez-vous pour réserver'
+                    : 'Confirmer la réservation'
+                }
               </button>
             </div>
           </form>

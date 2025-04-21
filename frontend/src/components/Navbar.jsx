@@ -62,30 +62,33 @@ const Navbar = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
-      <div className="w-full max-w-[1400px] mx-auto py-2 px-4 sm:px-6 flex justify-between items-center">
-        <Link to="/" className="flex-shrink-0 flex items-center gap-2 -ml-2">
-          {/* Image du logo */}
-          <div className="logo-hover">
-            <img 
-              src="/logo.png" 
-              alt="MaghrebXplore Logo" 
-              className="w-24 h-24 object-contain"
-            />
-          </div>
-          
-          {/* Texte du logo */}
-          <div className="flex flex-col">
-            <h1 className="text-4xl font-bold">
-              <span className="text-gray-800">Maghreb</span>
-              <span className="text-orange-500">Xplore</span>
-            </h1>
-            <span className="text-base uppercase tracking-widest text-gray-500">Voyages & Découvertes</span>
-          </div>
-        </Link>
+      <div className="w-full max-w-full mx-auto flex justify-between items-center h-24">
+        {/* Logo à gauche */}
+        <div className="flex-shrink-0 pl-2">
+          <Link to="/" className="flex items-center no-underline">
+            {/* Image du logo */}
+            <div className="logo-hover">
+              <img 
+                src="/logo.png" 
+                alt="MaghrebXplore Logo" 
+                className="w-24 h-24 object-contain"
+              />
+            </div>
+            
+            {/* Texte du logo */}
+            <div className="flex flex-col ml-2">
+              <h1 className="text-3xl font-bold leading-tight border-0">
+                <span className="text-gray-800">Maghreb</span>
+                <span className="text-orange-500">Xplore</span>
+              </h1>
+              <span className="text-sm uppercase tracking-wider text-gray-500 border-0 border-b-0 no-underline">VOYAGES & DÉCOUVERTES</span>
+            </div>
+          </Link>
+        </div>
         
         {/* Menu burger pour mobile */}
         <button 
-          className="md:hidden text-2xl text-gray-800 hover:text-orange-500"
+          className="md:hidden text-3xl text-gray-800 hover:text-orange-500 mr-2"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
           {isMenuOpen ? <FaTimes /> : <FaBars />}
@@ -96,35 +99,35 @@ const Navbar = () => {
           <Link
             to="/"
             onClick={() => setIsMenuOpen(false)}
-            className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2 text-base font-medium"
+            className="no-underline text-gray-800 hover:text-orange-500 w-full text-center py-2 text-lg font-semibold"
           >
             Accueil
           </Link>
           <Link
             to="/voyages"
             onClick={handleVoyagesClick}
-            className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2 text-base font-medium"
+            className="no-underline text-gray-800 hover:text-orange-500 w-full text-center py-2 text-lg font-semibold"
           >
             Voyages
           </Link>
           <Link
             to="/activites"
             onClick={() => setIsMenuOpen(false)}
-            className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2 text-base font-medium"
+            className="no-underline text-gray-800 hover:text-orange-500 w-full text-center py-2 text-lg font-semibold"
           >
             Activités
           </Link>
           <Link
             to="/about"
             onClick={() => setIsMenuOpen(false)}
-            className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2 text-base font-medium"
+            className="no-underline text-gray-800 hover:text-orange-500 w-full text-center py-2 text-lg font-semibold"
           >
             À Propos
           </Link>
           <Link
             to="/contact"
             onClick={() => setIsMenuOpen(false)}
-            className="no-underline text-gray-800 hover:text-sahara w-full text-center py-2 text-base font-medium"
+            className="no-underline text-gray-800 hover:text-orange-500 w-full text-center py-2 text-lg font-semibold"
           >
             Contact
           </Link>
@@ -179,43 +182,43 @@ const Navbar = () => {
             <Link
               to="/login"
               onClick={() => setIsMenuOpen(false)}
-              className="no-underline inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-full hover:bg-sahara/90 transition-colors duration-300 transform hover:-translate-y-0.5 w-[80%] justify-center"
+              className="no-underline inline-flex items-center px-6 py-3 bg-orange-500 text-white font-semibold rounded-full hover:bg-orange-600 transition-colors duration-300 w-[80%] justify-center"
             >
               Se connecter
             </Link>
           )}
         </div>
 
-        {/* Menu desktop */}
-        <div className="hidden md:flex items-center space-x-6">
+        {/* Menu desktop - Liens au milieu */}
+        <div className="hidden md:flex items-center justify-center flex-1">
           <Link
             to="/"
-            className="no-underline text-gray-800 hover:text-sahara text-base font-medium px-1"
+            className="no-underline text-gray-800 hover:text-orange-500 text-xl font-semibold mx-5 transition-colors duration-200"
           >
             Accueil
           </Link>
           <Link
             to="/voyages"
             onClick={handleVoyagesClick}
-            className="no-underline text-gray-800 hover:text-sahara text-base font-medium px-1"
+            className="no-underline text-gray-800 hover:text-orange-500 text-xl font-semibold mx-5 transition-colors duration-200"
           >
             Voyages
           </Link>
           <Link
             to="/activites"
-            className="no-underline text-gray-800 hover:text-sahara text-base font-medium px-1"
+            className="no-underline text-gray-800 hover:text-orange-500 text-xl font-semibold mx-5 transition-colors duration-200"
           >
             Activités
           </Link>
           <Link
             to="/about"
-            className="no-underline text-gray-800 hover:text-sahara text-base font-medium px-1"
+            className="no-underline text-gray-800 hover:text-orange-500 text-xl font-semibold mx-5 transition-colors duration-200"
           >
             À Propos
           </Link>
           <Link
             to="/contact"
-            className="no-underline text-gray-800 hover:text-sahara text-base font-medium px-1"
+            className="no-underline text-gray-800 hover:text-orange-500 text-xl font-semibold mx-5 transition-colors duration-200"
           >
             Contact
           </Link>
@@ -226,19 +229,22 @@ const Navbar = () => {
               to="/admin/dashboard"
               className={dashboardLinkStyle.desktop}
             >
-              <FaCog className="text-lg" />
+              <FaCog className="text-xl" />
               <span>Dashboard</span>
             </Link>
           )}
+        </div>
 
+        {/* Bouton connexion à droite */}
+        <div className="hidden md:block pr-2">
           {user ? (
             <div className="relative">
               <button
                 onClick={handleProfileClick}
                 className={profileMenuStyle.desktop.button}
               >
-                <FaUserCircle className="text-xl" />
-                <span>{user.username}</span>
+                <FaUserCircle className="text-2xl" />
+                <span className="text-base">{user.username}</span>
               </button>
               {isProfileOpen && (
                 <div className={profileMenuStyle.desktop.menu}>
@@ -263,7 +269,7 @@ const Navbar = () => {
           ) : (
             <Link
               to="/login"
-              className="no-underline inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-full hover:bg-sahara/90 transition-colors duration-300 transform hover:-translate-y-0.5"
+              className="no-underline inline-flex items-center px-7 py-3 bg-orange-500 text-white text-lg font-semibold rounded-full hover:bg-orange-600 transition-colors duration-300"
             >
               Se connecter
             </Link>

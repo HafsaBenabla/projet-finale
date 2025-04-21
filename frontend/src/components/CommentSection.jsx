@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaUser, FaPaperPlane, FaClock, FaTrash, FaSpinner, FaCalendarAlt } from 'react-icons/fa';
+import { FaUser, FaPaperPlane, FaClock, FaTrash, FaSpinner, FaCalendarAlt, FaUserCircle } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
@@ -18,6 +18,7 @@ const CommentSection = ({ voyageId }) => {
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [commentToDelete, setCommentToDelete] = useState(null);
 
   // Récupérer les commentaires au chargement du composant
   useEffect(() => {
@@ -153,14 +154,21 @@ const CommentSection = ({ voyageId }) => {
     }
   };
 
+  // Fonction pour ouvrir la modal de confirmation pour supprimer un commentaire
+  const confirmDelete = (commentId) => {
+    setCommentToDelete(commentId);
+  };
+
+  // Fonction pour fermer la modal sans action
+  const cancelDelete = () => {
+    setCommentToDelete(null);
+  };
+
   // Fonction pour supprimer un commentaire
   const handleDelete = async (commentId) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) {
-      return;
-    }
-    
     try {
       setDeleting(commentId);
+      setCommentToDelete(null); // Fermer la modal de confirmation
       
       const apiUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/comments/${commentId}`;
       console.log("URL de l'API pour supprimer un commentaire:", apiUrl);
@@ -248,36 +256,24 @@ const CommentSection = ({ voyageId }) => {
       )}
 
       {/* Liste des commentaires */}
-      <div className="space-y-6">
-        <h3 className="text-lg font-semibold mb-3">
-          {comments.length} Commentaire{comments.length !== 1 ? 's' : ''}
-        </h3>
+      <div className="mt-8">
+        <h3 className="text-lg font-semibold mb-4">Tous les commentaires ({comments.length})</h3>
         
-        {loading ? (
-          <div className="flex justify-center py-4">
-            <FaSpinner className="animate-spin text-sahara text-xl" />
-          </div>
-        ) : comments.length > 0 ? (
-          <div className="space-y-6">
-            {comments.map((comment) => (
-              <div key={comment._id} className="border-b border-gray-200 pb-6 last:border-b-0">
-                <div className="flex justify-between items-start">
+        {comments.length > 0 ? (
+          <div className="space-y-4">
+            {comments.map(comment => (
+              <div key={comment._id} className="bg-white p-4 rounded-lg shadow">
+                <div className="flex justify-between">
                   <div className="flex items-center">
-                    <div className="bg-gray-100 p-2 rounded-full">
-                      {comment.user?.avatar ? (
-                        <img
-                          src={comment.user.avatar}
-                          alt={comment.user.firstName}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
-                      ) : (
-                        <FaUser className="text-xl text-gray-500" />
-                      )}
+                    <div className="h-10 w-10 rounded-full bg-sahara/20 flex items-center justify-center">
+                      <FaUserCircle className="h-8 w-8 text-sahara" />
                     </div>
-                    <div className="ml-3">
-                      <h4 className="font-medium text-gray-800 text-base">
-                        {comment.user?.firstName || comment.userName || 'Utilisateur'}
+                    <div className="ml-4">
+                      <h4 className="font-semibold">
+                        {comment.user?.firstName || comment.user?.name || 'Utilisateur'}
+                        {comment.user?.lastName && ` ${comment.user.lastName}`}
                       </h4>
+                      <p className="text-sm text-gray-500">{comment.user?.email || 'Anonyme'}</p>
                     </div>
                   </div>
                   
@@ -285,7 +281,7 @@ const CommentSection = ({ voyageId }) => {
                     {/* Bouton de suppression (visible uniquement pour l'auteur) */}
                     {isAuthenticated && user?._id === comment.user?._id && (
                       <button
-                        onClick={() => handleDelete(comment._id)}
+                        onClick={() => confirmDelete(comment._id)}
                         disabled={deleting === comment._id}
                         className="text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50"
                         title="Supprimer ce commentaire"
@@ -320,6 +316,40 @@ const CommentSection = ({ voyageId }) => {
           </div>
         )}
       </div>
+      
+      {/* Modal de confirmation de suppression */}
+      {commentToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4 animate-slideUp">
+            <div className="flex items-center mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-4">
+                <FaTrash className="text-red-500" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-800">Supprimer ce commentaire ?</h3>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              Êtes-vous sûr de vouloir supprimer ce commentaire ? Cette action est irréversible.
+            </p>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => handleDelete(commentToDelete)}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+              >
+                <FaTrash className="mr-2" />
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

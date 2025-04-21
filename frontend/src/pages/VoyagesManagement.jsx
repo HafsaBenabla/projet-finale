@@ -168,21 +168,43 @@ const VoyagesManagement = () => {
 
   const confirmDelete = async () => {
     try {
+      // Récupérer le token d'authentification
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        alert('Vous devez être connecté pour supprimer un voyage');
+        setShowDeleteConfirm(false);
+        return;
+      }
+
       const response = await fetch(`http://localhost:5000/api/voyages/${voyageToDelete}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
 
       if (!response.ok) {
-        throw new Error('Erreur lors de la suppression du voyage');
+        const errorData = await response.json().catch(() => ({ message: 'Erreur inconnue' }));
+        throw new Error(errorData.message || 'Erreur lors de la suppression du voyage');
       }
       
       // Forcer un rafraîchissement du contexte global pour mettre à jour toutes les cartes
       clearCache();
 
+      // Mettre à jour la liste locale des voyages en supprimant le voyage
+      setVoyages(prevVoyages => prevVoyages.filter(voyage => voyage._id !== voyageToDelete));
+      
+      // Incrémenter le déclencheur de rafraîchissement pour recharger les données
       setRefreshTrigger(prev => prev + 1);
       setShowDeleteConfirm(false);
+      
+      // Afficher une notification de succès
+      alert('Voyage supprimé avec succès');
     } catch (error) {
       console.error('Erreur de suppression:', error);
+      alert(`Erreur lors de la suppression: ${error.message}`);
     }
   };
 
