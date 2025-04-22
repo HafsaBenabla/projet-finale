@@ -71,17 +71,17 @@ const Navbar = () => {
               <img 
                 src="/logo.png" 
                 alt="MaghrebXplore Logo" 
-                className="w-24 h-24 object-contain"
+                className="w-32 h-32 object-contain"
               />
             </div>
             
             {/* Texte du logo */}
             <div className="flex flex-col ml-2">
-              <h1 className="text-3xl font-bold leading-tight border-0">
+              <h1 className="text-4xl font-bold leading-tight border-0">
                 <span className="text-gray-800">Maghreb</span>
                 <span className="text-orange-500">Xplore</span>
               </h1>
-              <span className="text-sm uppercase tracking-wider text-gray-500 border-0 border-b-0 no-underline">VOYAGES & DÉCOUVERTES</span>
+              <span className="text-base uppercase tracking-wider text-gray-500 border-0 border-b-0 no-underline">VOYAGES & DÉCOUVERTES</span>
             </div>
           </Link>
         </div>
