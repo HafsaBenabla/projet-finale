@@ -15,6 +15,7 @@ const Home = () => {
   const [voyagesWithAccommodation, setVoyagesWithAccommodation] = useState([]);
   const [activities, setActivities] = useState([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
+  const [showFullPage, setShowFullPage] = useState(false);
 
   useEffect(() => {
     // Fetch voyages data when component mounts
@@ -95,15 +96,22 @@ const Home = () => {
     fetchActivities(); // Appeler la fonction pour charger les activités
   }, []);
 
+  const handleExploreClick = () => {
+    setShowFullPage(true);
+  };
+
   return (
     <div className="w-full">
-      {/* Hero Section */}
+      {/* Hero Section prenant toute la hauteur de l'écran */}
       <section 
-        className="relative min-h-[60vh] sm:h-[80vh] w-full bg-cover bg-center"
-        style={{ backgroundImage: `url(${images.hero})` }}
+        className="relative min-h-screen w-full bg-cover bg-center flex flex-col"
+        style={{ 
+          backgroundImage: `url(${images.hero})`,
+          height: '100vh' // Force la hauteur à 100% de la hauteur de la fenêtre
+        }}
       >
         <div className="absolute inset-0 bg-black/50" />
-        <div className="w-full max-w-[1400px] mx-auto px-4 relative h-full flex flex-col items-center justify-center text-white">
+        <div className="w-full max-w-[1400px] mx-auto px-4 relative flex-grow flex flex-col items-center justify-center text-white">
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold text-center mb-4 sm:mb-6 tracking-tight">
             Le Maroc Authentique
             <span className="block mt-2 text-orange-400">Vous Attend</span>
@@ -114,152 +122,168 @@ const Home = () => {
 
           {/* Search Bar */}
           <SearchBar />
-        </div>
-      </section>
-
-      {/* Destinations Section */}
-      <Destinations />
-
-      {/* Hébergements de Luxe Section */}
-      <section className="py-12 sm:py-16 bg-gray-50">
-        <div className="w-full max-w-[1400px] mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Hébergements de Luxe
-            </h2>
-            <p className="text-lg sm:text-xl text-gray-600">
-              Découvrez notre sélection d'hébergements d'exception à travers le Maroc
-            </p>
-          </div>
-
-          {loading ? (
-            <div className="col-span-full text-center py-10">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-sahara"></div>
-              <p className="mt-2 text-gray-600">Chargement des hébergements...</p>
-            </div>
-          ) : (
-            <>
-              {/* Affichage des hébergements de voyages */}
-              {voyagesWithAccommodation.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-                  {voyagesWithAccommodation.slice(0, 4).map(voyage => (
-                    <AccommodationCard
-                      key={voyage._id}
-                      voyageId={voyage._id}
-                      hebergementName={voyage.hebergement}
-                      hebergementImage={voyage.hebergementImage}
-                      destination={voyage.destination}
-                      price={voyage.price}
-                      duration={voyage.duration}
-                      voyageTitle={voyage.title}
-                    />
-                  ))}
-                </div>
-              ) : (
-                // Message si aucun hébergement n'est disponible
-                <div className="text-center py-10 bg-gray-100 rounded-lg">
-                  <p className="text-gray-600">Aucun hébergement n'est disponible pour le moment.</p>
-                  <p className="text-gray-500 mt-2">Ajoutez des voyages avec des informations d'hébergement pour les voir apparaître ici.</p>
-                </div>
-              )}
-              
-              {/* Bouton pour voir plus d'hébergements */}
-              {voyagesWithAccommodation.length > 4 && (
-                <div className="text-center mt-8">
-                  <Link 
-                    to="/voyages" 
-                    className="inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-lg hover:bg-sahara/90 transition-colors"
-                  >
-                    <FaHotel className="mr-2" /> Voir plus d'hébergements
-                  </Link>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </section>
-
-      {/* Activities Section */}
-      <section className="py-12 sm:py-16">
-        <div className="w-full max-w-[1400px] mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Activités Incontournables
-            </h2>
-            <p className="text-lg sm:text-xl text-gray-600">
-              Vivez des expériences uniques au Maroc
-            </p>
-          </div>
-
-          {loadingActivities ? (
-            <div className="col-span-full text-center py-10">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-sahara"></div>
-              <p className="mt-2 text-gray-600">Chargement des activités...</p>
-            </div>
-          ) : (
-            <>
-              {activities.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {activities.map((activity) => (
-                    <ActivityCard 
-                      key={activity._id}
-                      id={activity._id}
-                      name={activity.name}
-                      image={activity.image}
-                      description={activity.description}
-                      duration={activity.duration}
-                      price={activity.price}
-                      voyageId={activity.voyageId}
-                      city={activity.city}
-                      maxParticipants={activity.maxParticipants}
-                      type={activity.type || 'locale'}
-                      isWeekendOnly={activity.isWeekendOnly}
-                      timeSlots={activity.timeSlots}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-10 bg-gray-100 rounded-lg">
-                  <p className="text-gray-600">Aucune activité n'est disponible pour le moment.</p>
-                  <p className="text-gray-500 mt-2">Ajoutez des activités pour les voir apparaître ici.</p>
-                </div>
-              )}
-              
-              {/* Bouton pour voir plus d'activités si nécessaire */}
-              {activities.length > 4 && (
-                <div className="text-center mt-8">
-                  <Link 
-                    to="/activites" 
-                    className="inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-lg hover:bg-sahara/90 transition-colors"
-                  >
-                    Voir plus d'activités
-                  </Link>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </section>
-
-      {/* Newsletter Section */}
-      <section className="py-12 sm:py-16 bg-orange-500 text-white">
-        <div className="w-full max-w-[1400px] mx-auto px-4 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">Restez Informé</h2>
-          <p className="text-lg sm:text-xl mb-6 sm:mb-8 opacity-90 max-w-2xl mx-auto">
-            Recevez nos meilleures offres et découvrez nos nouveautés
-          </p>
-          <div className="max-w-xl mx-auto flex flex-col sm:flex-row gap-4">
-            <input 
-              type="email" 
-              placeholder="Votre email" 
-              className="w-full sm:flex-1 px-6 py-3 rounded-full text-gray-800 outline-none"
-            />
-            <button className="w-full sm:w-auto px-8 py-3 bg-white text-orange-500 font-semibold rounded-full hover:bg-gray-100 transition-colors">
-              S'inscrire
+          
+          {/* Bouton pour explorer et voir le reste du contenu */}
+          {!showFullPage && (
+            <button 
+              onClick={handleExploreClick}
+              className="mt-10 px-8 py-3 bg-sahara text-white font-semibold rounded-lg hover:bg-sahara/90 transition-colors flex items-center gap-2"
+            >
+              Explorer
+              <span className="animate-bounce">↓</span>
             </button>
-          </div>
+          )}
         </div>
       </section>
+
+      {/* Sections conditionnellement affichées uniquement si l'utilisateur clique sur Explorer */}
+      {showFullPage && (
+        <>
+          {/* Destinations Section */}
+          <Destinations />
+
+          {/* Hébergements de Luxe Section */}
+          <section className="py-12 sm:py-16 bg-gray-50">
+            <div className="w-full max-w-[1400px] mx-auto px-4">
+              <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                  Hébergements de Luxe
+                </h2>
+                <p className="text-lg sm:text-xl text-gray-600">
+                  Découvrez notre sélection d'hébergements d'exception à travers le Maroc
+                </p>
+              </div>
+
+              {loading ? (
+                <div className="col-span-full text-center py-10">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-sahara"></div>
+                  <p className="mt-2 text-gray-600">Chargement des hébergements...</p>
+                </div>
+              ) : (
+                <>
+                  {/* Affichage des hébergements de voyages */}
+                  {voyagesWithAccommodation.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+                      {voyagesWithAccommodation.slice(0, 4).map(voyage => (
+                        <AccommodationCard
+                          key={voyage._id}
+                          voyageId={voyage._id}
+                          hebergementName={voyage.hebergement}
+                          hebergementImage={voyage.hebergementImage}
+                          destination={voyage.destination}
+                          price={voyage.price}
+                          duration={voyage.duration}
+                          voyageTitle={voyage.title}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    // Message si aucun hébergement n'est disponible
+                    <div className="text-center py-10 bg-gray-100 rounded-lg">
+                      <p className="text-gray-600">Aucun hébergement n'est disponible pour le moment.</p>
+                      <p className="text-gray-500 mt-2">Ajoutez des voyages avec des informations d'hébergement pour les voir apparaître ici.</p>
+                    </div>
+                  )}
+                  
+                  {/* Bouton pour voir plus d'hébergements */}
+                  {voyagesWithAccommodation.length > 4 && (
+                    <div className="text-center mt-8">
+                      <Link 
+                        to="/voyages" 
+                        className="inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-lg hover:bg-sahara/90 transition-colors"
+                      >
+                        <FaHotel className="mr-2" /> Voir plus d'hébergements
+                      </Link>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </section>
+
+          {/* Activities Section */}
+          <section className="py-12 sm:py-16">
+            <div className="w-full max-w-[1400px] mx-auto px-4">
+              <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                  Activités Incontournables
+                </h2>
+                <p className="text-lg sm:text-xl text-gray-600">
+                  Vivez des expériences uniques au Maroc
+                </p>
+              </div>
+
+              {loadingActivities ? (
+                <div className="col-span-full text-center py-10">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-sahara"></div>
+                  <p className="mt-2 text-gray-600">Chargement des activités...</p>
+                </div>
+              ) : (
+                <>
+                  {activities.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {activities.map((activity) => (
+                        <ActivityCard 
+                          key={activity._id}
+                          id={activity._id}
+                          name={activity.name}
+                          image={activity.image}
+                          description={activity.description}
+                          duration={activity.duration}
+                          price={activity.price}
+                          voyageId={activity.voyageId}
+                          city={activity.city}
+                          maxParticipants={activity.maxParticipants}
+                          type={activity.type || 'locale'}
+                          isWeekendOnly={activity.isWeekendOnly}
+                          timeSlots={activity.timeSlots}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 bg-gray-100 rounded-lg">
+                      <p className="text-gray-600">Aucune activité n'est disponible pour le moment.</p>
+                      <p className="text-gray-500 mt-2">Ajoutez des activités pour les voir apparaître ici.</p>
+                    </div>
+                  )}
+                  
+                  {/* Bouton pour voir plus d'activités si nécessaire */}
+                  {activities.length > 4 && (
+                    <div className="text-center mt-8">
+                      <Link 
+                        to="/activites" 
+                        className="inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-lg hover:bg-sahara/90 transition-colors"
+                      >
+                        Voir plus d'activités
+                      </Link>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </section>
+
+          {/* Newsletter Section */}
+          <section className="py-12 sm:py-16 bg-orange-500 text-white">
+            <div className="w-full max-w-[1400px] mx-auto px-4 text-center">
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">Restez Informé</h2>
+              <p className="text-lg sm:text-xl mb-6 sm:mb-8 opacity-90 max-w-2xl mx-auto">
+                Recevez nos meilleures offres et découvrez nos nouveautés
+              </p>
+              <div className="max-w-xl mx-auto flex flex-col sm:flex-row gap-4">
+                <input 
+                  type="email" 
+                  placeholder="Votre email" 
+                  className="w-full sm:flex-1 px-6 py-3 rounded-full text-gray-800 outline-none"
+                />
+                <button className="w-full sm:w-auto px-8 py-3 bg-white text-orange-500 font-semibold rounded-full hover:bg-gray-100 transition-colors">
+                  S'inscrire
+                </button>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 };
