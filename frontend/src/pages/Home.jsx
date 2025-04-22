@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { FaSearch, FaMapMarkerAlt, FaCalendarAlt, FaUsers, FaHotel } from "react-icons/fa";
+import { FaSearch, FaMapMarkerAlt, FaCalendarAlt, FaUsers, FaHotel, FaArrowDown, FaCompass } from "react-icons/fa";
 import { images } from "../constants/images";
 import SearchBar from "../components/SearchBar";
 import Destinations from "../components/Destinations";
@@ -16,6 +16,7 @@ const Home = () => {
   const [activities, setActivities] = useState([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
   const [showFullPage, setShowFullPage] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     // Fetch voyages data when component mounts
@@ -98,6 +99,13 @@ const Home = () => {
 
   const handleExploreClick = () => {
     setShowFullPage(true);
+    // Scroll smoothly to the Destinations section
+    setTimeout(() => {
+      window.scrollTo({
+        top: window.innerHeight,
+        behavior: 'smooth'
+      });
+    }, 100);
   };
 
   return (
@@ -110,7 +118,7 @@ const Home = () => {
           height: '100vh' // Force la hauteur à 100% de la hauteur de la fenêtre
         }}
       >
-        <div className="absolute inset-0 bg-black/50" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/60" />
         <div className="w-full max-w-[1400px] mx-auto px-4 relative flex-grow flex flex-col items-center justify-center text-white">
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold text-center mb-4 sm:mb-6 tracking-tight">
             Le Maroc Authentique
@@ -123,16 +131,51 @@ const Home = () => {
           {/* Search Bar */}
           <SearchBar />
           
-          {/* Bouton pour explorer et voir le reste du contenu */}
+          {/* Bouton Explorer redesigné */}
           {!showFullPage && (
-            <button 
-              onClick={handleExploreClick}
-              className="mt-10 px-8 py-3 bg-sahara text-white font-semibold rounded-lg hover:bg-sahara/90 transition-colors flex items-center gap-2"
-            >
-              Explorer
-              <span className="animate-bounce">↓</span>
-            </button>
+            <div className="mt-16 mb-8 text-center">
+              <div className="relative inline-block">
+                <button 
+                  onClick={handleExploreClick}
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
+                  className={`
+                    relative overflow-hidden px-10 py-4 rounded-full font-bold text-lg
+                    transition-all duration-500 ease-in-out
+                    ${isHovered ? 'bg-white text-sahara shadow-[0_0_20px_rgba(255,255,255,0.7)]' : 'bg-sahara text-white'}
+                    group hover:pl-14
+                  `}
+                >
+                  <span className={`absolute left-4 transform transition-all duration-500 ease-in-out ${isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'}`}>
+                    <FaCompass className="text-xl" />
+                  </span>
+                  Explorez le Maroc
+                </button>
+                
+                {/* Effet de pulsation circulaire */}
+                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+                  <div className="relative">
+                    <span className="flex h-10 w-10">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sahara opacity-30"></span>
+                      <span className="relative flex justify-center items-center rounded-full h-10 w-10 bg-sahara">
+                        <FaArrowDown className="text-white text-sm animate-bounce" />
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Texte incitant à explorer */}
+              <p className="text-white/80 text-sm mt-16 animate-pulse">Découvrez nos offres exclusives en scrollant</p>
+            </div>
           )}
+        </div>
+        
+        {/* Effet de vagues au bas de la section Hero */}
+        <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-0 transform">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none" className="relative block w-full h-[70px]">
+            <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" className="fill-gray-50/90"></path>
+          </svg>
         </div>
       </section>
 

@@ -40,8 +40,8 @@ const VoyageCard = ({ voyage }) => {
         {/* Infos superposées sur l'image */}
         <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
           <h3 className="text-xl font-bold text-white mb-1 drop-shadow-md group-hover:text-orange-200 transition-colors duration-300">{voyage.title}</h3>
-          <div className="flex items-center space-x-1">
-            <FaMapMarkerAlt className="text-orange-400" />
+          <div className="flex items-center space-x-2">
+            <FaMapMarkerAlt className="text-orange-400 text-lg" />
             <span className="text-sm font-medium">{voyage.destination}</span>
           </div>
         </div>
@@ -57,22 +57,22 @@ const VoyageCard = ({ voyage }) => {
         {/* Caractéristiques */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="flex items-center text-gray-700 text-sm">
-            <FaRegClock className="text-orange-500 mr-2" />
+            <FaRegClock className="text-orange-500 mr-2 text-xl" />
             <span>{voyage.duration} jour{voyage.duration > 1 ? 's' : ''}</span>
           </div>
           
           <div className="flex items-center text-gray-700 text-sm">
-            <FaUsers className="text-orange-500 mr-2" />
+            <FaUsers className="text-orange-500 mr-2 text-xl" />
             <span>{voyage.availableSpots || 0} places disponibles</span>
           </div>
           
           <div className="flex items-center text-gray-700 text-sm">
-            <FaCalendarAlt className="text-orange-500 mr-2" />
+            <FaCalendarAlt className="text-orange-500 mr-2 text-xl" />
             <span>{voyage.departureDate ? new Date(voyage.departureDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : 'Flexible'}</span>
           </div>
           
           <div className="flex items-center text-gray-700 text-sm">
-            <FaCompass className="text-orange-500 mr-2" />
+            <FaCompass className="text-orange-500 mr-2 text-xl" />
             <span>{voyage.type || 'Circuit'}</span>
           </div>
         </div>
