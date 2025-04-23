@@ -112,6 +112,7 @@ const App = () => {
                     <Route path="/register" element={<Register />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/city/:cityName" element={<CityAgencies />} />
+                    <Route path="/city-agencies/:cityName" element={<CityAgencies />} />
                     <Route path="/agency-voyages/:agencyId" element={<AgencyVoyages />} />
                     
                     {/* Routes administratives */}

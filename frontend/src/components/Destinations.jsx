@@ -168,7 +168,9 @@ const Destinations = () => {
       }
     });
     
-    navigate(`/city/${normalizedCityName}`);
+    // Rediriger vers la page des voyages avec le filtre de destination 
+    // au lieu de la page des agences de la ville
+    navigate(`/voyages?destination=${encodeURIComponent(normalizedCityName)}`);
   };
 
   return (

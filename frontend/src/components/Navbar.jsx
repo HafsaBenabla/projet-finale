@@ -118,6 +118,13 @@ const Navbar = () => {
             Activités
           </Link>
           <Link
+            to="/city-agencies/Toutes les villes du Maroc"
+            onClick={() => setIsMenuOpen(false)}
+            className="no-underline text-gray-800 hover:text-orange-500 w-full text-center py-2 text-lg font-semibold"
+          >
+            Agences
+          </Link>
+          <Link
             to="/about"
             onClick={() => setIsMenuOpen(false)}
             className="no-underline text-gray-800 hover:text-orange-500 w-full text-center py-2 text-lg font-semibold"
@@ -209,6 +216,12 @@ const Navbar = () => {
             className="no-underline text-gray-800 hover:text-orange-500 text-xl font-semibold mx-5 transition-colors duration-200"
           >
             Activités
+          </Link>
+          <Link
+            to="/city-agencies/Toutes les villes du Maroc"
+            className="no-underline text-gray-800 hover:text-orange-500 text-xl font-semibold mx-5 transition-colors duration-200"
+          >
+            Agences
           </Link>
           <Link
             to="/about"
