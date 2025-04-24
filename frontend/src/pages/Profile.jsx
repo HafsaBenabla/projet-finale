@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaUser, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaPhone, FaTrash, FaSpinner, FaTimes, FaPlus, FaPencilAlt, FaPlane, FaBuilding, FaHiking, FaCog, FaEye, FaEllipsisV, FaCalendarCheck, FaListUl, FaBell, FaExclamation, FaCheck, FaInfo } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaPhone, FaTrash, FaSpinner, FaTimes, FaPlus, FaPencilAlt, FaPlane, FaBuilding, FaHiking, FaCog, FaEye, FaEllipsisV, FaCalendarCheck, FaListUl, FaBell, FaExclamation, FaCheck, FaInfo, FaUserCircle, FaPaperPlane } from 'react-icons/fa';
 import './ProfileStyles.css';
 
 const Profile = () => {
@@ -1149,7 +1149,16 @@ const Profile = () => {
             </h4>
             {reservations.voyages.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {reservations.voyages.map((reservation) => (
+                {reservations.voyages.map((reservation) => {
+                  // Vérifier si la date du voyage est passée
+                  // Utiliser la date de départ du voyage plutôt que la date de réservation
+                  const today = new Date();
+                  // Si le voyage a une propriété dateDepart, on l'utilise, sinon on utilise la date de réservation
+                  const departureDate = reservation.dateDepart ? new Date(reservation.dateDepart) : 
+                                        (reservation.voyage?.dateDepart ? new Date(reservation.voyage.dateDepart) : null);
+                  const isVoyagePassed = departureDate && departureDate < today;
+                  
+                  return (
                   <div key={reservation._id} className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow bg-white relative reservation-card">
                     {reservation.voyage?.image && (
                       <div className="w-full h-32 sm:h-40 mb-3 sm:mb-4 rounded-lg overflow-hidden">
@@ -1185,6 +1194,131 @@ const Profile = () => {
                         {reservation.statut}
                       </div>
                       
+                      {/* Section pour ajouter un retour d'expérience - uniquement pour les voyages passés */}
+                      {isVoyagePassed && reservation.statut !== 'annulé' && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <div className="flex items-center mb-2">
+                            <FaUserCircle className="text-orange-500 mr-2" />
+                            <h6 className="font-medium text-gray-700">Partagez votre expérience</h6>
+                          </div>
+                          
+                          {/* Formulaire pour ajouter un commentaire */}
+                          <form 
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const content = e.target.elements.experience.value.trim();
+                              if (content) {
+                                // Créer un nouveau commentaire
+                                const commentData = {
+                                  content: content,
+                                  voyageId: reservation.voyage?._id,
+                                  userId: user.userId
+                                };
+                                
+                                // Appeler l'API pour ajouter le commentaire
+                                axios.post(
+                                  `http://localhost:5000/api/voyages/${reservation.voyage?._id}/comments`,
+                                  commentData,
+                                  {
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      'Authorization': `Bearer ${token}`
+                                    }
+                                  }
+                                )
+                                .then(response => {
+                                  console.log("Commentaire ajouté avec succès:", response.data);
+                                  // Réinitialiser le formulaire
+                                  e.target.reset();
+                                  // Afficher une notification
+                                  setNotification({
+                                    message: 'Merci pour votre retour d\'expérience !',
+                                    type: 'success',
+                                    details: 'Votre commentaire a été publié avec succès.',
+                                    timestamp: new Date().toLocaleTimeString()
+                                  });
+                                  
+                                  // Rafraîchir les commentaires de l'utilisateur
+                                  fetchUserComments();
+                                  
+                                  // Effacer la notification après 5 secondes
+                                  setTimeout(() => {
+                                    setNotification({ message: '', type: '', details: '', timestamp: '' });
+                                  }, 5000);
+                                })
+                                .catch(error => {
+                                  console.error("Erreur lors de l'ajout du commentaire:", error);
+                                  // Afficher une notification d'erreur
+                                  setNotification({
+                                    message: 'Erreur lors de l\'ajout du commentaire',
+                                    type: 'error',
+                                    details: error.response?.data?.message || error.message,
+                                    timestamp: new Date().toLocaleTimeString()
+                                  });
+                                  
+                                  // Effacer la notification après 8 secondes
+                                  setTimeout(() => {
+                                    setNotification({ message: '', type: '', details: '', timestamp: '' });
+                                  }, 8000);
+                                });
+                              }
+                            }}
+                            className="space-y-2"
+                          >
+                            <textarea
+                              name="experience"
+                              placeholder="Racontez votre voyage et partagez vos impressions..."
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all resize-none"
+                              rows="3"
+                              required
+                            ></textarea>
+                            <button
+                              type="submit"
+                              className="w-full bg-orange-500 text-white py-2 rounded-md font-medium hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
+                            >
+                              <FaPaperPlane />
+                              Partager mon expérience
+                            </button>
+                          </form>
+                        </div>
+                      )}
+                      
+                      {/* Message informatif pour les voyages à venir */}
+                      {!isVoyagePassed && reservation.statut !== 'annulé' && (
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <div className="flex items-center mb-2">
+                            <FaUserCircle className="text-orange-500 mr-2" />
+                            <h6 className="font-medium text-gray-700">Partagez votre expérience</h6>
+                          </div>
+
+                          {/* Formulaire désactivé avec message explicatif */}
+                          <div className="space-y-2">
+                            <textarea
+                              name="experience-disabled"
+                              placeholder="Vous pourrez raconter votre voyage ici après votre retour..."
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-400 cursor-not-allowed transition-all resize-none"
+                              rows="3"
+                              disabled
+                            ></textarea>
+                            <button
+                              type="button"
+                              disabled
+                              className="w-full bg-gray-300 text-gray-500 py-2 rounded-md font-medium cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                              <FaPaperPlane />
+                              Partager mon expérience
+                            </button>
+
+                            <div className="bg-blue-50 p-2 rounded-lg text-blue-700 text-xs flex items-start mt-1">
+                              <FaInfo className="text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
+                              <p>
+                                Ce formulaire sera activé automatiquement à la fin de votre voyage
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
                       {/* Bouton d'annulation */}
                       {reservation.statut !== 'annulé' && (
                         <button
@@ -1207,7 +1341,7 @@ const Profile = () => {
                       )}
                     </div>
                   </div>
-                ))}
+                );})}
               </div>
             ) : (
               <p className="text-gray-600 text-center py-4 bg-gray-50 rounded-lg">
