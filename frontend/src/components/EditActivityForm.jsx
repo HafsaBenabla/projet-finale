@@ -350,23 +350,6 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Nombre maximum de participants</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="maxParticipants"
-                    value={formData.maxParticipants}
-                    onChange={handleChange}
-                    required
-                    min="1"
-                    className="rounded-lg"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
                   <Form.Label>Ville</Form.Label>
                   <Form.Select
                     name="city"
@@ -382,6 +365,9 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
                   </Form.Select>
                 </Form.Group>
               </Col>
+            </Row>
+
+            <Row>
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Check

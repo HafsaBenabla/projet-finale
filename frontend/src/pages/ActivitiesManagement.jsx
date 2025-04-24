@@ -376,7 +376,7 @@ const ActivitiesManagement = () => {
               )}
 
               <Row>
-                <Col md={4}>
+                <Col md={6}>
                   <Form.Group className="mb-4">
                     <Form.Label>Prix (DH)</Form.Label>
                     <Form.Control
@@ -390,7 +390,7 @@ const ActivitiesManagement = () => {
                     />
                   </Form.Group>
                 </Col>
-                <Col md={4}>
+                <Col md={6}>
                   <Form.Group className="mb-4">
                     <Form.Label>Durée (heures)</Form.Label>
                     <Form.Control
@@ -401,20 +401,6 @@ const ActivitiesManagement = () => {
                       required
                       className="rounded-lg"
                       placeholder="Durée en heures"
-                    />
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group className="mb-4">
-                    <Form.Label>Nombre max. de participants</Form.Label>
-                    <Form.Control
-                      type="number"
-                      name="maxParticipants"
-                      value={activityData.maxParticipants}
-                      onChange={handleActivityChange}
-                      required
-                      className="rounded-lg"
-                      placeholder="Nombre de participants"
                     />
                   </Form.Group>
                 </Col>
