@@ -981,452 +981,393 @@ const Profile = () => {
               <p className="text-sm text-orange-500 mt-1 italic">Cliquez pour modifier ce message</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Bloc Notifications */}
-              <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                    <FaBell className="mr-2 text-orange-500" />
-                    Notifications
-                  </h3>
-                  {realNotifications.loading && (
-                    <div className="text-sm text-gray-500 flex items-center">
-                      <FaSpinner className="animate-spin mr-2" />
-                      Chargement...
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  {realNotifications.error ? (
-                    <div className="py-4 text-center text-red-500">
-                      <p>{realNotifications.error}</p>
-                      <p className="text-sm mt-2">Les notifications ne peuvent pas être chargées pour le moment.</p>
-                    </div>
-                  ) : adminSettings?.notifications && adminSettings.notifications.length > 0 ? (
-                    <ul className="divide-y divide-gray-200">
-                      {adminSettings.notifications.map((notif, index) => (
-                        <li key={index} className="py-3">
-                          <div className="flex items-start">
-                            <div className={`flex-shrink-0 p-1 rounded-full ${
-                              notif.type === 'success' ? 'bg-green-100' : 
-                              notif.type === 'warning' ? 'bg-yellow-100' : 
-                              notif.type === 'error' ? 'bg-red-100' : 'bg-blue-100'
-                            }`}>
-                              {notif.type === 'success' ? <FaCheck className="text-green-500" /> : 
-                               notif.type === 'warning' ? <FaExclamation className="text-yellow-500" /> :
-                               notif.type === 'error' ? <FaTimes className="text-red-500" /> :
-                               <FaInfo className="text-blue-500" />}
-                            </div>
-                            <div className="ml-3 flex-1">
-                              <p className="text-sm font-medium text-gray-800">{notif.message}</p>
-                              <p className="text-xs text-gray-500">{notif.date}</p>
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : realNotifications.loading ? (
-                    <div className="py-6 text-center text-gray-500">
-                      <div className="flex justify-center mb-3">
-                        <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-                      </div>
-                      <p>Chargement des notifications...</p>
-                    </div>
-                  ) : (
-                    <div className="py-6 text-center text-gray-500">
-                      <p>Aucune notification récente</p>
-                      <p className="text-sm mt-2">Les activités importantes apparaîtront ici</p>
-                    </div>
-                  )}
-                </div>
+            {/* Bloc "À faire" unique, en pleine largeur (sans les notifications) */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                  <FaListUl className="mr-2 text-orange-500" />
+                  À faire
+                </h3>
               </div>
-              
-              {/* Bloc "À faire" (Admin todo) */}
-              <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                    <FaListUl className="mr-2 text-orange-500" />
-                    À faire
-                  </h3>
-                </div>
-                <div className="p-4">
-                  <ul className="space-y-3">
-                    {adminSettings?.todoList && adminSettings.todoList.length > 0 ? (
-                      adminSettings.todoList.map(todo => (
-                        <li key={todo.id} className="flex items-center gap-2">
-                          <input 
-                            type="checkbox" 
-                            checked={todo.completed} 
-                            onChange={() => toggleTodoCompletion(todo.id)}
-                            className="form-checkbox h-5 w-5 text-orange-500 rounded"
-                          />
-                          <span className={`flex-1 ${todo.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                            {todo.task}
-                          </span>
-                          <button 
-                            className="text-red-400 hover:text-red-600"
-                            onClick={() => setAdminSettings(prev => ({
-                              ...prev,
-                              todoList: prev.todoList.filter(item => item.id !== todo.id)
-                            }))}
-                          >
-                            <FaTimes />
-                          </button>
-                        </li>
-                      ))
-                    ) : (
-                      <li className="py-6 text-center text-gray-500">
-                        Aucune tâche en attente
-                      </li>
-                    )}
-                  </ul>
-                  
-                  {/* Nouvelle section pour ajouter une tâche */}
-                  <div className="mt-4 pt-3 border-t border-gray-200">
-                    {/* État pour afficher/masquer le formulaire d'ajout de tâche */}
-                    {showNewTaskForm ? (
-                      <form onSubmit={(e) => {
-                        e.preventDefault();
-                        const task = e.target.elements.newTask.value.trim();
-                        if (task) {
-                          addTodoItem(task);
-                          e.target.reset();
-                          setShowNewTaskForm(false);
-                        }
-                      }} className="space-y-2">
+              <div className="p-4">
+                <ul className="space-y-3">
+                  {adminSettings?.todoList && adminSettings.todoList.length > 0 ? (
+                    adminSettings.todoList.map(todo => (
+                      <li key={todo.id} className="flex items-center gap-2">
                         <input 
-                          type="text" 
-                          name="newTask"
-                          placeholder="Ajouter une nouvelle tâche..." 
-                          className="w-full border-gray-300 rounded focus:ring-orange-500 focus:border-orange-500"
-                          autoFocus
+                          type="checkbox" 
+                          checked={todo.completed} 
+                          onChange={() => toggleTodoCompletion(todo.id)}
+                          className="form-checkbox h-5 w-5 text-orange-500 rounded"
                         />
-                        <div className="flex justify-end space-x-2">
-                          <button 
-                            type="button"
-                            onClick={() => setShowNewTaskForm(false)}
-                            className="px-3 py-1 text-gray-600 hover:text-gray-800"
-                          >
-                            Annuler
-                          </button>
-                          <button 
-                            type="submit"
-                            className="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600 transition-colors"
-                          >
-                            Ajouter
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <div className="flex justify-center">
+                        <span className={`flex-1 ${todo.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                          {todo.task}
+                        </span>
                         <button 
-                          onClick={() => setShowNewTaskForm(true)}
-                          className="flex items-center justify-center w-full py-2 bg-gray-50 hover:bg-gray-100 text-orange-500 rounded-lg transition-colors"
+                          className="text-red-400 hover:text-red-600"
+                          onClick={() => setAdminSettings(prev => ({
+                            ...prev,
+                            todoList: prev.todoList.filter(item => item.id !== todo.id)
+                          }))}
                         >
-                          <FaPlus className="mr-2" />
-                          Ajouter une tâche
+                          <FaTimes />
+                        </button>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="py-6 text-center text-gray-500">
+                      Aucune tâche en attente
+                    </li>
+                  )}
+                </ul>
+                
+                {/* Nouvelle section pour ajouter une tâche */}
+                <div className="mt-4 pt-3 border-t border-gray-200">
+                  {/* État pour afficher/masquer le formulaire d'ajout de tâche */}
+                  {showNewTaskForm ? (
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      const task = e.target.elements.newTask.value.trim();
+                      if (task) {
+                        addTodoItem(task);
+                        e.target.reset();
+                        setShowNewTaskForm(false);
+                      }
+                    }} className="space-y-2">
+                      <input 
+                        type="text" 
+                        name="newTask"
+                        placeholder="Ajouter une nouvelle tâche..." 
+                        className="w-full border-gray-300 rounded focus:ring-orange-500 focus:border-orange-500"
+                        autoFocus
+                      />
+                      <div className="flex justify-end space-x-2">
+                        <button 
+                          type="button"
+                          onClick={() => setShowNewTaskForm(false)}
+                          className="px-3 py-1 text-gray-600 hover:text-gray-800"
+                        >
+                          Annuler
+                        </button>
+                        <button 
+                          type="submit"
+                          className="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600 transition-colors"
+                        >
+                          Ajouter
                         </button>
                       </div>
-                    )}
-                  </div>
+                    </form>
+                  ) : (
+                    <div className="flex justify-center">
+                      <button 
+                        onClick={() => setShowNewTaskForm(true)}
+                        className="flex items-center justify-center w-full py-2 bg-gray-50 hover:bg-gray-100 text-orange-500 rounded-lg transition-colors"
+                      >
+                        <FaPlus className="mr-2" />
+                        Ajouter une tâche
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Section des réservations - adaptée pour mobile */}
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 sm:mb-6 border-b border-gray-200 pb-2">Mes Réservations</h3>
-          
-          {/* Voyages réservés - le reste du code est adapté grâce aux media queries CSS */}
-          <div className="mb-8">
-            <h4 className="text-lg font-medium text-orange-600 mb-4 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-              </svg>
-              Voyages
-            </h4>
-            {reservations.voyages.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {reservations.voyages.map((reservation) => {
-                  // Vérifier si la date du voyage est passée
-                  // Utiliser la date de départ du voyage plutôt que la date de réservation
-                  const today = new Date();
-                  // Si le voyage a une propriété dateDepart, on l'utilise, sinon on utilise la date de réservation
-                  const departureDate = reservation.dateDepart ? new Date(reservation.dateDepart) : 
-                                        (reservation.voyage?.dateDepart ? new Date(reservation.voyage.dateDepart) : null);
-                  const isVoyagePassed = departureDate && departureDate < today;
-                  
-                  return (
-                  <div key={reservation._id} className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow bg-white relative reservation-card">
-                    {reservation.voyage?.image && (
-                      <div className="w-full h-32 sm:h-40 mb-3 sm:mb-4 rounded-lg overflow-hidden">
-                        <img 
-                          src={reservation.voyage.image} 
-                          alt={reservation.voyage.title} 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <h5 className="font-semibold text-base sm:text-lg text-orange-600 mb-2">
-                      {reservation.voyage?.title || 'Voyage sans titre'}
-                    </h5>
-                    <div className="space-y-1 sm:space-y-2">
-                      <p className="flex items-center text-sm sm:text-base text-gray-600">
-                        <FaMapMarkerAlt className="mr-2 flex-shrink-0" />
-                        <span className="line-clamp-1">{reservation.voyage?.destination || 'Destination non spécifiée'}</span>
-                      </p>
-                      <p className="flex items-center text-sm sm:text-base text-gray-600">
-                        <FaCalendarAlt className="mr-2 flex-shrink-0" />
-                        {new Date(reservation.dateReservation).toLocaleDateString()}
-                      </p>
-                      <div className={`mt-2 inline-block px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium
-                        ${reservation.statut === 'confirmé' ? 'bg-green-100 text-green-800' :
-                          reservation.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'}`}
-                        data-tooltip={
-                          reservation.statut === 'confirmé' ? 'Réservation confirmée' :
-                          reservation.statut === 'en_attente' ? 'En attente de confirmation' :
-                          'Réservation annulée'
-                        }
-                      >
-                        {reservation.statut}
-                      </div>
-                      
-                      {/* Section pour ajouter un retour d'expérience - uniquement pour les voyages passés */}
-                      {isVoyagePassed && reservation.statut !== 'annulé' && (
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <div className="flex items-center mb-2">
-                            <FaUserCircle className="text-orange-500 mr-2" />
-                            <h6 className="font-medium text-gray-700">Partagez votre expérience</h6>
-                          </div>
-                          
-                          {/* Formulaire pour ajouter un commentaire */}
-                          <form 
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              const content = e.target.elements.experience.value.trim();
-                              if (content) {
-                                // Créer un nouveau commentaire
-                                const commentData = {
-                                  content: content,
-                                  voyageId: reservation.voyage?._id,
-                                  userId: user.userId
-                                };
-                                
-                                // Appeler l'API pour ajouter le commentaire
-                                axios.post(
-                                  `http://localhost:5000/api/voyages/${reservation.voyage?._id}/comments`,
-                                  commentData,
-                                  {
-                                    headers: {
-                                      'Content-Type': 'application/json',
-                                      'Authorization': `Bearer ${token}`
-                                    }
-                                  }
-                                )
-                                .then(response => {
-                                  console.log("Commentaire ajouté avec succès:", response.data);
-                                  // Réinitialiser le formulaire
-                                  e.target.reset();
-                                  // Afficher une notification
-                                  setNotification({
-                                    message: 'Merci pour votre retour d\'expérience !',
-                                    type: 'success',
-                                    details: 'Votre commentaire a été publié avec succès.',
-                                    timestamp: new Date().toLocaleTimeString()
-                                  });
-                                  
-                                  // Rafraîchir les commentaires de l'utilisateur
-                                  fetchUserComments();
-                                  
-                                  // Effacer la notification après 5 secondes
-                                  setTimeout(() => {
-                                    setNotification({ message: '', type: '', details: '', timestamp: '' });
-                                  }, 5000);
-                                })
-                                .catch(error => {
-                                  console.error("Erreur lors de l'ajout du commentaire:", error);
-                                  // Afficher une notification d'erreur
-                                  setNotification({
-                                    message: 'Erreur lors de l\'ajout du commentaire',
-                                    type: 'error',
-                                    details: error.response?.data?.message || error.message,
-                                    timestamp: new Date().toLocaleTimeString()
-                                  });
-                                  
-                                  // Effacer la notification après 8 secondes
-                                  setTimeout(() => {
-                                    setNotification({ message: '', type: '', details: '', timestamp: '' });
-                                  }, 8000);
-                                });
-                              }
-                            }}
-                            className="space-y-2"
-                          >
-                            <textarea
-                              name="experience"
-                              placeholder="Racontez votre voyage et partagez vos impressions..."
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all resize-none"
-                              rows="3"
-                              required
-                            ></textarea>
-                            <button
-                              type="submit"
-                              className="w-full bg-orange-500 text-white py-2 rounded-md font-medium hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
-                            >
-                              <FaPaperPlane />
-                              Partager mon expérience
-                            </button>
-                          </form>
+        {/* Section des réservations - adaptée pour mobile, ne s'affiche que pour les utilisateurs non-admin */}
+        {!user?.isAdmin && (
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 sm:mb-6 border-b border-gray-200 pb-2">Mes Réservations</h3>
+            
+            {/* Voyages réservés - le reste du code est adapté grâce aux media queries CSS */}
+            <div className="mb-8">
+              <h4 className="text-lg font-medium text-orange-600 mb-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                </svg>
+                Voyages
+              </h4>
+              {reservations.voyages.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {reservations.voyages.map((reservation) => {
+                    // Vérifier si la date du voyage est passée
+                    // Utiliser la date de départ du voyage plutôt que la date de réservation
+                    const today = new Date();
+                    // Si le voyage a une propriété dateDepart, on l'utilise, sinon on utilise la date de réservation
+                    const departureDate = reservation.dateDepart ? new Date(reservation.dateDepart) : 
+                                          (reservation.voyage?.dateDepart ? new Date(reservation.voyage.dateDepart) : null);
+                    const isVoyagePassed = departureDate && departureDate < today;
+                    
+                    return (
+                    <div key={reservation._id} className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow bg-white relative reservation-card">
+                      {reservation.voyage?.image && (
+                        <div className="w-full h-32 sm:h-40 mb-3 sm:mb-4 rounded-lg overflow-hidden">
+                          <img 
+                            src={reservation.voyage.image} 
+                            alt={reservation.voyage.title} 
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                       )}
-                      
-                      {/* Message informatif pour les voyages à venir */}
-                      {!isVoyagePassed && reservation.statut !== 'annulé' && (
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <div className="flex items-center mb-2">
-                            <FaUserCircle className="text-orange-500 mr-2" />
-                            <h6 className="font-medium text-gray-700">Partagez votre expérience</h6>
-                          </div>
-
-                          {/* Formulaire désactivé avec message explicatif */}
-                          <div className="space-y-2">
-                            <textarea
-                              name="experience-disabled"
-                              placeholder="Vous pourrez raconter votre voyage ici après votre retour..."
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-400 cursor-not-allowed transition-all resize-none"
-                              rows="3"
-                              disabled
-                            ></textarea>
-                            <button
-                              type="button"
-                              disabled
-                              className="w-full bg-gray-300 text-gray-500 py-2 rounded-md font-medium cursor-not-allowed flex items-center justify-center gap-2"
+                      <h5 className="font-semibold text-base sm:text-lg text-orange-600 mb-2">
+                        {reservation.voyage?.title || 'Voyage sans titre'}
+                      </h5>
+                      <div className="space-y-1 sm:space-y-2">
+                        <p className="flex items-center text-sm sm:text-base text-gray-600">
+                          <FaMapMarkerAlt className="mr-2 flex-shrink-0" />
+                          <span className="line-clamp-1">{reservation.voyage?.destination || 'Destination non spécifiée'}</span>
+                        </p>
+                        <p className="flex items-center text-sm sm:text-base text-gray-600">
+                          <FaCalendarAlt className="mr-2 flex-shrink-0" />
+                          {new Date(reservation.dateReservation).toLocaleDateString()}
+                        </p>
+                        <div className={`mt-2 inline-block px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium
+                          ${reservation.statut === 'confirmé' ? 'bg-green-100 text-green-800' :
+                            reservation.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'}`}
+                          data-tooltip={
+                            reservation.statut === 'confirmé' ? 'Réservation confirmée' :
+                            reservation.statut === 'en_attente' ? 'En attente de confirmation' :
+                            'Réservation annulée'
+                          }
+                        >
+                          {reservation.statut}
+                        </div>
+                        
+                        {/* Section pour ajouter un retour d'expérience - uniquement pour les voyages passés */}
+                        {isVoyagePassed && reservation.statut !== 'annulé' && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <div className="flex items-center mb-2">
+                              <FaUserCircle className="text-orange-500 mr-2" />
+                              <h6 className="font-medium text-gray-700">Partagez votre expérience</h6>
+                            </div>
+                            
+                            {/* Formulaire pour ajouter un commentaire */}
+                            <form 
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                const content = e.target.elements.experience.value.trim();
+                                if (content) {
+                                  // Créer un nouveau commentaire
+                                  const commentData = {
+                                    content: content,
+                                    voyageId: reservation.voyage?._id,
+                                    userId: user.userId
+                                  };
+                                  
+                                  // Appeler l'API pour ajouter le commentaire
+                                  axios.post(
+                                    `http://localhost:5000/api/voyages/${reservation.voyage?._id}/comments`,
+                                    commentData,
+                                    {
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`
+                                      }
+                                    }
+                                  )
+                                  .then(response => {
+                                    console.log("Commentaire ajouté avec succès:", response.data);
+                                    // Réinitialiser le formulaire
+                                    e.target.reset();
+                                    // Afficher une notification
+                                    setNotification({
+                                      message: 'Merci pour votre retour d\'expérience !',
+                                      type: 'success',
+                                      details: 'Votre commentaire a été publié avec succès.',
+                                      timestamp: new Date().toLocaleTimeString()
+                                    });
+                                    
+                                    // Rafraîchir les commentaires de l'utilisateur
+                                    fetchUserComments();
+                                    
+                                    // Effacer la notification après 5 secondes
+                                    setTimeout(() => {
+                                      setNotification({ message: '', type: '', details: '', timestamp: '' });
+                                    }, 5000);
+                                  })
+                                  .catch(error => {
+                                    console.error("Erreur lors de l'ajout du commentaire:", error);
+                                    // Afficher une notification d'erreur
+                                    setNotification({
+                                      message: 'Erreur lors de l\'ajout du commentaire',
+                                      type: 'error',
+                                      details: error.response?.data?.message || error.message,
+                                      timestamp: new Date().toLocaleTimeString()
+                                    });
+                                    
+                                    // Effacer la notification après 8 secondes
+                                    setTimeout(() => {
+                                      setNotification({ message: '', type: '', details: '', timestamp: '' });
+                                    }, 8000);
+                                  });
+                                }
+                              }}
+                              className="space-y-2"
                             >
-                              <FaPaperPlane />
-                              Partager mon expérience
-                            </button>
+                              <textarea
+                                name="experience"
+                                placeholder="Racontez votre voyage et partagez vos impressions..."
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all resize-none"
+                                rows="3"
+                                required
+                              ></textarea>
+                              <button
+                                type="submit"
+                                className="w-full bg-orange-500 text-white py-2 rounded-md font-medium hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
+                              >
+                                <FaPaperPlane />
+                                Partager mon expérience
+                              </button>
+                            </form>
+                          </div>
+                        )}
+                        
+                        {/* Message informatif pour les voyages à venir */}
+                        {!isVoyagePassed && reservation.statut !== 'annulé' && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <div className="flex items-center mb-2">
+                              <FaUserCircle className="text-orange-500 mr-2" />
+                              <h6 className="font-medium text-gray-700">Partagez votre expérience</h6>
+                            </div>
 
-                            <div className="bg-blue-50 p-2 rounded-lg text-blue-700 text-xs flex items-start mt-1">
-                              <FaInfo className="text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
-                              <p>
-                                Ce formulaire sera activé automatiquement à la fin de votre voyage
-                              </p>
+                            {/* Formulaire désactivé avec message explicatif */}
+                            <div className="space-y-2">
+                              <textarea
+                                name="experience-disabled"
+                                placeholder="Vous pourrez raconter votre voyage ici après votre retour..."
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-400 cursor-not-allowed transition-all resize-none"
+                                rows="3"
+                                disabled
+                              ></textarea>
+                              <button
+                                type="button"
+                                disabled
+                                className="w-full bg-gray-300 text-gray-500 py-2 rounded-md font-medium cursor-not-allowed flex items-center justify-center gap-2"
+                              >
+                                <FaPaperPlane />
+                                Partager mon expérience
+                              </button>
+
+                              <div className="bg-blue-50 p-2 rounded-lg text-blue-700 text-xs flex items-start mt-1">
+                                <FaInfo className="text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
+                                <p>
+                                  Ce formulaire sera activé automatiquement à la fin de votre voyage
+                                </p>
+                              </div>
                             </div>
                           </div>
+                        )}
+                        
+                        {/* Bouton d'annulation */}
+                        {reservation.statut !== 'annulé' && (
+                          <button
+                            onClick={() => openCancelModal(reservation._id, 'voyages')}
+                            disabled={cancelingReservations.includes(reservation._id)}
+                            className="mt-3 flex items-center justify-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs sm:text-sm disabled:opacity-50 cancel-button w-full"
+                          >
+                            {cancelingReservations.includes(reservation._id) ? (
+                              <>
+                                <FaSpinner className="animate-spin mr-2" />
+                                Annulation...
+                              </>
+                            ) : (
+                              <>
+                                <FaTrash className="mr-2" />
+                                Annuler la réservation
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );})}
+                </div>
+              ) : (
+                <p className="text-gray-600 text-center py-4 bg-gray-50 rounded-lg">
+                  Vous n'avez pas encore réservé de voyage.
+                </p>
+              )}
+            </div>
+
+            {/* Activités réservées */}
+            <div>
+              <h4 className="text-lg font-medium text-orange-600 mb-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                </svg>
+                Activités
+              </h4>
+              {reservations.activites.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {reservations.activites.map((reservation) => (
+                    <div key={reservation._id} className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow bg-white relative reservation-card overflow-hidden">
+                      {reservation.activite?.image && (
+                        <div className="w-full h-28 sm:h-32 mb-3 sm:mb-4 rounded-lg overflow-hidden">
+                          <img 
+                            src={reservation.activite.image} 
+                            alt={reservation.activite.titre} 
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                       )}
-                      
-                      {/* Bouton d'annulation */}
-                      {reservation.statut !== 'annulé' && (
-                        <button
-                          onClick={() => openCancelModal(reservation._id, 'voyages')}
-                          disabled={cancelingReservations.includes(reservation._id)}
-                          className="mt-3 flex items-center justify-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs sm:text-sm disabled:opacity-50 cancel-button w-full"
+                      <h5 className="font-semibold text-base sm:text-lg text-orange-600 mb-2">
+                        {reservation.activite?.titre || 'Activité sans titre'}
+                      </h5>
+                      <div className="space-y-1 sm:space-y-2">
+                        <p className="flex items-center text-sm sm:text-base text-gray-600">
+                          <FaMapMarkerAlt className="mr-2 flex-shrink-0" />
+                          <span className="line-clamp-1">{reservation.activite?.lieu || 'Lieu non spécifié'}</span>
+                        </p>
+                        <p className="flex items-center text-sm sm:text-base text-gray-600">
+                          <FaCalendarAlt className="mr-2 flex-shrink-0" />
+                          {new Date(reservation.dateReservation).toLocaleDateString()}
+                        </p>
+                        <div className={`mt-2 inline-block px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium
+                          ${reservation.statut === 'confirmé' ? 'bg-green-100 text-green-800' :
+                            reservation.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'}`}
+                          data-tooltip={
+                            reservation.statut === 'confirmé' ? 'Réservation confirmée' :
+                            reservation.statut === 'en_attente' ? 'En attente de confirmation' :
+                            'Réservation annulée'
+                          }
                         >
-                          {cancelingReservations.includes(reservation._id) ? (
-                            <>
-                              <FaSpinner className="animate-spin mr-2" />
-                              Annulation...
-                            </>
-                          ) : (
-                            <>
-                              <FaTrash className="mr-2" />
-                              Annuler la réservation
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );})}
-              </div>
-            ) : (
-              <p className="text-gray-600 text-center py-4 bg-gray-50 rounded-lg">
-                Vous n'avez pas encore réservé de voyage.
-              </p>
-            )}
-          </div>
-
-          {/* Activités réservées */}
-          <div>
-            <h4 className="text-lg font-medium text-orange-600 mb-4 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-              </svg>
-              Activités
-            </h4>
-            {reservations.activites.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {reservations.activites.map((reservation) => (
-                  <div key={reservation._id} className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow bg-white relative reservation-card overflow-hidden">
-                    {reservation.activite?.image && (
-                      <div className="w-full h-28 sm:h-32 mb-3 sm:mb-4 rounded-lg overflow-hidden">
-                        <img 
-                          src={reservation.activite.image} 
-                          alt={reservation.activite.titre} 
-                          className="w-full h-full object-cover"
-                        />
+                          {reservation.statut}
+                        </div>
+                        
+                        {/* Bouton d'annulation */}
+                        {reservation.statut !== 'annulé' && (
+                          <button
+                            onClick={() => openCancelModal(reservation._id, 'activites')}
+                            disabled={cancelingReservations.includes(reservation._id)}
+                            className="mt-3 flex items-center justify-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs sm:text-sm disabled:opacity-50 cancel-button w-full"
+                          >
+                            {cancelingReservations.includes(reservation._id) ? (
+                              <>
+                                <FaSpinner className="animate-spin mr-2" />
+                                Annulation...
+                              </>
+                            ) : (
+                              <>
+                                <FaTrash className="mr-2" />
+                                Annuler la réservation
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
-                    )}
-                    <h5 className="font-semibold text-base sm:text-lg text-orange-600 mb-2">
-                      {reservation.activite?.titre || 'Activité sans titre'}
-                    </h5>
-                    <div className="space-y-1 sm:space-y-2">
-                      <p className="flex items-center text-sm sm:text-base text-gray-600">
-                        <FaMapMarkerAlt className="mr-2 flex-shrink-0" />
-                        <span className="line-clamp-1">{reservation.activite?.lieu || 'Lieu non spécifié'}</span>
-                      </p>
-                      <p className="flex items-center text-sm sm:text-base text-gray-600">
-                        <FaCalendarAlt className="mr-2 flex-shrink-0" />
-                        {new Date(reservation.dateReservation).toLocaleDateString()}
-                      </p>
-                      <div className={`mt-2 inline-block px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium
-                        ${reservation.statut === 'confirmé' ? 'bg-green-100 text-green-800' :
-                          reservation.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-red-100 text-red-800'}`}
-                        data-tooltip={
-                          reservation.statut === 'confirmé' ? 'Réservation confirmée' :
-                          reservation.statut === 'en_attente' ? 'En attente de confirmation' :
-                          'Réservation annulée'
-                        }
-                      >
-                        {reservation.statut}
-                      </div>
-                      
-                      {/* Bouton d'annulation */}
-                      {reservation.statut !== 'annulé' && (
-                        <button
-                          onClick={() => openCancelModal(reservation._id, 'activites')}
-                          disabled={cancelingReservations.includes(reservation._id)}
-                          className="mt-3 flex items-center justify-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs sm:text-sm disabled:opacity-50 cancel-button w-full"
-                        >
-                          {cancelingReservations.includes(reservation._id) ? (
-                            <>
-                              <FaSpinner className="animate-spin mr-2" />
-                              Annulation...
-                            </>
-                          ) : (
-                            <>
-                              <FaTrash className="mr-2" />
-                              Annuler la réservation
-                            </>
-                          )}
-                        </button>
-                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-600 text-center py-4 bg-gray-50 rounded-lg">
-                Vous n'avez pas encore réservé d'activité.
-              </p>
-            )}
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600 text-center py-4 bg-gray-50 rounded-lg">
+                  Vous n'avez pas encore réservé d'activité.
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Section des Commentaires Utilisateur */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
