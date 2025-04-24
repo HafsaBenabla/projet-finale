@@ -257,16 +257,16 @@ const ActivitesVoyages = () => {
                 <h3 className="text-xl font-semibold text-gray-900">{activity.name}</h3>
                 <p className="mt-2 text-gray-600 line-clamp-2">{activity.description}</p>
                 <div className="mt-4 flex flex-nowrap space-x-2 items-center">
-                  <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-sahara/10 text-sahara rounded-full text-sm whitespace-nowrap">
-                    <FaClock className="text-sahara" />
+                  <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-sahara/10 text-sahara rounded-full text-base font-medium whitespace-nowrap">
+                    <FaClock className="text-lg" />
                     {formatDuration(activity.duration)}
                   </span>
-                  <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-sahara/10 text-sahara rounded-full text-sm whitespace-nowrap">
-                    <FaUsers className="text-sahara" />
+                  <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-sahara/10 text-sahara rounded-full text-base font-medium whitespace-nowrap">
+                    <FaUsers className="text-lg" />
                     Max {activity.maxParticipants}
                   </span>
                   {activity.category && (
-                    <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-sahara/10 text-sahara rounded-full text-sm whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-sahara/10 text-sahara rounded-full text-base font-medium whitespace-nowrap">
                       {activity.category}
                     </span>
                   )}

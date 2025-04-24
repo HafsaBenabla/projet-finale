@@ -94,13 +94,13 @@ function ActivityCard({
           className="w-full h-full object-cover transform transition-transform duration-700 hover:scale-110"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-        <div className="absolute top-3 sm:top-4 right-3 sm:right-4 bg-sahara/90 backdrop-blur-sm text-white px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium flex items-center gap-1 sm:gap-2">
-          <FaClock className="text-xs sm:text-sm" />
+        <div className="absolute top-3 sm:top-4 right-3 sm:right-4 bg-sahara/90 backdrop-blur-sm text-white px-3 sm:px-4 py-1.5 rounded-full text-sm sm:text-base font-medium flex items-center gap-1.5 sm:gap-2">
+          <FaClock className="text-sm sm:text-base" />
           {duration} h
         </div>
         
         {type === 'locale' && isWeekendOnly && (
-          <div className="absolute bottom-3 left-3 bg-sahara/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-medium">
+          <div className="absolute bottom-3 left-3 bg-sahara/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium">
             Weekend
           </div>
         )}
@@ -114,10 +114,6 @@ function ActivityCard({
           <div className="flex items-center text-xs text-gray-600">
             <FaMapMarkerAlt className="mr-1 text-sahara" />
             {city}
-          </div>
-          <div className="flex items-center text-xs text-gray-600">
-            <FaUsers className="mr-1 text-sahara" />
-            {maxParticipants} pers. max
           </div>
         </div>
         

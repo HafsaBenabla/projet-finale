@@ -410,20 +410,20 @@ const ActivityDetail = () => {
             <div className="text-white max-w-3xl">
               <h1 className="text-5xl font-bold mb-4">{activity.name}</h1>
               <div className="flex flex-wrap items-center gap-6 text-lg">
-                <span className="flex items-center gap-2">
-                  <FaClock />
+                <span className="flex items-center gap-2.5 text-xl">
+                  <FaClock className="text-xl" />
                   {formatDuration(activity.duration)}
                 </span>
-                <span className="flex items-center gap-2">
-                  <FaUsers />
+                <span className="flex items-center gap-2.5 text-xl">
+                  <FaUsers className="text-xl" />
                   Max {activity.maxParticipants} personnes
                 </span>
-                <span className="flex items-center gap-2">
-                  <FaMoneyBillWave />
+                <span className="flex items-center gap-2.5 text-xl">
+                  <FaMoneyBillWave className="text-xl" />
                   {activity.price.toLocaleString()} DH
                 </span>
                 {activity.category && (
-                  <span className="flex items-center gap-2 bg-sahara/20 px-3 py-1 rounded-full text-white">
+                  <span className="flex items-center gap-2.5 bg-sahara/20 px-4 py-1.5 rounded-full text-white text-xl font-medium">
                     {activity.category}
                   </span>
                 )}
