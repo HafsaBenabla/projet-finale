@@ -93,6 +93,160 @@ const Profile = () => {
   // Ajout d'un nouvel état pour contrôler l'affichage du formulaire d'ajout de tâche
   const [showNewTaskForm, setShowNewTaskForm] = useState(false);
 
+  // État pour le mode édition
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState({
+    firstName: '',
+    email: '',
+    phone: ''
+  });
+
+  // État pour le changement de mot de passe
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+
+  // Mettre à jour les données éditées quand l'utilisateur est chargé
+  useEffect(() => {
+    if (user) {
+      setEditedData({
+        firstName: user.firstName || '',
+        email: user.email || '',
+        phone: user.phone || ''
+      });
+    }
+  }, [user]);
+
+  // Fonction pour sauvegarder les modifications
+  const handleSaveChanges = async () => {
+    try {
+      setNotification({
+        message: 'Mise à jour de vos informations...',
+        type: 'info',
+        details: '',
+        timestamp: new Date().toLocaleTimeString()
+      });
+
+      const response = await axios.patch(
+        `http://localhost:5000/api/users/${user.userId}`,
+        editedData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data && updateUserProfile) {
+        updateUserProfile({ ...user, ...editedData });
+      }
+
+      setIsEditing(false);
+      setNotification({
+        message: 'Vos informations ont été mises à jour avec succès',
+        type: 'success',
+        details: '',
+        timestamp: new Date().toLocaleTimeString()
+      });
+
+      setTimeout(() => {
+        setNotification({ message: '', type: '', details: '', timestamp: '' });
+      }, 5000);
+    } catch (err) {
+      console.error('Erreur lors de la mise à jour:', err);
+      setNotification({
+        message: 'Échec de la mise à jour',
+        type: 'error',
+        details: err.response?.data?.message || err.message,
+        timestamp: new Date().toLocaleTimeString()
+      });
+
+      setTimeout(() => {
+        setNotification({ message: '', type: '', details: '', timestamp: '' });
+      }, 8000);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setEditedData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Fonction pour changer le mot de passe
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setNotification({
+        message: 'Les mots de passe ne correspondent pas',
+        type: 'error',
+        details: 'Veuillez vérifier que les deux mots de passe sont identiques',
+        timestamp: new Date().toLocaleTimeString()
+      });
+      return;
+    }
+
+    try {
+      setNotification({
+        message: 'Mise à jour du mot de passe...',
+        type: 'info',
+        details: '',
+        timestamp: new Date().toLocaleTimeString()
+      });
+
+      const response = await axios.post(
+        `http://localhost:5000/api/users/${user.userId}/change-password`,
+        {
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      setShowPasswordForm(false);
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+
+      setNotification({
+        message: 'Mot de passe mis à jour avec succès',
+        type: 'success',
+        details: '',
+        timestamp: new Date().toLocaleTimeString()
+      });
+
+      setTimeout(() => {
+        setNotification({ message: '', type: '', details: '', timestamp: '' });
+      }, 5000);
+    } catch (err) {
+      console.error('Erreur lors du changement de mot de passe:', err);
+      setNotification({
+        message: 'Échec de la mise à jour du mot de passe',
+        type: 'error',
+        details: err.response?.data?.message || err.message,
+        timestamp: new Date().toLocaleTimeString()
+      });
+
+      setTimeout(() => {
+        setNotification({ message: '', type: '', details: '', timestamp: '' });
+      }, 8000);
+    }
+  };
+
   // Effet pour animer la barre de progression lorsqu'une notification est affichée
   useEffect(() => {
     if (notification.message && progressBarRef.current) {
@@ -185,13 +339,7 @@ const Profile = () => {
     try {
       setUserComments(prev => ({ ...prev, loading: true, error: null }));
       
-      // Vérifier l'état du token avant envoi
-      console.log('État de l\'authentification avant la requête:', {
-        userId: user.userId,
-        token: token ? `${token.substring(0, 10)}...` : 'absent',
-        tokenLength: token ? token.length : 0
-      });
-      
+      // Configuration pour les appels API
       const config = {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -200,137 +348,26 @@ const Profile = () => {
       };
 
       try {
-        console.log('Début de la requête axios...');
-        
-        // Tenter d'utiliser l'endpoint principal des commentaires
-        let allComments = [];
-        let success = false;
-        
-        // Première tentative: essayer d'obtenir tous les commentaires via l'API principale
-        try {
-          const commentsUrl = `http://localhost:5000/api/comments`;
-          console.log('Tentative 1: Envoi de la requête pour tous les commentaires à:', commentsUrl);
-          const response = await axios.get(commentsUrl, config);
-          
-          if (Array.isArray(response.data) && response.data.length > 0) {
-            console.log('Commentaires récupérés avec succès via API principale, statut:', response.status);
-            allComments = response.data;
-            success = true;
-          }
-        } catch (primaryError) {
-          console.log('Erreur sur l\'API principale des commentaires:', primaryError.message);
-        }
-        
-        // Deuxième tentative: si la première a échoué, essayons d'obtenir les commentaires par voyage
-        if (!success) {
-          try {
-            // Récupérer d'abord tous les voyages
-            const voyagesUrl = `http://localhost:5000/api/voyages`;
-            console.log('Tentative 2: Récupération des voyages depuis:', voyagesUrl);
-            const voyagesResponse = await axios.get(voyagesUrl, config);
-            
-            if (Array.isArray(voyagesResponse.data) && voyagesResponse.data.length > 0) {
-              console.log(`${voyagesResponse.data.length} voyages récupérés, extraction des commentaires...`);
-              
-              // Pour chaque voyage, récupérer ses commentaires
-              for (const voyage of voyagesResponse.data) {
-                try {
-                  const voyageCommentsUrl = `http://localhost:5000/api/voyages/${voyage._id}/comments`;
-                  console.log(`Récupération des commentaires pour le voyage ${voyage.title} (${voyage._id})`);
-                  
-                  const commentsResponse = await axios.get(voyageCommentsUrl, config);
-                  
-                  if (Array.isArray(commentsResponse.data) && commentsResponse.data.length > 0) {
-                    // Ajouter les informations du voyage à chaque commentaire
-                    const commentsWithVoyage = commentsResponse.data.map(comment => ({
-                      ...comment,
-                      voyage: {
-                        _id: voyage._id,
-                        title: voyage.title,
-                        destination: voyage.destination,
-                        image: voyage.image
-                      }
-                    }));
-                    
-                    allComments = [...allComments, ...commentsWithVoyage];
-                  }
-                } catch (voyageCommentsError) {
-                  console.log(`Erreur lors de la récupération des commentaires pour le voyage ${voyage._id}:`, 
-                    voyageCommentsError.message);
-                }
-              }
-              
-              success = allComments.length > 0;
-            }
-          } catch (voyagesError) {
-            console.log('Erreur lors de la récupération des voyages:', voyagesError.message);
-          }
-        }
-        
-        // Si aucune des méthodes n'a fonctionné, lever une erreur
-        if (!success) {
-          throw new Error('Impossible de récupérer les commentaires par aucune méthode disponible');
-        }
-        
-        console.log('Nombre total de commentaires récupérés:', allComments.length);
-        
-        // Filtrer: exclure les commentaires de l'administrateur connecté
-        const clientComments = allComments.filter(comment => {
-          const isAdmin = 
-            (comment.user?._id === user.userId) || 
-            (comment.user?.userId === user.userId);
-          
-          // Vérifier que chaque commentaire a bien un voyage associé
-          const hasValidVoyage = !!comment.voyage && !!comment.voyage._id;
-          
-          if (!hasValidVoyage) {
-            console.warn('Commentaire sans voyage valide détecté:', comment);
-          }
-          
-          return !isAdmin && hasValidVoyage;
+        console.log('=== Tentative de récupération des commentaires ===', {
+          userId: user.userId,
+          token,
+          userDetails: user
         });
+
+        const commentsUrl = `http://localhost:5000/api/comments`;
+        console.log('Envoi de la requête pour tous les commentaires à:', commentsUrl);
         
-        console.log(`Filtrage des commentaires: ${allComments.length} total -> ${clientComments.length} clients`);
-        
-        // Organiser les commentaires par voyage
-        const commentsByVoyage = {};
-        
-        clientComments.forEach(comment => {
-          // Si le voyage existe (double vérification par sécurité)
-          if (comment.voyage && comment.voyage._id) {
-            const voyageId = comment.voyage._id;
-            
-            // Initialiser l'entrée pour ce voyage si elle n'existe pas encore
-            if (!commentsByVoyage[voyageId]) {
-              commentsByVoyage[voyageId] = {
-                voyage: {
-                  _id: voyageId,
-                  title: comment.voyage.title || 'Voyage sans titre',
-                  destination: comment.voyage.destination || 'Destination inconnue',
-                  image: comment.voyage.image || null
-                },
-                comments: []
-              };
-            }
-            
-            // Ajouter le commentaire à ce voyage
-            commentsByVoyage[voyageId].comments.push(comment);
-          }
-        });
-        
-        // Convertir l'objet en tableau pour faciliter le rendu
-        const commentsList = Object.values(commentsByVoyage);
-        console.log(`Nombre de voyages avec commentaires: ${commentsList.length}`);
-        
-        // Trier les voyages par nombre de commentaires (décroissant)
-        commentsList.sort((a, b) => b.comments.length - a.comments.length);
-        
+        const response = await axios.get(commentsUrl, config);
+
+        console.log('Réponse pour les commentaires:', response.data);
+
         setUserComments({
           loading: false,
           error: null,
-          data: commentsList,
+          data: response.data,
           isGroupedByVoyage: true
         });
+
       } catch (requestError) {
         console.error('Erreur spécifique de requête:', requestError);
         
@@ -1053,99 +1090,41 @@ const Profile = () => {
             {/* Informations de l'utilisateur - adaptées pour mobile */}
             <div className="flex-grow text-center md:text-left">
               <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-800">{user?.username || 'Utilisateur'}</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      name="firstName"
+                      value={editedData.firstName}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-sahara"
+                      placeholder="Prénom"
+                    />
+                  ) : (
+                    user?.firstName || 'Utilisateur'
+                  )}
+                </h2>
                 <button 
                   onClick={() => {
-                    const newUsername = prompt('Entrez votre nouveau prénom:', user?.firstName || user?.username);
-                    if (newUsername && newUsername.trim()) {
-                      // Vérifier que le prénom a changé
-                      if (newUsername.trim() === user?.firstName) {
-                        setNotification({
-                          message: 'Le prénom est identique à l\'actuel',
-                          type: 'error',
-                          details: 'Veuillez choisir un prénom différent',
-                          timestamp: new Date().toLocaleTimeString()
-                        });
-                        setTimeout(() => {
-                          setNotification({ message: '', type: '', details: '', timestamp: '' });
-                        }, 5000);
-                        return;
-                      }
-                      
-                      if (newUsername.trim().length < 2) {
-                        setNotification({
-                          message: 'Prénom trop court',
-                          type: 'error',
-                          details: 'Le prénom doit contenir au moins 2 caractères',
-                          timestamp: new Date().toLocaleTimeString()
-                        });
-                        setTimeout(() => {
-                          setNotification({ message: '', type: '', details: '', timestamp: '' });
-                        }, 5000);
-                        return;
-                      }
-                      
-                      // Afficher un indicateur de chargement
-                      setNotification({
-                        message: 'Mise à jour du prénom en cours...',
-                        type: 'info',
-                        details: '',
-                        timestamp: new Date().toLocaleTimeString()
-                      });
-                      
-                      // Préparer les données à envoyer au serveur
-                      const updateData = { 
-                        firstName: newUsername.trim()
-                      };
-                      console.log('Données envoyées pour la mise à jour:', updateData);
-                      
-                      // Appel API pour mettre à jour le prénom
-                      axios.patch(
-                        `http://localhost:5000/api/users/${user.userId}`,
-                        updateData,
-                        {
-                          headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                          }
-                        }
-                      )
-                      .then(response => {
-                        console.log('Réponse du serveur:', response.data);
-                        // Mise à jour du contexte utilisateur
-                        if (response.data && updateUserProfile) {
-                          updateUserProfile({ ...user, firstName: newUsername.trim() });
-                        }
-                        // Notification de succès
-                        setNotification({
-                          message: 'Prénom mis à jour avec succès',
-                          type: 'success',
-                          details: '',
-                          timestamp: new Date().toLocaleTimeString()
-                        });
-                        setTimeout(() => {
-                          setNotification({ message: '', type: '', details: '', timestamp: '' });
-                        }, 5000);
-                      })
-                      .catch(err => {
-                        console.error('Erreur lors de la mise à jour du prénom:', err);
-                        const errorMessage = err.response?.data?.message || err.message || 'Une erreur est survenue';
-                        setNotification({
-                          message: 'Échec de la mise à jour du prénom',
-                          type: 'error',
-                          details: errorMessage,
-                          timestamp: new Date().toLocaleTimeString()
-                        });
-                        setTimeout(() => {
-                          setNotification({ message: '', type: '', details: '', timestamp: '' });
-                        }, 8000);
-                      });
+                    if (isEditing) {
+                      handleSaveChanges();
+                    } else {
+                      setIsEditing(true);
                     }
                   }}
                   className="text-xs sm:text-sm text-orange-500 hover:text-orange-600 flex items-center"
                 >
-                  <FaPencilAlt className="mr-1" /> 
-                  <span className="hidden sm:inline">Modifier</span>
+                  {isEditing ? (
+                    <>
+                      <FaSave className="mr-1" />
+                      <span className="hidden sm:inline">Enregistrer</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaPencilAlt className="mr-1" />
+                      <span className="hidden sm:inline">Modifier</span>
+                    </>
+                  )}
                 </button>
               </div>
               
@@ -1153,11 +1132,98 @@ const Profile = () => {
                 <h3 className="font-semibold text-orange-800 mb-2 sm:mb-3 border-b border-orange-200 pb-2 flex justify-between items-center">
                   <span>Informations de contact</span>
                   <button 
-                    onClick={() => setShowPhoneForm(true)}
-                    className="text-xs text-orange-500 hover:text-orange-600"
+                    onClick={() => {
+                      const newUsername = prompt('Entrez votre nouveau prénom:', user?.firstName || user?.username);
+                      if (newUsername && newUsername.trim()) {
+                        // Vérifier que le prénom a changé
+                        if (newUsername.trim() === user?.firstName) {
+                          setNotification({
+                            message: 'Le prénom est identique à l\'actuel',
+                            type: 'error',
+                            details: 'Veuillez choisir un prénom différent',
+                            timestamp: new Date().toLocaleTimeString()
+                          });
+                          setTimeout(() => {
+                            setNotification({ message: '', type: '', details: '', timestamp: '' });
+                          }, 5000);
+                          return;
+                        }
+                        
+                        if (newUsername.trim().length < 2) {
+                          setNotification({
+                            message: 'Prénom trop court',
+                            type: 'error',
+                            details: 'Le prénom doit contenir au moins 2 caractères',
+                            timestamp: new Date().toLocaleTimeString()
+                          });
+                          setTimeout(() => {
+                            setNotification({ message: '', type: '', details: '', timestamp: '' });
+                          }, 5000);
+                          return;
+                        }
+                        
+                        // Afficher un indicateur de chargement
+                        setNotification({
+                          message: 'Mise à jour du prénom en cours...',
+                          type: 'info',
+                          details: '',
+                          timestamp: new Date().toLocaleTimeString()
+                        });
+                        
+                        // Préparer les données à envoyer au serveur
+                        const updateData = { 
+                          firstName: newUsername.trim()
+                        };
+                        console.log('Données envoyées pour la mise à jour:', updateData);
+                        
+                        // Appel API pour mettre à jour le prénom
+                        axios.patch(
+                          `http://localhost:5000/api/users/${user.userId}`,
+                          updateData,
+                          {
+                            headers: {
+                              'Authorization': `Bearer ${token}`,
+                              'Content-Type': 'application/json'
+                            }
+                          }
+                        )
+                        .then(response => {
+                          console.log('Réponse du serveur:', response.data);
+                          // Mise à jour du contexte utilisateur avec les nouvelles données
+                          if (response.data && updateUserProfile) {
+                            updateUserProfile({ ...user, firstName: newUsername.trim() });
+                          }
+                          // Notification de succès
+                          setNotification({
+                            message: 'Prénom mis à jour avec succès',
+                            type: 'success',
+                            details: '',
+                            timestamp: new Date().toLocaleTimeString()
+                          });
+                          
+                          setTimeout(() => {
+                            setNotification({ message: '', type: '', details: '', timestamp: '' });
+                          }, 5000);
+                        })
+                        .catch(err => {
+                          console.error('Erreur lors de la mise à jour du prénom:', err);
+                          const errorMessage = err.response?.data?.message || err.message || 'Une erreur est survenue';
+                          setNotification({
+                            message: 'Échec de la mise à jour du prénom',
+                            type: 'error',
+                            details: errorMessage,
+                            timestamp: new Date().toLocaleTimeString()
+                          });
+                          
+                          setTimeout(() => {
+                            setNotification({ message: '', type: '', details: '', timestamp: '' });
+                          }, 8000);
+                        });
+                      }
+                    }}
+                    className="text-xs text-orange-500 cursor-pointer hover:underline hidden group-hover:block absolute right-3 top-3"
                   >
-                    <FaPencilAlt className="inline mr-1" /> 
-                    <span className="hidden sm:inline">Modifier</span>
+                    <FaPencilAlt className="inline mr-1" /> Modifier
                   </button>
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
@@ -1167,107 +1233,42 @@ const Profile = () => {
                     </div>
                     <div className="flex-grow">
                       <p className="text-sm text-gray-500 font-medium">Email</p>
-                      <p className="text-sm sm:text-base text-gray-800 font-medium">{user?.email}</p>
-                      <button 
-                        onClick={() => {
-                          const newLastName = prompt('Entrez votre nouveau nom de famille:', user?.lastName || '');
-                          if (newLastName && newLastName.trim()) {
-                            // Vérifier que le nom a changé
-                            if (newLastName.trim() === user?.lastName) {
-                              setNotification({
-                                message: 'Le nom de famille est identique à l\'actuel',
-                                type: 'error',
-                                details: 'Veuillez choisir un nom de famille différent',
-                                timestamp: new Date().toLocaleTimeString()
-                              });
-                              setTimeout(() => {
-                                setNotification({ message: '', type: '', details: '', timestamp: '' });
-                              }, 5000);
-                              return;
-                            }
-                            
-                            // Afficher un indicateur de chargement
-                            setNotification({
-                              message: 'Mise à jour du nom de famille en cours...',
-                              type: 'info',
-                              details: '',
-                              timestamp: new Date().toLocaleTimeString()
-                            });
-                            
-                            // Préparer les données à envoyer
-                            const updateData = { 
-                              lastName: newLastName.trim()
-                            };
-                            console.log('Données envoyées pour la mise à jour:', updateData);
-                            
-                            // Appel API pour mettre à jour le nom de famille
-                            axios.patch(
-                              `http://localhost:5000/api/users/${user.userId}`,
-                              updateData,
-                              {
-                                headers: {
-                                  'Authorization': `Bearer ${token}`,
-                                  'Content-Type': 'application/json'
-                                }
-                              }
-                            )
-                            .then(response => {
-                              console.log('Réponse du serveur:', response.data);
-                              // Mise à jour du contexte utilisateur
-                              if (response.data && updateUserProfile) {
-                                updateUserProfile({ ...user, lastName: newLastName.trim() });
-                              }
-                              // Notification de succès
-                              setNotification({
-                                message: 'Nom de famille mis à jour avec succès',
-                                type: 'success',
-                                details: '',
-                                timestamp: new Date().toLocaleTimeString()
-                              });
-                              setTimeout(() => {
-                                setNotification({ message: '', type: '', details: '', timestamp: '' });
-                              }, 5000);
-                            })
-                            .catch(err => {
-                              console.error('Erreur lors de la mise à jour du nom de famille:', err);
-                              const errorMessage = err.response?.data?.message || err.message || 'Une erreur est survenue';
-                              setNotification({
-                                message: 'Échec de la mise à jour du nom de famille',
-                                type: 'error',
-                                details: errorMessage,
-                                timestamp: new Date().toLocaleTimeString()
-                              });
-                              setTimeout(() => {
-                                setNotification({ message: '', type: '', details: '', timestamp: '' });
-                              }, 8000);
-                            });
-                          }
-                        }}
-                        className="text-xs text-orange-500 cursor-pointer hover:underline hidden group-hover:block absolute right-3 top-3"
-                      >
-                        <FaPencilAlt className="inline mr-1" /> Modifier
-                      </button>
+                      {isEditing ? (
+                        <input
+                          type="email"
+                          name="email"
+                          value={editedData.email}
+                          onChange={handleChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-sahara"
+                          placeholder="Email"
+                        />
+                      ) : (
+                        <p className="text-sm sm:text-base text-gray-800 font-medium">{user?.email}</p>
+                      )}
                     </div>
                   </div>
+
                   <div className="flex items-center space-x-3 bg-white p-3 rounded-md shadow-sm relative group">
                     <div className="bg-orange-100 p-2 rounded-full">
                       <FaPhone className="text-orange-500" />
                     </div>
                     <div className="flex-grow">
                       <p className="text-sm text-gray-500 font-medium">Téléphone</p>
-                      <p className="text-sm sm:text-base text-gray-800 font-medium">{user?.phone || 'Non renseigné'}</p>
-                      <p className="text-xs text-orange-500 cursor-pointer hover:underline" 
-                         data-tooltip="Ajouter un numéro de téléphone"
-                         onClick={() => setShowPhoneForm(true)}>
-                        {user?.phone ? 'Modifier le numéro' : 'Ajouter un numéro'}
-                      </p>
+                      {isEditing ? (
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={editedData.phone}
+                          onChange={handleChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-sahara"
+                          placeholder="Téléphone"
+                        />
+                      ) : (
+                        <p className="text-sm sm:text-base text-gray-800 font-medium">
+                          {user?.phone || 'Non renseigné'}
+                        </p>
+                      )}
                     </div>
-                    <button 
-                      onClick={() => setShowPhoneForm(true)}
-                      className="text-xs text-orange-500 cursor-pointer hover:underline hidden group-hover:block absolute right-3 top-3"
-                    >
-                      <FaPencilAlt className="inline mr-1" /> Modifier
-                    </button>
                   </div>
                 </div>
               </div>
@@ -1275,11 +1276,7 @@ const Profile = () => {
               {/* Option pour changer le mot de passe */}
               <div className="text-center md:text-left">
                 <button 
-                  onClick={() => {
-                    // Ici vous pouvez implémenter la logique pour changer le mot de passe
-                    // ou rediriger vers une page spécifique
-                    alert("Cette fonctionnalité sera bientôt disponible.");
-                  }}
+                  onClick={() => setShowPasswordForm(true)}
                   className="text-orange-500 hover:text-orange-600 text-sm font-medium"
                 >
                   Changer mon mot de passe
@@ -1296,7 +1293,7 @@ const Profile = () => {
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 border-b border-gray-200 pb-4">
               <div className="flex items-center mb-4 md:mb-0">
                 <div 
-                  className="h-12 w-12 bg-orange-100 rounded-lg mr-4 flex items-center justify-center overflow-hidden cursor-pointer"
+                  className="h-12 w-12 bg-orange-100 rounded-lg mr-4 flex items-center justify-center overflow-hidden border-4 border-orange-200 shadow-md"
                   onClick={() => {
                     const newLogo = prompt('Entrez l\'URL de votre nouveau logo:', adminSettings?.logo || 'https://via.placeholder.com/150x50?text=LOGO');
                     if (newLogo) updateAdminSetting('logo', newLogo);
@@ -1585,42 +1582,6 @@ const Profile = () => {
                                 Partager mon expérience
                               </button>
                             </form>
-                          </div>
-                        )}
-                        
-                        {/* Message informatif pour les voyages à venir */}
-                        {!isVoyagePassed && reservation.statut !== 'annulé' && (
-                          <div className="mt-3 pt-3 border-t border-gray-200">
-                            <div className="flex items-center mb-2">
-                              <FaUserCircle className="text-orange-500 mr-2" />
-                              <h6 className="font-medium text-gray-700">Partagez votre expérience</h6>
-                            </div>
-
-                            {/* Formulaire désactivé avec message explicatif */}
-                            <div className="space-y-2">
-                              <textarea
-                                name="experience-disabled"
-                                placeholder="Vous pourrez raconter votre voyage ici après votre retour..."
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-400 cursor-not-allowed transition-all resize-none"
-                                rows="3"
-                                disabled
-                              ></textarea>
-                              <button
-                                type="button"
-                                disabled
-                                className="w-full bg-gray-300 text-gray-500 py-2 rounded-md font-medium cursor-not-allowed flex items-center justify-center gap-2"
-                              >
-                                <FaPaperPlane />
-                                Partager mon expérience
-                              </button>
-
-                              <div className="bg-blue-50 p-2 rounded-lg text-blue-700 text-xs flex items-start mt-1">
-                                <FaInfo className="text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
-                                <p>
-                                  Ce formulaire sera activé automatiquement à la fin de votre voyage
-                                </p>
-                              </div>
-                            </div>
                           </div>
                         )}
                         
@@ -1970,6 +1931,86 @@ const Profile = () => {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modale pour changer le mot de passe */}
+        {showPasswordForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Changer mon mot de passe</h3>
+              <form onSubmit={handlePasswordChange}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Mot de passe actuel
+                    </label>
+                    <input
+                      type="password"
+                      value={passwordData.currentPassword}
+                      onChange={(e) => setPasswordData(prev => ({
+                        ...prev,
+                        currentPassword: e.target.value
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-sahara"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nouveau mot de passe
+                    </label>
+                    <input
+                      type="password"
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData(prev => ({
+                        ...prev,
+                        newPassword: e.target.value
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-sahara"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Confirmer le nouveau mot de passe
+                    </label>
+                    <input
+                      type="password"
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => setPasswordData(prev => ({
+                        ...prev,
+                        confirmPassword: e.target.value
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-sahara"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPasswordForm(false);
+                      setPasswordData({
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: ''
+                      });
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sahara"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sahara rounded-md"
+                  >
+                    Enregistrer
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
