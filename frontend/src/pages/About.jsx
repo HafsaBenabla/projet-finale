@@ -110,14 +110,14 @@ export default function About() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              "https://images.unsplash.com/photo-1539020140153-e479b8c64903?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=987&q=80",
-              "https://images.unsplash.com/photo-1548013146-72479768bada?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1776&q=80",
-              "https://images.unsplash.com/photo-1547745141-86139bb62fa6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80",
-              "https://images.unsplash.com/photo-1528657249085-c569d3c869e4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1769&q=80",
-              "https://images.unsplash.com/photo-1562874732-9e7d10d76edd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80",
-              "https://images.unsplash.com/photo-1539635278303-d4002c07eae3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-              "https://images.unsplash.com/photo-1612210836269-3017138a2613?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=987&q=80",
-              "https://images.unsplash.com/photo-1577045595744-5743934a5187?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80"
+              "https://i.pinimg.com/736x/20/6c/1d/206c1d9afa25c5d799b24773b473349e.jpg",  // Marrakech sunset
+              "https://i.pinimg.com/736x/4f/d8/3a/4fd83a6dd7d40478b6a121fdf7a61042.jpg",  // Desert camp
+              "https://i.pinimg.com/736x/69/38/e5/6938e5437244f6dc91d052a883dc7d23.jpg",  // Chefchaouen
+              "https://i.pinimg.com/736x/07/3c/6e/073c6e897bc8e1afc940e9485fa7271c.jpg",  // Riad courtyard
+              "https://i.pinimg.com/736x/48/36/cc/4836cc1bcddf502b96e39acee2d5fdce.jpg",  // Desert sunset
+              "https://i.pinimg.com/736x/bf/84/fc/bf84fcda0fcc3ead073ffd04ece62f88.jpg",  // Moroccan door
+              "https://i.pinimg.com/736x/46/0b/d2/460bd249a56c17cb0c7e62e1d9854e64.jpg",  // Sahara dunes
+              "https://i.pinimg.com/736x/14/58/08/1458086ae41e58405bc653099e3edb4b.jpg"   // Moroccan architecture
             ].map((image, index) => (
               <motion.div 
                 key={index}
