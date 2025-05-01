@@ -123,13 +123,6 @@ const Profile = () => {
   // Fonction pour sauvegarder les modifications
   const handleSaveChanges = async () => {
     try {
-      setNotification({
-        message: 'Mise à jour de vos informations...',
-        type: 'info',
-        details: '',
-        timestamp: new Date().toLocaleTimeString()
-      });
-
       const response = await axios.patch(
         `http://localhost:5000/api/users/${user.userId}`,
         editedData,
@@ -143,19 +136,20 @@ const Profile = () => {
 
       if (response.data && updateUserProfile) {
         updateUserProfile({ ...user, ...editedData });
+        setIsEditing(false);
+        
+        setNotification({
+          message: 'Vos informations ont été mises à jour avec succès',
+          type: 'success',
+          details: '',
+          timestamp: new Date().toLocaleTimeString()
+        });
+
+        // Effacer la notification après 5 secondes
+        setTimeout(() => {
+          setNotification({ message: '', type: '', details: '', timestamp: '' });
+        }, 5000);
       }
-
-      setIsEditing(false);
-      setNotification({
-        message: 'Vos informations ont été mises à jour avec succès',
-        type: 'success',
-        details: '',
-        timestamp: new Date().toLocaleTimeString()
-      });
-
-      setTimeout(() => {
-        setNotification({ message: '', type: '', details: '', timestamp: '' });
-      }, 5000);
     } catch (err) {
       console.error('Erreur lors de la mise à jour:', err);
       setNotification({
@@ -165,9 +159,10 @@ const Profile = () => {
         timestamp: new Date().toLocaleTimeString()
       });
 
+      // Effacer la notification d'erreur après 5 secondes
       setTimeout(() => {
         setNotification({ message: '', type: '', details: '', timestamp: '' });
-      }, 8000);
+      }, 5000);
     }
   };
 
