@@ -69,10 +69,10 @@ function SearchBar() {
     <form onSubmit={handleSearch} className="w-full max-w-4xl bg-white rounded-lg shadow-xl p-4 flex flex-wrap gap-4">
       <div className="flex-1 min-w-[200px] relative" ref={destinationRef}>
         <div 
-          className="flex items-center gap-2 text-gray-800 p-2 cursor-pointer relative"
+          className="flex items-center gap-2 text-gray-800 p-3 cursor-pointer relative h-[46px]"
           onClick={() => setIsDestinationOpen(!isDestinationOpen)}
         >
-          <FaMapMarkerAlt className="text-sahara" />
+          <FaMapMarkerAlt className="text-sahara text-xl" />
           <div className="flex-grow">
             <input
               type="text"
@@ -87,7 +87,7 @@ function SearchBar() {
         
         {/* Liste déroulante personnalisée */}
         {isDestinationOpen && (
-          <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-[200px] overflow-y-auto">
+          <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-[200px] overflow-y-auto custom-scrollbar">
             {destinations.map((destination) => (
               <div
                 key={destination}
@@ -101,24 +101,26 @@ function SearchBar() {
         )}
       </div>
 
-      <div className="flex-1 min-w-[200px] flex items-center gap-2 text-gray-800">
-        <FaCalendarAlt className="text-sahara" />
-        <input 
-          type="date" 
-          name="date" 
-          className="w-full p-2 outline-none" 
-          value={searchData.date}
-          onChange={handleInputChange}
-        />
+      <div className="flex-1 min-w-[200px] flex items-center gap-2 text-gray-800 h-[46px]">
+        <div className="flex items-center gap-2 w-full h-full px-3">
+          <FaCalendarAlt className="text-sahara text-xl" />
+          <input 
+            type="date" 
+            name="date" 
+            className="w-full outline-none h-full" 
+            value={searchData.date}
+            onChange={handleInputChange}
+          />
+        </div>
       </div>
 
-      <div className="flex-1 min-w-[200px] relative">
-        <div className="flex items-center gap-2 text-gray-800">
-          <FaUsers className="text-sahara" />
-          <div className="relative w-full">
+      <div className="flex-1 min-w-[200px] relative h-[46px]">
+        <div className="flex items-center gap-2 text-gray-800 h-full px-3">
+          <FaUsers className="text-sahara text-xl" />
+          <div className="relative w-full h-full flex items-center">
             <select 
               name="travelers" 
-              className="w-full p-2 outline-none appearance-none cursor-pointer bg-transparent"
+              className="w-full outline-none appearance-none cursor-pointer bg-transparent h-full"
               value={searchData.travelers}
               onChange={handleInputChange}
               style={{ 
@@ -138,10 +140,35 @@ function SearchBar() {
 
       <button 
         type="submit" 
-        className="inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-full hover:bg-sahara/90 transition-colors duration-300 transform hover:-translate-y-0.5 min-w-[120px]"
+        className="inline-flex items-center px-6 py-3 bg-sahara text-white font-semibold rounded-full hover:bg-sahara/90 transition-colors duration-300 transform hover:-translate-y-0.5 min-w-[120px] h-[46px]"
       >
         <FaSearch className="mr-2" /> Rechercher
       </button>
+
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #E4A853;
+          border-radius: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #d19544;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+          cursor: pointer;
+          filter: invert(60%) sepia(93%) saturate(1352%) hue-rotate(0deg) brightness(119%) contrast(119%);
+        }
+      `}</style>
     </form>
   )
 }
