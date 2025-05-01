@@ -66,7 +66,7 @@ function Footer() {
           </div>
 
           {/* Paiement */}
-          <div className="space-y-4 sm:space-y-6 px-4">
+          <div className="space-y-4 sm:space-y-6 pl-0 pr-4">
             <h4 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6">Modalités de paiement</h4>
             <p className="text-sm sm:text-base text-gray-400 mb-2">
               Le paiement s'effectue exclusivement par virement bancaire

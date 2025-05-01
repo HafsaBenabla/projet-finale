@@ -27,7 +27,8 @@ const AgenciesManagement = () => {
     email: '',
     description: '',
     stars: '0',
-    image: ''
+    image: '',
+    type: ''
   });
 
   const navigate = useNavigate();
@@ -224,7 +225,8 @@ const AgenciesManagement = () => {
           email: '',
           description: '',
           stars: '0',
-          image: ''
+          image: '',
+          type: ''
         });
         
         // Fermer le formulaire et rafraîchir la liste
@@ -327,6 +329,25 @@ const AgenciesManagement = () => {
                 </Col>
                 <Col md={6}>
                   <Form.Group className="mb-4">
+                    <Form.Label>Type d'agence</Form.Label>
+                    <Form.Select
+                      name="type"
+                      value={agencyData.type}
+                      onChange={handleAgencyChange}
+                      required
+                      className="rounded-lg"
+                    >
+                      <option value="">Sélectionnez le type d'agence</option>
+                      <option value="voyage">Agence de voyages</option>
+                      <option value="activite">Agence d'activités</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row>
+                <Col md={6}>
+                  <Form.Group className="mb-4">
                     <Form.Label>Ville</Form.Label>
                     <Form.Select
                       name="city"
@@ -344,9 +365,6 @@ const AgenciesManagement = () => {
                     </Form.Select>
                   </Form.Group>
                 </Col>
-              </Row>
-
-              <Row>
                 <Col md={6}>
                   <Form.Group className="mb-4">
                     <Form.Label>Nombre d'étoiles</Form.Label>

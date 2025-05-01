@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaUser, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaPhone, FaTrash, FaSpinner, FaTimes, FaPlus, FaPencilAlt, FaPlane, FaBuilding, FaHiking, FaCog, FaEye, FaEllipsisV, FaCalendarCheck, FaListUl, FaBell, FaExclamation, FaCheck, FaInfo, FaUserCircle, FaPaperPlane } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaPhone, FaTrash, FaSpinner, FaTimes, FaPlus, FaPencilAlt, FaPlane, FaBuilding, FaHiking, FaCog, FaEye, FaEllipsisV, FaCalendarCheck, FaListUl, FaBell, FaExclamation, FaCheck, FaInfo, FaUserCircle, FaPaperPlane, FaSave, FaClipboardList } from 'react-icons/fa';
 import './ProfileStyles.css';
 
 const Profile = () => {
@@ -45,7 +45,8 @@ const Profile = () => {
   const [adminData, setAdminData] = useState({
     voyages: [],
     agences: [],
-    activites: []
+    activites: [],
+    todos: []
   });
   
   // État pour le chargement des données administratives
@@ -125,7 +126,11 @@ const Profile = () => {
       // Appel API pour mettre à jour le téléphone de l'utilisateur
       const response = await axios.patch(
         `http://localhost:5000/api/users/${user.userId}`,
-        { phone: phoneNumber },
+        { 
+          phone: phoneNumber,
+          // Inclure l'identifiant utilisateur pour s'assurer que le backend reconnaît l'opération de mise à jour
+          userId: user.userId 
+        },
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -1047,21 +1052,204 @@ const Profile = () => {
 
             {/* Informations de l'utilisateur - adaptées pour mobile */}
             <div className="flex-grow text-center md:text-left">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-4">{user?.username || 'Utilisateur'}</h2>
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800">{user?.username || 'Utilisateur'}</h2>
+                <button 
+                  onClick={() => {
+                    const newUsername = prompt('Entrez votre nouveau prénom:', user?.firstName || user?.username);
+                    if (newUsername && newUsername.trim()) {
+                      // Vérifier que le prénom a changé
+                      if (newUsername.trim() === user?.firstName) {
+                        setNotification({
+                          message: 'Le prénom est identique à l\'actuel',
+                          type: 'error',
+                          details: 'Veuillez choisir un prénom différent',
+                          timestamp: new Date().toLocaleTimeString()
+                        });
+                        setTimeout(() => {
+                          setNotification({ message: '', type: '', details: '', timestamp: '' });
+                        }, 5000);
+                        return;
+                      }
+                      
+                      if (newUsername.trim().length < 2) {
+                        setNotification({
+                          message: 'Prénom trop court',
+                          type: 'error',
+                          details: 'Le prénom doit contenir au moins 2 caractères',
+                          timestamp: new Date().toLocaleTimeString()
+                        });
+                        setTimeout(() => {
+                          setNotification({ message: '', type: '', details: '', timestamp: '' });
+                        }, 5000);
+                        return;
+                      }
+                      
+                      // Afficher un indicateur de chargement
+                      setNotification({
+                        message: 'Mise à jour du prénom en cours...',
+                        type: 'info',
+                        details: '',
+                        timestamp: new Date().toLocaleTimeString()
+                      });
+                      
+                      // Préparer les données à envoyer au serveur
+                      const updateData = { 
+                        firstName: newUsername.trim()
+                      };
+                      console.log('Données envoyées pour la mise à jour:', updateData);
+                      
+                      // Appel API pour mettre à jour le prénom
+                      axios.patch(
+                        `http://localhost:5000/api/users/${user.userId}`,
+                        updateData,
+                        {
+                          headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                          }
+                        }
+                      )
+                      .then(response => {
+                        console.log('Réponse du serveur:', response.data);
+                        // Mise à jour du contexte utilisateur
+                        if (response.data && updateUserProfile) {
+                          updateUserProfile({ ...user, firstName: newUsername.trim() });
+                        }
+                        // Notification de succès
+                        setNotification({
+                          message: 'Prénom mis à jour avec succès',
+                          type: 'success',
+                          details: '',
+                          timestamp: new Date().toLocaleTimeString()
+                        });
+                        setTimeout(() => {
+                          setNotification({ message: '', type: '', details: '', timestamp: '' });
+                        }, 5000);
+                      })
+                      .catch(err => {
+                        console.error('Erreur lors de la mise à jour du prénom:', err);
+                        const errorMessage = err.response?.data?.message || err.message || 'Une erreur est survenue';
+                        setNotification({
+                          message: 'Échec de la mise à jour du prénom',
+                          type: 'error',
+                          details: errorMessage,
+                          timestamp: new Date().toLocaleTimeString()
+                        });
+                        setTimeout(() => {
+                          setNotification({ message: '', type: '', details: '', timestamp: '' });
+                        }, 8000);
+                      });
+                    }
+                  }}
+                  className="text-xs sm:text-sm text-orange-500 hover:text-orange-600 flex items-center"
+                >
+                  <FaPencilAlt className="mr-1" /> 
+                  <span className="hidden sm:inline">Modifier</span>
+                </button>
+              </div>
               
               <div className="p-3 sm:p-4 bg-orange-50 rounded-lg mb-3 sm:mb-4 shadow-sm">
-                <h3 className="font-semibold text-orange-800 mb-2 sm:mb-3 border-b border-orange-200 pb-2">Informations de contact</h3>
+                <h3 className="font-semibold text-orange-800 mb-2 sm:mb-3 border-b border-orange-200 pb-2 flex justify-between items-center">
+                  <span>Informations de contact</span>
+                  <button 
+                    onClick={() => setShowPhoneForm(true)}
+                    className="text-xs text-orange-500 hover:text-orange-600"
+                  >
+                    <FaPencilAlt className="inline mr-1" /> 
+                    <span className="hidden sm:inline">Modifier</span>
+                  </button>
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                  <div className="flex items-center space-x-3 bg-white p-3 rounded-md shadow-sm">
+                  <div className="flex items-center space-x-3 bg-white p-3 rounded-md shadow-sm relative group">
                     <div className="bg-orange-100 p-2 rounded-full">
                       <FaEnvelope className="text-orange-500" />
                     </div>
-                    <div>
+                    <div className="flex-grow">
                       <p className="text-sm text-gray-500 font-medium">Email</p>
                       <p className="text-sm sm:text-base text-gray-800 font-medium">{user?.email}</p>
+                      <button 
+                        onClick={() => {
+                          const newLastName = prompt('Entrez votre nouveau nom de famille:', user?.lastName || '');
+                          if (newLastName && newLastName.trim()) {
+                            // Vérifier que le nom a changé
+                            if (newLastName.trim() === user?.lastName) {
+                              setNotification({
+                                message: 'Le nom de famille est identique à l\'actuel',
+                                type: 'error',
+                                details: 'Veuillez choisir un nom de famille différent',
+                                timestamp: new Date().toLocaleTimeString()
+                              });
+                              setTimeout(() => {
+                                setNotification({ message: '', type: '', details: '', timestamp: '' });
+                              }, 5000);
+                              return;
+                            }
+                            
+                            // Afficher un indicateur de chargement
+                            setNotification({
+                              message: 'Mise à jour du nom de famille en cours...',
+                              type: 'info',
+                              details: '',
+                              timestamp: new Date().toLocaleTimeString()
+                            });
+                            
+                            // Préparer les données à envoyer
+                            const updateData = { 
+                              lastName: newLastName.trim()
+                            };
+                            console.log('Données envoyées pour la mise à jour:', updateData);
+                            
+                            // Appel API pour mettre à jour le nom de famille
+                            axios.patch(
+                              `http://localhost:5000/api/users/${user.userId}`,
+                              updateData,
+                              {
+                                headers: {
+                                  'Authorization': `Bearer ${token}`,
+                                  'Content-Type': 'application/json'
+                                }
+                              }
+                            )
+                            .then(response => {
+                              console.log('Réponse du serveur:', response.data);
+                              // Mise à jour du contexte utilisateur
+                              if (response.data && updateUserProfile) {
+                                updateUserProfile({ ...user, lastName: newLastName.trim() });
+                              }
+                              // Notification de succès
+                              setNotification({
+                                message: 'Nom de famille mis à jour avec succès',
+                                type: 'success',
+                                details: '',
+                                timestamp: new Date().toLocaleTimeString()
+                              });
+                              setTimeout(() => {
+                                setNotification({ message: '', type: '', details: '', timestamp: '' });
+                              }, 5000);
+                            })
+                            .catch(err => {
+                              console.error('Erreur lors de la mise à jour du nom de famille:', err);
+                              const errorMessage = err.response?.data?.message || err.message || 'Une erreur est survenue';
+                              setNotification({
+                                message: 'Échec de la mise à jour du nom de famille',
+                                type: 'error',
+                                details: errorMessage,
+                                timestamp: new Date().toLocaleTimeString()
+                              });
+                              setTimeout(() => {
+                                setNotification({ message: '', type: '', details: '', timestamp: '' });
+                              }, 8000);
+                            });
+                          }
+                        }}
+                        className="text-xs text-orange-500 cursor-pointer hover:underline hidden group-hover:block absolute right-3 top-3"
+                      >
+                        <FaPencilAlt className="inline mr-1" /> Modifier
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3 bg-white p-3 rounded-md shadow-sm">
+                  <div className="flex items-center space-x-3 bg-white p-3 rounded-md shadow-sm relative group">
                     <div className="bg-orange-100 p-2 rounded-full">
                       <FaPhone className="text-orange-500" />
                     </div>
@@ -1074,8 +1262,28 @@ const Profile = () => {
                         {user?.phone ? 'Modifier le numéro' : 'Ajouter un numéro'}
                       </p>
                     </div>
+                    <button 
+                      onClick={() => setShowPhoneForm(true)}
+                      className="text-xs text-orange-500 cursor-pointer hover:underline hidden group-hover:block absolute right-3 top-3"
+                    >
+                      <FaPencilAlt className="inline mr-1" /> Modifier
+                    </button>
                   </div>
                 </div>
+              </div>
+
+              {/* Option pour changer le mot de passe */}
+              <div className="text-center md:text-left">
+                <button 
+                  onClick={() => {
+                    // Ici vous pouvez implémenter la logique pour changer le mot de passe
+                    // ou rediriger vers une page spécifique
+                    alert("Cette fonctionnalité sera bientôt disponible.");
+                  }}
+                  className="text-orange-500 hover:text-orange-600 text-sm font-medium"
+                >
+                  Changer mon mot de passe
+                </button>
               </div>
             </div>
           </div>
@@ -1137,92 +1345,94 @@ const Profile = () => {
             </div>
             
             {/* Bloc "À faire" unique, en pleine largeur (sans les notifications) */}
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                  <FaListUl className="mr-2 text-orange-500" />
-                  À faire
-                </h3>
-              </div>
-              <div className="p-4">
-                <ul className="space-y-3">
-                  {adminSettings?.todoList && adminSettings.todoList.length > 0 ? (
-                    adminSettings.todoList.map(todo => (
-                      <li key={todo.id} className="flex items-center gap-2">
-                        <input 
-                          type="checkbox" 
-                          checked={todo.completed} 
-                          onChange={() => toggleTodoCompletion(todo.id)}
-                          className="form-checkbox h-5 w-5 text-orange-500 rounded"
-                        />
-                        <span className={`flex-1 ${todo.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                          {todo.task}
-                        </span>
-                        <button 
-                          className="text-red-400 hover:text-red-600"
-                          onClick={() => setAdminSettings(prev => ({
-                            ...prev,
-                            todoList: prev.todoList.filter(item => item.id !== todo.id)
-                          }))}
-                        >
-                          <FaTimes />
-                        </button>
+            <div>
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                    <FaListUl className="mr-2 text-orange-500" />
+                    À faire
+                  </h3>
+                </div>
+                <div className="p-4">
+                  <ul className="space-y-3">
+                    {adminSettings?.todoList && adminSettings.todoList.length > 0 ? (
+                      adminSettings.todoList.map(todo => (
+                        <li key={todo.id} className="flex items-center gap-2">
+                          <input 
+                            type="checkbox" 
+                            checked={todo.completed} 
+                            onChange={() => toggleTodoCompletion(todo.id)}
+                            className="form-checkbox h-5 w-5 text-orange-500 rounded"
+                          />
+                          <span className={`flex-1 ${todo.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                            {todo.task}
+                          </span>
+                          <button 
+                            className="text-red-400 hover:text-red-600"
+                            onClick={() => setAdminSettings(prev => ({
+                              ...prev,
+                              todoList: prev.todoList.filter(item => item.id !== todo.id)
+                            }))}
+                          >
+                            <FaTimes />
+                          </button>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="py-6 text-center text-gray-500">
+                        Aucune tâche en attente
                       </li>
-                    ))
-                  ) : (
-                    <li className="py-6 text-center text-gray-500">
-                      Aucune tâche en attente
-                    </li>
-                  )}
-                </ul>
-                
-                {/* Nouvelle section pour ajouter une tâche */}
-                <div className="mt-4 pt-3 border-t border-gray-200">
-                  {/* État pour afficher/masquer le formulaire d'ajout de tâche */}
-                  {showNewTaskForm ? (
-                    <form onSubmit={(e) => {
-                      e.preventDefault();
-                      const task = e.target.elements.newTask.value.trim();
-                      if (task) {
-                        addTodoItem(task);
-                        e.target.reset();
-                        setShowNewTaskForm(false);
-                      }
-                    }} className="space-y-2">
-                      <input 
-                        type="text" 
-                        name="newTask"
-                        placeholder="Ajouter une nouvelle tâche..." 
-                        className="w-full border-gray-300 rounded focus:ring-orange-500 focus:border-orange-500"
-                        autoFocus
-                      />
-                      <div className="flex justify-end space-x-2">
+                    )}
+                  </ul>
+                  
+                  {/* Nouvelle section pour ajouter une tâche */}
+                  <div className="mt-4 pt-3 border-t border-gray-200">
+                    {/* État pour afficher/masquer le formulaire d'ajout de tâche */}
+                    {showNewTaskForm ? (
+                      <form onSubmit={(e) => {
+                        e.preventDefault();
+                        const task = e.target.elements.newTask.value.trim();
+                        if (task) {
+                          addTodoItem(task);
+                          e.target.reset();
+                          setShowNewTaskForm(false);
+                        }
+                      }} className="space-y-2">
+                        <input 
+                          type="text" 
+                          name="newTask"
+                          placeholder="Ajouter une nouvelle tâche..." 
+                          className="w-full border-gray-300 rounded focus:ring-orange-500 focus:border-orange-500"
+                          autoFocus
+                        />
+                        <div className="flex justify-end space-x-2">
+                          <button 
+                            type="button"
+                            onClick={() => setShowNewTaskForm(false)}
+                            className="px-3 py-1 text-gray-600 hover:text-gray-800"
+                          >
+                            Annuler
+                          </button>
+                          <button 
+                            type="submit"
+                            className="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600 transition-colors"
+                          >
+                            Ajouter
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="flex justify-center">
                         <button 
-                          type="button"
-                          onClick={() => setShowNewTaskForm(false)}
-                          className="px-3 py-1 text-gray-600 hover:text-gray-800"
+                          onClick={() => setShowNewTaskForm(true)}
+                          className="flex items-center justify-center w-full py-2 bg-gray-50 hover:bg-gray-100 text-orange-500 rounded-lg transition-colors"
                         >
-                          Annuler
-                        </button>
-                        <button 
-                          type="submit"
-                          className="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600 transition-colors"
-                        >
-                          Ajouter
+                          <FaPlus className="mr-2" />
+                          Ajouter une tâche
                         </button>
                       </div>
-                    </form>
-                  ) : (
-                    <div className="flex justify-center">
-                      <button 
-                        onClick={() => setShowNewTaskForm(true)}
-                        className="flex items-center justify-center w-full py-2 bg-gray-50 hover:bg-gray-100 text-orange-500 rounded-lg transition-colors"
-                      >
-                        <FaPlus className="mr-2" />
-                        Ajouter une tâche
-                      </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

@@ -27,6 +27,7 @@ const renderStars = (starsCount) => {
 function CityAgencies() {
   const { cityName } = useParams();
   const navigate = useNavigate();
+  const [selectedType, setSelectedType] = useState('all');
   const [agencies, setAgencies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -62,7 +63,8 @@ function CityAgencies() {
         stars: parseFloat(agency.stars) || 0,
         displayCity: agency.city.toLowerCase().includes("toutes les villes du maroc".toLowerCase()) 
           ? "Toutes les villes du Maroc" 
-          : agency.city
+          : agency.city,
+        type: agency.type || 'voyage'
       }));
       
       console.log('Agences après nettoyage:', cleanedAgencies);
@@ -134,6 +136,12 @@ function CityAgencies() {
     // Implementation of handleSubmit
   };
 
+  // Fonction pour filtrer les agences par type
+  const getFilteredAgencies = () => {
+    if (selectedType === 'all') return agencies;
+    return agencies.filter(agency => agency.type === selectedType);
+  };
+
   const renderAgencyCard = (agency) => {
     const voyages = agencyVoyages[agency._id] || [];
     const isLoading = loadingVoyages[agency._id];
@@ -151,6 +159,13 @@ function CityAgencies() {
               loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-60 group-hover:opacity-50 transition-opacity duration-700"></div>
+            
+            {/* Badge type d'agence */}
+            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-lg z-20 border border-white/50">
+              <span className="text-sm font-medium text-sahara">
+                {agency.type === 'activite' ? 'Activités' : 'Voyages'}
+              </span>
+            </div>
             
             {/* Badge étoiles amélioré */}
             <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-lg z-20 border border-white/50">
@@ -278,18 +293,47 @@ function CityAgencies() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-light text-gray-900 mb-4 tracking-wide">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto px-4">
+        {/* En-tête avec titre et filtres */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-semibold text-gray-800 mb-6 text-center">
             {cityName.toLowerCase() === "toutes les villes du maroc".toLowerCase() ? "Toutes nos agences au Maroc" : `Agences à ${cityName}`}
           </h1>
-          <div className="w-24 h-px bg-orange-500/50 my-6 mx-auto"></div>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto font-light">
-            {cityName.toLowerCase() === "toutes les villes du maroc".toLowerCase() 
-              ? "Découvrez l'ensemble de nos agences partenaires à travers tout le Maroc et leurs offres exclusives"
-              : `Découvrez les meilleures agences de voyage à ${cityName} et leurs offres exclusives pour votre prochain séjour`}
-          </p>
+          
+          {/* Boutons de filtre */}
+          <div className="flex flex-wrap justify-center gap-4 mb-6">
+            <button
+              onClick={() => setSelectedType('all')}
+              className={`px-6 py-2.5 rounded-full transition-all duration-300 ${
+                selectedType === 'all'
+                  ? 'bg-sahara text-white shadow-lg shadow-sahara/30'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:border-sahara/50'
+              }`}
+            >
+              Toutes les agences
+            </button>
+            <button
+              onClick={() => setSelectedType('voyage')}
+              className={`px-6 py-2.5 rounded-full transition-all duration-300 ${
+                selectedType === 'voyage'
+                  ? 'bg-sahara text-white shadow-lg shadow-sahara/30'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:border-sahara/50'
+              }`}
+            >
+              Agences de voyages
+            </button>
+            <button
+              onClick={() => setSelectedType('activite')}
+              className={`px-6 py-2.5 rounded-full transition-all duration-300 ${
+                selectedType === 'activite'
+                  ? 'bg-sahara text-white shadow-lg shadow-sahara/30'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:border-sahara/50'
+              }`}
+            >
+              Agences d'activités
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -302,17 +346,15 @@ function CityAgencies() {
               Une erreur est survenue lors du chargement des agences.
             </p>
           </div>
-        ) : agencies.length === 0 ? (
-          <div className="text-center">
-            <p className="text-gray-600 text-lg">
-              {cityName.toLowerCase() === "toutes les villes du maroc".toLowerCase() 
-                ? "Aucune agence n'est encore disponible dans notre réseau."
-                : `Aucune agence n'est encore disponible à ${cityName}.`}
-            </p>
-          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-screen-xl mx-auto">
-            {agencies.map(renderAgencyCard)}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {getFilteredAgencies().length === 0 ? (
+              <div className="col-span-full text-center py-8">
+                <p className="text-gray-500 text-lg">Aucune agence trouvée pour ce type</p>
+              </div>
+            ) : (
+              getFilteredAgencies().map(agency => renderAgencyCard(agency))
+            )}
           </div>
         )}
       </div>
