@@ -236,23 +236,6 @@ const AddActivity = () => {
               />
             </div>
 
-            {/* Nombre de personnes */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="maxParticipants">
-                Nombre maximum de participants
-              </label>
-              <input
-                type="number"
-                id="maxParticipants"
-                name="maxParticipants"
-                value={formData.maxParticipants}
-                onChange={handleChange}
-                min="1"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
-                required
-              />
-            </div>
-
             {/* Durée */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="duration">
@@ -264,12 +247,30 @@ const AddActivity = () => {
                 name="duration"
                 value={formData.duration}
                 onChange={handleChange}
-                min="0.5"
-                step="0.5"
+                min="0"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
                 required
               />
             </div>
+
+            {/* Nombre de places - uniquement pour les activités locales */}
+            {formData.type === 'locale' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="maxParticipants">
+                  Places disponibles
+                </label>
+                <input
+                  type="number"
+                  id="maxParticipants"
+                  name="maxParticipants"
+                  value={formData.maxParticipants}
+                  onChange={handleChange}
+                  min="1"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sahara focus:border-transparent"
+                  required
+                />
+              </div>
+            )}
           </div>
 
           {/* Boutons */}
