@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FaBars, FaTimes, FaUser, FaSignOutAlt, FaUserCircle, FaCog } from 'react-icons/fa'
+import { FaBars, FaTimes, FaUser, FaSignOutAlt, FaUserCircle } from 'react-icons/fa'
 import { useAuth } from '../context/AuthContext'
 // Suppression de l'import problématique
 
@@ -56,7 +56,7 @@ const Navbar = () => {
 
   // Style pour le lien Dashboard
   const dashboardLinkStyle = {
-    desktop: "no-underline flex items-center space-x-1 text-orange-600 font-medium hover:text-orange-800",
+    desktop: "no-underline text-gray-800 hover:text-orange-500 text-xl font-semibold mx-5 transition-colors duration-200",
     mobile: "no-underline flex items-center justify-center space-x-2 w-full py-3 bg-orange-50 text-orange-600 font-medium"
   }
 
@@ -146,8 +146,7 @@ const Navbar = () => {
               onClick={() => setIsMenuOpen(false)}
               className={dashboardLinkStyle.mobile}
             >
-              <FaCog className="text-xl" />
-              <span>Dashboard</span>
+              Dashboard
             </Link>
           )}
 
@@ -242,8 +241,7 @@ const Navbar = () => {
               to="/admin/dashboard"
               className={dashboardLinkStyle.desktop}
             >
-              <FaCog className="text-xl" />
-              <span>Dashboard</span>
+              Dashboard
             </Link>
           )}
         </div>
