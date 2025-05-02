@@ -43,14 +43,14 @@ const Navbar = () => {
   // Style du menu profil
   const profileMenuStyle = {
     desktop: {
-      button: "flex items-center space-x-2 px-4 py-2 rounded-full bg-orange-50 text-orange-600 hover:bg-orange-100 transition-all duration-300",
-      menu: "absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 border border-gray-100 transition-all duration-300",
-      item: "flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200"
+      button: "flex items-center space-x-3 px-6 py-3 rounded-full bg-orange-50 text-orange-600 hover:bg-orange-100 transition-all duration-300",
+      menu: "absolute top-full right-0 mt-3 w-56 bg-white rounded-xl shadow-xl py-2 border border-gray-100 transform transition-all duration-300 ease-out",
+      item: "flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200 cursor-pointer"
     },
     mobile: {
-      button: "flex items-center justify-center space-x-2 w-full py-3 text-orange-600 hover:bg-orange-50 transition-all duration-300",
-      menu: "absolute top-full left-0 right-0 bg-white shadow-lg py-1 border-t border-gray-100",
-      item: "flex items-center justify-center space-x-2 w-full py-3 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200"
+      button: "flex items-center justify-center space-x-3 w-full py-4 text-orange-600 hover:bg-orange-50 transition-all duration-300",
+      menu: "absolute top-full left-0 right-0 bg-white shadow-xl py-2 border-t border-gray-100",
+      item: "flex items-center justify-center space-x-3 w-full py-4 text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-all duration-200"
     }
   }
 
@@ -254,8 +254,8 @@ const Navbar = () => {
                 onClick={handleProfileClick}
                 className={profileMenuStyle.desktop.button}
               >
-                <FaUserCircle className="text-2xl" />
-                <span className="text-base">{user.username}</span>
+                <FaUserCircle className="text-3xl" />
+                <span className="text-lg font-medium">{user.username}</span>
               </button>
               {isProfileOpen && (
                 <div className={profileMenuStyle.desktop.menu}>
@@ -264,15 +264,16 @@ const Navbar = () => {
                     onClick={() => setIsProfileOpen(false)}
                     className={profileMenuStyle.desktop.item}
                   >
-                    <FaUser className="text-orange-500" />
-                    <span>Mon Profil</span>
+                    <FaUser className="text-orange-500 text-lg" />
+                    <span className="font-medium">Mon Profil</span>
                   </Link>
+                  <div className="border-t border-gray-100"></div>
                   <button
                     onClick={handleLogout}
-                    className={profileMenuStyle.desktop.item}
+                    className={profileMenuStyle.desktop.item + " w-full text-left"}
                   >
-                    <FaSignOutAlt className="text-orange-500" />
-                    <span>Se déconnecter</span>
+                    <FaSignOutAlt className="text-orange-500 text-lg" />
+                    <span className="font-medium">Se déconnecter</span>
                   </button>
                 </div>
               )}
