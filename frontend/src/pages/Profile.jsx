@@ -97,7 +97,8 @@ const Profile = () => {
   const [editedData, setEditedData] = useState({
     firstName: '',
     email: '',
-    phone: ''
+    phone: '',
+    username: ''
   });
 
   // État pour le changement de mot de passe
@@ -121,7 +122,8 @@ const Profile = () => {
       setEditedData({
         firstName: user.firstName || '',
         email: user.email || '',
-        phone: user.phone || ''
+        phone: user.phone || '',
+        username: user.firstName || ''
       });
     }
   }, [user]);
@@ -129,9 +131,26 @@ const Profile = () => {
   // Fonction pour sauvegarder les modifications
   const handleSaveChanges = async () => {
     try {
+      setNotification({
+        message: 'Mise à jour de vos informations...',
+        type: 'info',
+        details: '',
+        timestamp: new Date().toLocaleTimeString()
+      });
+
+      // S'assurer que toutes les données sont envoyées
+      const updateData = {
+        firstName: editedData.firstName || user.firstName,
+        email: editedData.email || user.email,
+        phone: editedData.phone || user.phone,
+        username: editedData.firstName || user.firstName
+      };
+
+      console.log('Données envoyées pour la mise à jour:', updateData);
+
       const response = await axios.patch(
         `http://localhost:5000/api/users/${user.userId}`,
-        editedData,
+        updateData,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -140,8 +159,33 @@ const Profile = () => {
         }
       );
 
-      if (response.data && updateUserProfile) {
-        updateUserProfile({ ...user, ...editedData });
+      if (response.data) {
+        console.log('Réponse du serveur après mise à jour:', response.data);
+        
+        // Mettre à jour le contexte utilisateur avec toutes les nouvelles données
+        const updatedUserData = {
+          ...user,
+          ...response.data,
+          firstName: response.data.firstName || editedData.firstName || user.firstName,
+          username: response.data.firstName || editedData.firstName || user.firstName,
+          email: response.data.email || editedData.email || user.email,
+          phone: response.data.phone || editedData.phone || user.phone
+        };
+        
+        // Mettre à jour le localStorage avec toutes les données
+        localStorage.setItem('user', JSON.stringify(updatedUserData));
+        
+        // Mettre à jour le contexte avec les nouvelles données
+        updateUserProfile(updatedUserData);
+        
+        // Mettre à jour l'état local editedData avec les nouvelles valeurs
+        setEditedData({
+          firstName: updatedUserData.firstName,
+          email: updatedUserData.email,
+          phone: updatedUserData.phone,
+          username: updatedUserData.firstName
+        });
+        
         setIsEditing(false);
         
         setNotification({
@@ -151,7 +195,45 @@ const Profile = () => {
           timestamp: new Date().toLocaleTimeString()
         });
 
-        // Effacer la notification après 5 secondes
+        // Rafraîchir les données de l'utilisateur
+        try {
+          const userResponse = await axios.get(
+            `http://localhost:5000/api/users/${user.userId}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+
+          if (userResponse.data) {
+            const freshUserData = {
+              ...userResponse.data,
+              firstName: userResponse.data.firstName || editedData.firstName || user.firstName,
+              username: userResponse.data.firstName || editedData.firstName || user.firstName,
+              email: userResponse.data.email || editedData.email || user.email,
+              phone: userResponse.data.phone || editedData.phone || user.phone
+            };
+            
+            // Mettre à jour le localStorage avec les données fraîches
+            localStorage.setItem('user', JSON.stringify(freshUserData));
+            
+            // Mettre à jour le contexte avec les données fraîches
+            updateUserProfile(freshUserData);
+            
+            // Mettre à jour l'état local
+            setEditedData({
+              firstName: freshUserData.firstName,
+              email: freshUserData.email,
+              phone: freshUserData.phone,
+              username: freshUserData.firstName
+            });
+          }
+        } catch (refreshError) {
+          console.error('Erreur lors du rechargement des données:', refreshError);
+        }
+
         setTimeout(() => {
           setNotification({ message: '', type: '', details: '', timestamp: '' });
         }, 5000);
@@ -165,7 +247,6 @@ const Profile = () => {
         timestamp: new Date().toLocaleTimeString()
       });
 
-      // Effacer la notification d'erreur après 5 secondes
       setTimeout(() => {
         setNotification({ message: '', type: '', details: '', timestamp: '' });
       }, 5000);
@@ -176,7 +257,9 @@ const Profile = () => {
     const { name, value } = e.target;
     setEditedData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
+      // Si on modifie le firstName, mettre aussi à jour le username
+      ...(name === 'firstName' ? { username: value } : {})
     }));
   };
 
@@ -283,8 +366,11 @@ const Profile = () => {
         `http://localhost:5000/api/users/${user.userId}`,
         { 
           phone: phoneNumber,
-          // Inclure l'identifiant utilisateur pour s'assurer que le backend reconnaît l'opération de mise à jour
-          userId: user.userId 
+          userId: user.userId,
+          // Inclure toutes les données nécessaires pour la mise à jour
+          firstName: user.firstName,
+          username: user.firstName,
+          email: user.email
         },
         {
           headers: {
@@ -294,10 +380,21 @@ const Profile = () => {
         }
       );
       
-      // Mise à jour du contexte utilisateur avec les nouvelles données
-      if (response.data && updateUserProfile) {
-        updateUserProfile({ ...user, phone: phoneNumber });
-      }
+      if (response.data) {
+        // Mettre à jour le contexte utilisateur avec toutes les nouvelles données
+        const updatedUserData = {
+          ...user,
+          ...response.data,
+          phone: response.data.phone || phoneNumber,
+          firstName: response.data.firstName || user.firstName,
+          username: response.data.firstName || user.firstName
+        };
+        
+        // Mettre à jour le localStorage
+        localStorage.setItem('user', JSON.stringify(updatedUserData));
+        
+        // Mettre à jour le contexte
+        updateUserProfile(updatedUserData);
 
       // Fermer le formulaire et afficher une notification
       setShowPhoneForm(false);
@@ -307,6 +404,37 @@ const Profile = () => {
         details: '',
         timestamp: new Date().toLocaleTimeString()
       });
+
+        // Rafraîchir les données utilisateur
+        try {
+          const userResponse = await axios.get(
+            `http://localhost:5000/api/users/${user.userId}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+
+          if (userResponse.data) {
+            const freshUserData = {
+              ...userResponse.data,
+              phone: userResponse.data.phone || phoneNumber,
+              firstName: userResponse.data.firstName || user.firstName,
+              username: userResponse.data.firstName || user.firstName
+            };
+            
+            // Mettre à jour le localStorage avec les données fraîches
+            localStorage.setItem('user', JSON.stringify(freshUserData));
+            
+            // Mettre à jour le contexte avec les données fraîches
+            updateUserProfile(freshUserData);
+          }
+        } catch (refreshError) {
+          console.error('Erreur lors du rechargement des données:', refreshError);
+        }
+      }
 
       // Effacer la notification après 5 secondes
       setTimeout(() => {
@@ -473,7 +601,7 @@ const Profile = () => {
 
     const initializeProfile = async () => {
       if (!checkAuth()) return;
-      
+
       try {
         // Charger les réservations
         await fetchReservations();
@@ -1544,7 +1672,7 @@ const Profile = () => {
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
             <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4 sm:mb-6 border-b border-gray-200 pb-2">Mes Réservations</h3>
             
-            {/* Voyages réservés - le reste du code est adapté grâce aux media queries CSS */}
+            {/* Voyages réservés */}
             <div className="mb-8">
               <h4 className="text-lg font-medium text-orange-600 mb-4 flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1556,9 +1684,7 @@ const Profile = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {reservations.voyages.map((reservation) => {
                     // Vérifier si la date du voyage est passée
-                    // Utiliser la date de départ du voyage plutôt que la date de réservation
                     const today = new Date();
-                    // Si le voyage a une propriété dateDepart, on l'utilise, sinon on utilise la date de réservation
                     const departureDate = reservation.dateDepart ? new Date(reservation.dateDepart) : 
                                           (reservation.voyage?.dateDepart ? new Date(reservation.voyage.dateDepart) : null);
                     const isVoyagePassed = departureDate && departureDate < today;
@@ -1584,33 +1710,29 @@ const Profile = () => {
                         </p>
                         <p className="flex items-center text-sm sm:text-base text-gray-600">
                           <FaCalendarAlt className="mr-2 flex-shrink-0" />
-                          {new Date(reservation.dateReservation).toLocaleDateString()}
+                            Départ: {departureDate ? departureDate.toLocaleDateString() : 'Non spécifiée'} 
+                            {reservation.voyage?.dateRetour && (
+                              <> - Retour: {new Date(reservation.voyage.dateRetour).toLocaleDateString()}</>
+                            )}
                         </p>
                         <div className={`mt-2 inline-block px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium
                           ${reservation.statut === 'confirmé' ? 'bg-green-100 text-green-800' :
                             reservation.statut === 'en_attente' ? 'bg-yellow-100 text-yellow-800' :
                             'bg-red-100 text-red-800'}`}
-                          data-tooltip={
-                            reservation.statut === 'confirmé' ? 'Réservation confirmée' :
-                            reservation.statut === 'en_attente' ? 'En attente de confirmation' :
-                            'Réservation annulée'
-                          }
                         >
                           {reservation.statut}
                         </div>
                         
-                        {/* Section pour ajouter un retour d'expérience - uniquement pour les voyages passés */}
-                        {isVoyagePassed && reservation.statut !== 'annulé' && (
-                          <div className="mt-3 pt-3 border-t border-gray-200">
+                          {/* Section commentaire - toujours visible mais conditionnellement désactivée */}
+                          <div className="mt-4 pt-4 border-t border-gray-200">
                             <div className="flex items-center mb-2">
-                              <FaUserCircle className="text-orange-500 mr-2" />
+                              <FaComment className="text-orange-500 mr-2" />
                               <h6 className="font-medium text-gray-700">Partagez votre expérience</h6>
                             </div>
-                            
-                            {/* Formulaire pour ajouter un commentaire */}
                             <form 
                               onSubmit={(e) => {
                                 e.preventDefault();
+                                if (!isVoyagePassed) return;
                                 const content = e.target.elements.experience.value.trim();
                                 if (content) {
                                   // Créer un nouveau commentaire
@@ -1643,17 +1765,15 @@ const Profile = () => {
                                       timestamp: new Date().toLocaleTimeString()
                                     });
                                     
-                                    // Rafraîchir les commentaires de l'utilisateur
-                                    fetchAllComments();
+                                    // Rafraîchir les commentaires
+                                    fetchUserComments();
                                     
-                                    // Effacer la notification après 5 secondes
                                     setTimeout(() => {
                                       setNotification({ message: '', type: '', details: '', timestamp: '' });
                                     }, 5000);
                                   })
                                   .catch(error => {
                                     console.error("Erreur lors de l'ajout du commentaire:", error);
-                                    // Afficher une notification d'erreur
                                     setNotification({
                                       message: 'Erreur lors de l\'ajout du commentaire',
                                       type: 'error',
@@ -1661,7 +1781,6 @@ const Profile = () => {
                                       timestamp: new Date().toLocaleTimeString()
                                     });
                                     
-                                    // Effacer la notification après 8 secondes
                                     setTimeout(() => {
                                       setNotification({ message: '', type: '', details: '', timestamp: '' });
                                     }, 8000);
@@ -1672,21 +1791,35 @@ const Profile = () => {
                             >
                               <textarea
                                 name="experience"
-                                placeholder="Racontez votre voyage et partagez vos impressions..."
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all resize-none"
+                                placeholder={isVoyagePassed ? "Racontez votre voyage et partagez vos impressions..." : "Formulaire disponible après le voyage"}
+                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all resize-none ${!isVoyagePassed && 'bg-gray-100 cursor-not-allowed'}`}
                                 rows="3"
+                                disabled={!isVoyagePassed}
                                 required
                               ></textarea>
                               <button
                                 type="submit"
-                                className="w-full bg-orange-500 text-white py-2 rounded-md font-medium hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
+                                disabled={!isVoyagePassed}
+                                className={`w-full py-2 rounded-md font-medium flex items-center justify-center gap-2 transition-colors ${
+                                  isVoyagePassed 
+                                    ? 'bg-orange-500 text-white hover:bg-orange-600' 
+                                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                }`}
                               >
                                 <FaPaperPlane />
-                                Partager mon expérience
+                                {isVoyagePassed ? 'Partager mon expérience' : 'Voyage non terminé'}
                               </button>
                             </form>
+                            {!isVoyagePassed && (
+                              <p className="text-sm text-gray-500 mt-2 italic">
+                                Pour garantir l'authenticité des avis, vous pourrez partager votre expérience une fois le voyage terminé.
+                              </p>
+                            )}
                           </div>
-                        )}
+                          
+                         
+                        
+                        
                         
                         {/* Bouton d'annulation */}
                         {reservation.statut !== 'annulé' && (
@@ -1710,7 +1843,8 @@ const Profile = () => {
                         )}
                       </div>
                     </div>
-                  );})}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-gray-600 text-center py-4 bg-gray-50 rounded-lg">
@@ -1818,9 +1952,9 @@ const Profile = () => {
                 {userComments.loading ? 'Chargement...' : 'Actualiser'}
               </button>
             </div>
-
+            
             {/* Affichage des erreurs */}
-            {userComments.error && (
+              {userComments.error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
                 <div className="flex items-center">
                   <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1830,88 +1964,88 @@ const Profile = () => {
                 </div>
                 <p className="mt-2 text-red-700">{userComments.error}</p>
                 <p className="mt-2 text-red-600 text-sm">L'API des commentaires n'est pas disponible à cette adresse.</p>
-              </div>
-            )}
-
+                </div>
+              )}
+              
             {/* Affichage des commentaires par voyage */}
-            {!userComments.loading && !userComments.error && userComments.data.length > 0 ? (
-              <div className="space-y-8">
-                {userComments.data.map(voyageData => (
-                  <div key={voyageData.voyage._id} className="border rounded-lg overflow-hidden">
-                    {/* En-tête du voyage */}
-                    <div className="bg-gray-50 border-b">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center p-4">
-                        {voyageData.voyage.image && (
-                          <div className="w-16 h-16 rounded-lg overflow-hidden mr-4 mb-2 sm:mb-0 flex-shrink-0">
-                            <img 
-                              src={voyageData.voyage.image} 
-                              alt={voyageData.voyage.title} 
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
-                        <div className="flex-grow">
-                          <h4 className="text-lg font-medium text-gray-800">{voyageData.voyage.title}</h4>
-                          <p className="text-sm text-gray-600">{voyageData.voyage.destination}</p>
-                          <div className="mt-1 flex items-center">
-                            <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">
-                              {voyageData.comments.length} commentaire{voyageData.comments.length > 1 ? 's' : ''}
-                            </span>
-                            <button 
-                              onClick={() => navigate(`/voyage/${voyageData.voyage._id}`)}
-                              className="ml-3 text-xs text-blue-600 hover:underline flex items-center"
-                            >
-                              <FaEye className="mr-1" /> Voir le voyage
-                            </button>
+              {!userComments.loading && !userComments.error && userComments.data.length > 0 ? (
+                <div className="space-y-8">
+                  {userComments.data.map(voyageData => (
+                    <div key={voyageData.voyage._id} className="border rounded-lg overflow-hidden">
+                      {/* En-tête du voyage */}
+                      <div className="bg-gray-50 border-b">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center p-4">
+                          {voyageData.voyage.image && (
+                            <div className="w-16 h-16 rounded-lg overflow-hidden mr-4 mb-2 sm:mb-0 flex-shrink-0">
+                              <img 
+                                src={voyageData.voyage.image} 
+                                alt={voyageData.voyage.title} 
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <div className="flex-grow">
+                            <h4 className="text-lg font-medium text-gray-800">{voyageData.voyage.title}</h4>
+                            <p className="text-sm text-gray-600">{voyageData.voyage.destination}</p>
+                            <div className="mt-1 flex items-center">
+                              <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">
+                                {voyageData.comments.length} commentaire{voyageData.comments.length > 1 ? 's' : ''}
+                              </span>
+                              <button 
+                                onClick={() => navigate(`/voyage/${voyageData.voyage._id}`)}
+                                className="ml-3 text-xs text-blue-600 hover:underline flex items-center"
+                              >
+                                <FaEye className="mr-1" /> Voir le voyage
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    {/* Liste des commentaires pour ce voyage */}
-                    <div className="divide-y divide-gray-200">
-                      {voyageData.comments.map(comment => (
-                        <div key={comment._id} className="p-4 hover:bg-gray-50 transition-colors">
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex items-center">
-                              <div className="bg-orange-100 p-2 rounded-full mr-3">
-                                <FaUserCircle className="text-orange-500" />
-                              </div>
-                              <div>
-                                <p className="font-medium text-gray-800">
+                      
+                      {/* Liste des commentaires pour ce voyage */}
+                      <div className="divide-y divide-gray-200">
+                        {voyageData.comments.map(comment => (
+                          <div key={comment._id} className="p-4 hover:bg-gray-50 transition-colors">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center">
+                                <div className="bg-orange-100 p-2 rounded-full mr-3">
+                                  <FaUserCircle className="text-orange-500" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-gray-800">
                                   {comment.userName || 'Utilisateur anonyme'}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {new Date(comment.createdAt).toLocaleDateString('fr-FR', {
-                                    day: 'numeric',
-                                    month: 'long',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </p>
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {new Date(comment.createdAt).toLocaleDateString('fr-FR', {
+                                      day: 'numeric',
+                                      month: 'long',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </p>
+                                </div>
                               </div>
-                            </div>
-                            <button
+                                <button 
                               onClick={() => openDeleteCommentModal(comment._id, comment.content)}
                               className="text-gray-400 hover:text-red-500 transition-colors"
                               title="Supprimer ce commentaire"
-                            >
+                                >
                               <FaTrash />
-                            </button>
-                          </div>
+                                </button>
+                              </div>
                           <p className="text-gray-700 pl-11">{comment.content}</p>
-                        </div>
-                      ))}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
             ) : !userComments.loading && !userComments.error ? (
               <div className="text-center py-8 text-gray-500">
                 <FaComment className="mx-auto text-4xl mb-4 opacity-20" />
                 <p>Aucun commentaire n'a encore été publié.</p>
-              </div>
+                  </div>
             ) : null}
           </div>
         )}
