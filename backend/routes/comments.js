@@ -222,6 +222,14 @@ router.get('/user/:userId/comments', auth, async (req, res) => {
     // Récupérer tous les commentaires de l'utilisateur
     const comments = await Comment.find({ userId: { $in: requestedUserIds } })
       .sort({ createdAt: -1 });
+
+    // Si aucun commentaire n'est trouvé, renvoyer un tableau vide avec un message explicatif
+    if (!comments || comments.length === 0) {
+      return res.json({
+        data: [],
+        message: "Vous n'avez pas encore publié de commentaires. Vos commentaires apparaîtront ici après avoir partagé votre expérience sur un voyage."
+      });
+    }
     
     // Joindre les informations des voyages aux commentaires
     const populatedComments = await Promise.all(comments.map(async (comment) => {
@@ -242,7 +250,10 @@ router.get('/user/:userId/comments', auth, async (req, res) => {
       }
     }));
     
-    res.json(populatedComments);
+    res.json({
+      data: populatedComments,
+      message: null
+    });
   } catch (error) {
     console.error('Erreur lors de la récupération des commentaires:', error);
     res.status(500).json({ message: error.message });

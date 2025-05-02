@@ -83,11 +83,10 @@ const Profile = () => {
 
   // État pour les commentaires de l'utilisateur
   const [userComments, setUserComments] = useState({
-    loading: true,
+    loading: false,
     error: null,
-    errorDetails: null,
-    data: [],
-    isGroupedByVoyage: true
+    errorDetails: '',
+    data: []
   });
 
   // Ajout d'un nouvel état pour contrôler l'affichage du formulaire d'ajout de tâche
@@ -108,6 +107,13 @@ const Profile = () => {
     confirmPassword: ''
   });
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+
+  // État pour la modale de confirmation de suppression de commentaire
+  const [deleteCommentModal, setDeleteCommentModal] = useState({
+    show: false,
+    commentId: null,
+    commentContent: ''
+  });
 
   // Mettre à jour les données éditées quand l'utilisateur est chargé
   useEffect(() => {
@@ -465,58 +471,29 @@ const Profile = () => {
       return true;
     };
 
-    const fetchReservations = async () => {
+    const initializeProfile = async () => {
       if (!checkAuth()) return;
-
+      
       try {
-        setLoading(true);
-        console.log('=== Tentative de récupération des réservations ===', {
-          userId: user.userId,
-          token,
-          userDetails: user
-        });
-
-        const config = {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        };
-
-        // Récupération des réservations de voyages
-        const voyagesUrl = `http://localhost:5000/api/reservations/voyages/${user.userId}`;
-        console.log('Envoi de la requête pour les voyages à:', voyagesUrl);
-        console.log('Headers de la requête:', config.headers);
+        // Charger les réservations
+        await fetchReservations();
         
-        const voyagesResponse = await axios.get(voyagesUrl, config);
-
-        // Récupération des réservations d'activités
-        const activitesUrl = `http://localhost:5000/api/reservations/activites/${user.userId}`;
-        console.log('Envoi de la requête pour les activités à:', activitesUrl);
+        // Charger les commentaires si l'utilisateur n'est pas admin
+        if (!user?.isAdmin) {
+          await fetchUserComments();
+        }
         
-        const activitesResponse = await axios.get(activitesUrl, config);
-
-        console.log('Réponse pour les voyages:', voyagesResponse.data);
-        console.log('Réponse pour les activités:', activitesResponse.data);
-
-        setReservations({
-          voyages: voyagesResponse.data,
-          activites: activitesResponse.data
-        });
-
-        // Récupérer les commentaires de l'utilisateur après avoir récupéré les réservations
-        fetchAllComments();
-
+        // Charger tous les commentaires si l'utilisateur est admin
+        if (user?.isAdmin) {
+          await fetchAllComments();
+        }
       } catch (error) {
-        console.error('Erreur lors de la récupération des réservations:', error);
-        setError('Erreur lors de la récupération des données. Veuillez réessayer plus tard.');
-      } finally {
-        setLoading(false);
+        console.error('Erreur lors de l\'initialisation du profil:', error);
       }
     };
 
-    fetchReservations();
-  }, [isAuthenticated, user, token, navigate]);  // N'ajoutez pas fetchAllComments dans les dépendances pour éviter les boucles
+    initializeProfile();
+  }, [isAuthenticated, user, token]);
 
   // Fonction pour annuler une réservation
   const handleCancelReservation = async (reservationId, type) => {
@@ -634,12 +611,7 @@ const Profile = () => {
 
   // Fonction pour supprimer un commentaire
   const handleDeleteComment = async (commentId) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) {
-      return;
-    }
-
     try {
-      // Corriger l'URL pour correspondre à la route backend /api/comments/:commentId
       const url = `http://localhost:5000/api/comments/${commentId}`;
       const response = await axios.delete(url, {
         headers: {
@@ -655,6 +627,9 @@ const Profile = () => {
         ...prev,
         data: prev.data.filter(comment => comment._id !== commentId)
       }));
+      
+      // Fermer la modale
+      setDeleteCommentModal({ show: false, commentId: null, commentContent: '' });
       
       // Afficher une notification de succès
       setNotification({
@@ -685,6 +660,15 @@ const Profile = () => {
         setNotification({ message: '', type: '', details: '', timestamp: '' });
       }, 8000);
     }
+  };
+
+  // Fonction pour ouvrir la modale de confirmation de suppression
+  const openDeleteCommentModal = (commentId, content) => {
+    setDeleteCommentModal({
+      show: true,
+      commentId,
+      commentContent: content
+    });
   };
 
   // Fonction pour récupérer les données administratives
@@ -954,6 +938,130 @@ const Profile = () => {
       month: 'long',
       year: 'numeric'
     });
+  };
+
+  // Fonction pour récupérer les commentaires de l'utilisateur
+  const fetchUserComments = async () => {
+    if (!isAuthenticated || !user?.userId || !token) {
+      console.log('Impossible de récupérer les commentaires: non authentifié');
+      return;
+    }
+    
+    try {
+      setUserComments(prev => ({ ...prev, loading: true, error: null }));
+      
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      };
+
+      console.log('=== Tentative de récupération des commentaires utilisateur ===', {
+        userId: user.userId,
+        token: token ? 'Présent' : 'Absent'
+      });
+
+      const commentsUrl = `http://localhost:5000/api/comments/user/${user.userId}/comments`;
+      console.log('Envoi de la requête pour les commentaires à:', commentsUrl);
+      
+      const response = await axios.get(commentsUrl, config);
+      console.log('Réponse pour les commentaires:', response.data);
+
+      // Mise à jour de l'état avec la nouvelle structure
+        setUserComments({
+          loading: false,
+          error: null,
+        data: response.data.data || [],
+        message: response.data.message || null
+      });
+    } catch (error) {
+      console.error('Erreur lors de la récupération des commentaires:', error);
+      
+      let errorMessage = 'Une erreur est survenue lors du chargement des commentaires';
+      let errorDetails = '';
+      
+      if (error.response) {
+        const { status, data } = error.response;
+        switch (status) {
+          case 401:
+            errorMessage = 'Session expirée. Veuillez vous reconnecter.';
+            break;
+          case 403:
+            errorMessage = 'Accès non autorisé aux commentaires.';
+            break;
+          case 404:
+            errorMessage = 'Aucun commentaire trouvé.';
+            break;
+          default:
+            errorMessage = data.message || errorMessage;
+        }
+        errorDetails = data.details || '';
+      } else if (error.request) {
+        errorMessage = 'Impossible de contacter le serveur';
+        errorDetails = 'Vérifiez votre connexion internet';
+      } else {
+        errorDetails = error.message;
+      }
+      
+        setUserComments({
+          loading: false,
+        error: errorMessage,
+        errorDetails: errorDetails,
+        data: []
+      });
+    }
+  };
+
+  // Fonction pour récupérer les réservations
+  const fetchReservations = async () => {
+    if (!isAuthenticated || !user?.userId || !token) {
+      console.log('Impossible de récupérer les réservations: non authentifié');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('=== Tentative de récupération des réservations ===', {
+        userId: user.userId,
+        token,
+        userDetails: user
+      });
+
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      };
+
+      // Récupération des réservations de voyages
+      const voyagesUrl = `http://localhost:5000/api/reservations/voyages/${user.userId}`;
+      console.log('Envoi de la requête pour les voyages à:', voyagesUrl);
+      console.log('Headers de la requête:', config.headers);
+      
+      const voyagesResponse = await axios.get(voyagesUrl, config);
+
+      // Récupération des réservations d'activités
+      const activitesUrl = `http://localhost:5000/api/reservations/activites/${user.userId}`;
+      console.log('Envoi de la requête pour les activités à:', activitesUrl);
+      
+      const activitesResponse = await axios.get(activitesUrl, config);
+
+      console.log('Réponse pour les voyages:', voyagesResponse.data);
+      console.log('Réponse pour les activités:', activitesResponse.data);
+
+      setReservations({
+        voyages: voyagesResponse.data,
+        activites: activitesResponse.data
+      });
+
+    } catch (error) {
+      console.error('Erreur lors de la récupération des réservations:', error);
+      setError('Erreur lors de la récupération des données. Veuillez réessayer plus tard.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isAuthenticated) {
@@ -1785,7 +1893,7 @@ const Profile = () => {
                               </div>
                             </div>
                             <button
-                              onClick={() => handleDeleteComment(comment._id)}
+                              onClick={() => openDeleteCommentModal(comment._id, comment.content)}
                               className="text-gray-400 hover:text-red-500 transition-colors"
                               title="Supprimer ce commentaire"
                             >
@@ -1997,6 +2105,130 @@ const Profile = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Section des Commentaires de l'utilisateur */}
+        {!user?.isAdmin && (
+          <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4">
+            <div className="flex justify-between items-center mb-4 border-b border-gray-200 pb-2">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-800">Mes Commentaires</h3>
+              <button 
+                onClick={() => fetchUserComments()}
+                className="text-sm px-3 py-1 bg-orange-100 text-orange-600 rounded hover:bg-orange-200 transition-colors flex items-center"
+                disabled={userComments.loading}
+              >
+                {userComments.loading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500 mr-2"></div>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+                {userComments.loading ? 'Chargement...' : 'Actualiser'}
+              </button>
+            </div>
+
+            {/* Affichage des erreurs */}
+            {userComments.error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <h4 className="text-red-800 font-medium">Une erreur s'est produite lors du chargement de vos commentaires</h4>
+                </div>
+                <p className="mt-2 text-red-700">{userComments.error}</p>
+              </div>
+            )}
+
+            {/* Liste des commentaires */}
+            {!userComments.loading && !userComments.error ? (
+              userComments.data && userComments.data.length > 0 ? (
+                <div className="space-y-4">
+                  {userComments.data.map(comment => (
+                    <div key={comment._id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center">
+                          <div className="bg-orange-100 p-2 rounded-full mr-3">
+                            <FaUserCircle className="text-orange-500" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-800">
+                              {comment.voyage?.title || 'Voyage non disponible'}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(comment.createdAt).toLocaleDateString('fr-FR', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => openDeleteCommentModal(comment._id, comment.content)}
+                          className="text-gray-400 hover:text-red-500 transition-colors"
+                          title="Supprimer ce commentaire"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                      <p className="text-gray-700 mt-2">{comment.content}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <FaComment className="mx-auto text-4xl mb-4 opacity-20" />
+                  <p>{userComments.message || "Vous n'avez pas encore publié de commentaires."}</p>
+                  <p className="text-sm mt-2 text-gray-400">Partagez votre expérience après avoir participé à un voyage !</p>
+                </div>
+              )
+            ) : null}
+          </div>
+        )}
+
+        {/* Modale de confirmation de suppression de commentaire */}
+        {deleteCommentModal.show && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full overflow-hidden">
+              <div className="bg-gradient-to-r from-red-500 to-red-600 p-4">
+                <div className="flex items-center">
+                  <div className="bg-white bg-opacity-25 rounded-full p-2 mr-3">
+                    <FaTrash className="text-white h-5 w-5" />
+                  </div>
+                  <h3 className="text-white text-lg font-medium">Confirmer la suppression</h3>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                <p className="text-gray-600 mb-4">
+                  Êtes-vous sûr de vouloir supprimer ce commentaire ? Cette action est irréversible.
+                </p>
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <p className="text-gray-700 italic">"{deleteCommentModal.commentContent}"</p>
+                </div>
+                
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setDeleteCommentModal({ show: false, commentId: null, commentContent: '' })}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={() => handleDeleteComment(deleteCommentModal.commentId)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors flex items-center"
+                  >
+                    <FaTrash className="mr-2" />
+                    Supprimer
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
