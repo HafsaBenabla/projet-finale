@@ -61,7 +61,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/activities', activitiesRoutes);
 app.use('/api/reactions', reactionsRoutes);
-app.use('/api', commentRoutes);
+app.use('/api/comments', commentRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Création du dossier uploads s'il n'existe pas

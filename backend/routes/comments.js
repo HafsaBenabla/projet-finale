@@ -249,4 +249,54 @@ router.get('/user/:userId/comments', auth, async (req, res) => {
   }
 });
 
+// Route pour récupérer tous les commentaires (admin seulement)
+router.get('/', auth, async (req, res) => {
+  try {
+    // Vérifier que l'utilisateur est admin
+    const currentUser = req.user;
+    if (!currentUser || currentUser.role !== 'admin') {
+      return res.status(403).json({ message: 'Accès non autorisé. Réservé aux administrateurs.' });
+    }
+
+    // Récupérer tous les commentaires
+    const comments = await Comment.find().sort({ createdAt: -1 });
+
+    // Regrouper les commentaires par voyage
+    const commentsByVoyage = {};
+    
+    // Récupérer tous les voyages concernés
+    const voyageIds = [...new Set(comments.map(comment => comment.voyageId))];
+    const voyages = await Voyage.find({ _id: { $in: voyageIds } });
+    const voyagesMap = new Map(voyages.map(v => [v._id.toString(), v]));
+
+    // Organiser les commentaires par voyage
+    for (const comment of comments) {
+      const voyageId = comment.voyageId.toString();
+      const voyage = voyagesMap.get(voyageId);
+      
+      if (!commentsByVoyage[voyageId]) {
+        commentsByVoyage[voyageId] = {
+          voyage: voyage ? {
+            _id: voyage._id,
+            title: voyage.title,
+            destination: voyage.destination,
+            image: voyage.image
+          } : { _id: voyageId, title: 'Voyage inconnu', destination: 'Inconnue' },
+          comments: []
+        };
+      }
+      
+      commentsByVoyage[voyageId].comments.push(comment);
+    }
+
+    // Convertir l'objet en tableau pour le frontend
+    const result = Object.values(commentsByVoyage);
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Erreur lors de la récupération de tous les commentaires:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router; 

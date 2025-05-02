@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaUser, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaPhone, FaTrash, FaSpinner, FaTimes, FaPlus, FaPencilAlt, FaPlane, FaBuilding, FaHiking, FaCog, FaEye, FaEllipsisV, FaCalendarCheck, FaListUl, FaBell, FaExclamation, FaCheck, FaInfo, FaUserCircle, FaPaperPlane, FaSave, FaClipboardList } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaMapMarkerAlt, FaCalendarAlt, FaPhone, FaTrash, FaSpinner, FaTimes, FaPlus, FaPencilAlt, FaPlane, FaBuilding, FaHiking, FaCog, FaEye, FaEllipsisV, FaCalendarCheck, FaListUl, FaBell, FaExclamation, FaCheck, FaInfo, FaUserCircle, FaPaperPlane, FaSave, FaClipboardList, FaComment } from 'react-icons/fa';
 import './ProfileStyles.css';
 
 const Profile = () => {
@@ -1710,110 +1710,101 @@ const Profile = () => {
                 {userComments.loading ? 'Chargement...' : 'Actualiser'}
               </button>
             </div>
-            
+
+            {/* Affichage des erreurs */}
+            {userComments.error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <div className="flex items-center">
+                  <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <h4 className="text-red-800 font-medium">Une erreur s'est produite lors du chargement des commentaires:</h4>
+                </div>
+                <p className="mt-2 text-red-700">{userComments.error}</p>
+                <p className="mt-2 text-red-600 text-sm">L'API des commentaires n'est pas disponible à cette adresse.</p>
+              </div>
+            )}
+
             {/* Affichage des commentaires par voyage */}
-            <div className="mt-4">
-              {userComments.loading && (
-                <div className="flex justify-center py-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-                </div>
-              )}
-              
-              {userComments.error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded" role="alert">
-                  <p className="font-medium">Une erreur s'est produite lors du chargement des commentaires:</p>
-                  <p className="mt-1">{userComments.error}</p>
-                  {userComments.errorDetails && (
-                    <p className="text-xs mt-1 text-red-600">{userComments.errorDetails}</p>
-                  )}
-                </div>
-              )}
-              
-              {!userComments.loading && !userComments.error && userComments.data.length > 0 ? (
-                <div className="space-y-8">
-                  {userComments.data.map(voyageData => (
-                    <div key={voyageData.voyage._id} className="border rounded-lg overflow-hidden">
-                      {/* En-tête du voyage */}
-                      <div className="bg-gray-50 border-b">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center p-4">
-                          {voyageData.voyage.image && (
-                            <div className="w-16 h-16 rounded-lg overflow-hidden mr-4 mb-2 sm:mb-0 flex-shrink-0">
-                              <img 
-                                src={voyageData.voyage.image} 
-                                alt={voyageData.voyage.title} 
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          )}
-                          <div className="flex-grow">
-                            <h4 className="text-lg font-medium text-gray-800">{voyageData.voyage.title}</h4>
-                            <p className="text-sm text-gray-600">{voyageData.voyage.destination}</p>
-                            <div className="mt-1 flex items-center">
-                              <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">
-                                {voyageData.comments.length} commentaire{voyageData.comments.length > 1 ? 's' : ''}
-                              </span>
-                              <button 
-                                onClick={() => navigate(`/voyage/${voyageData.voyage._id}`)}
-                                className="ml-3 text-xs text-blue-600 hover:underline flex items-center"
-                              >
-                                <FaEye className="mr-1" /> Voir le voyage
-                              </button>
-                            </div>
+            {!userComments.loading && !userComments.error && userComments.data.length > 0 ? (
+              <div className="space-y-8">
+                {userComments.data.map(voyageData => (
+                  <div key={voyageData.voyage._id} className="border rounded-lg overflow-hidden">
+                    {/* En-tête du voyage */}
+                    <div className="bg-gray-50 border-b">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center p-4">
+                        {voyageData.voyage.image && (
+                          <div className="w-16 h-16 rounded-lg overflow-hidden mr-4 mb-2 sm:mb-0 flex-shrink-0">
+                            <img 
+                              src={voyageData.voyage.image} 
+                              alt={voyageData.voyage.title} 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-grow">
+                          <h4 className="text-lg font-medium text-gray-800">{voyageData.voyage.title}</h4>
+                          <p className="text-sm text-gray-600">{voyageData.voyage.destination}</p>
+                          <div className="mt-1 flex items-center">
+                            <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">
+                              {voyageData.comments.length} commentaire{voyageData.comments.length > 1 ? 's' : ''}
+                            </span>
+                            <button 
+                              onClick={() => navigate(`/voyage/${voyageData.voyage._id}`)}
+                              className="ml-3 text-xs text-blue-600 hover:underline flex items-center"
+                            >
+                              <FaEye className="mr-1" /> Voir le voyage
+                            </button>
                           </div>
                         </div>
                       </div>
-                      
-                      {/* Liste des commentaires pour ce voyage */}
-                      <div className="divide-y divide-gray-200">
-                        {voyageData.comments.map(comment => (
-                          <div key={comment._id} className="p-4 hover:bg-gray-50 transition-colors">
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="flex items-center">
-                                <div className="bg-orange-100 p-2 rounded-full mr-3">
-                                  <FaUserCircle className="text-orange-500" />
-                                </div>
-                                <div>
-                                  <p className="font-medium text-gray-800">
-                                    {comment.user?.username || comment.user?.email || 'Utilisateur anonyme'}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    {new Date(comment.createdAt).toLocaleDateString('fr-FR', {
-                                      day: 'numeric',
-                                      month: 'long',
-                                      year: 'numeric',
-                                      hour: '2-digit',
-                                      minute: '2-digit'
-                                    })}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex space-x-2">
-                                <button 
-                                  className="p-1 text-gray-400 hover:text-orange-500 transition-colors"
-                                  onClick={() => window.confirm("Êtes-vous sûr de vouloir supprimer ce commentaire ?") && handleDeleteComment(comment._id)}
-                                >
-                                  <FaTrash className="h-4 w-4" />
-                                </button>
-                              </div>
-                            </div>
-                            <div className="pl-10 sm:pl-12">
-                              <p className="text-gray-700">{comment.content}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                !userComments.loading && !userComments.error && (
-                  <div className="bg-blue-50 border border-blue-300 text-blue-700 px-4 py-3 rounded" role="alert">
-                    <p className="text-center">Aucun commentaire client n'a été trouvé.</p>
-                    <p className="text-center text-sm mt-1">Les commentaires des clients apparaîtront ici lorsqu'ils seront ajoutés.</p>
+                    
+                    {/* Liste des commentaires pour ce voyage */}
+                    <div className="divide-y divide-gray-200">
+                      {voyageData.comments.map(comment => (
+                        <div key={comment._id} className="p-4 hover:bg-gray-50 transition-colors">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center">
+                              <div className="bg-orange-100 p-2 rounded-full mr-3">
+                                <FaUserCircle className="text-orange-500" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-800">
+                                  {comment.userName || 'Utilisateur anonyme'}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(comment.createdAt).toLocaleDateString('fr-FR', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteComment(comment._id)}
+                              className="text-gray-400 hover:text-red-500 transition-colors"
+                              title="Supprimer ce commentaire"
+                            >
+                              <FaTrash />
+                            </button>
+                          </div>
+                          <p className="text-gray-700 pl-11">{comment.content}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                )
-              )}
-            </div>
+                ))}
+              </div>
+            ) : !userComments.loading && !userComments.error ? (
+              <div className="text-center py-8 text-gray-500">
+                <FaComment className="mx-auto text-4xl mb-4 opacity-20" />
+                <p>Aucun commentaire n'a encore été publié.</p>
+              </div>
+            ) : null}
           </div>
         )}
 
