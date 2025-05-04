@@ -123,74 +123,27 @@ const AgencyVoyages = () => {
         {agency && (
           <div className="mb-16">
             <div className="flex flex-col md:flex-row bg-white shadow-[0_15px_40px_rgba(8,_112,_184,_0.07)] overflow-hidden rounded-md border border-gray-100">
-              <div className="md:w-2/5 relative h-72 md:h-auto">
+              <div className="relative w-full md:w-64 h-64 bg-white flex items-center justify-center p-8">
                 <img 
                   src={agency.image}
                   alt={`Agence ${agency.name}`}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-2000 ease-out"
+                  className="max-w-full max-h-full object-contain"
                 />
-                <div className="absolute inset-0 bg-gradient-to-r from-black/85 to-black/40 md:bg-gradient-to-t md:from-black/85 md:to-transparent opacity-70"></div>
-                
-                {/* Badge étoiles amélioré */}
-                <div className="absolute top-6 right-6 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-lg border border-white/50">
-                  {renderStars(agency.stars)}
-                </div>
-                
-                <div className="absolute bottom-0 left-0 p-8 text-white z-10 w-full md:w-auto">
-                  <h1 className="text-3xl font-light tracking-wide mb-4 shadow-text">{agency.name}</h1>
-                  <div className="flex items-center mb-2">
-                    <div className="flex items-center text-white/90 text-xs bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                      <FaMapMarkerAlt className="mr-2" size={12} />
-                      <span className="font-light tracking-wider">{agency.city}</span>
-                    </div>
-                  </div>
-                </div>
               </div>
-              
-              <div className="p-8 md:w-3/5">
-                <div className="text-center mb-8 border-2 border-orange-300 rounded-lg p-5 bg-orange-50/30 shadow-sm">
-                  <p className="text-gray-600 italic text-lg font-light leading-relaxed line-clamp-3 before:content-['\22'] after:content-['\22'] before:text-orange-400 after:text-orange-400 before:text-xl after:text-xl">
-                    {agency.description}
-                  </p>
-                </div>
-                
-                <h2 className="text-gray-500 uppercase text-sm tracking-widest font-light mb-6 text-center">Contact Information</h2>
-                
-                <div className="flex flex-col gap-6">
-                  <div className="flex items-center group/item">
-                    <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center shadow-sm border border-orange-200 mr-4 group-hover/item:scale-110 transition-transform duration-500">
-                      <FaCompass className="text-orange-500" size={16} />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-1">Adresse</h3>
-                      <p className="text-base text-gray-600 font-light">{agency.address}</p>
-                    </div>
+              <div className="flex-1 p-8 relative">
+                <h1 className="text-3xl font-light tracking-wide mb-4 text-gray-800">{agency.name}</h1>
+                <div className="flex items-center mb-4">
+                  <div className="flex items-center text-gray-600 text-sm bg-gray-100 px-3 py-1.5 rounded-full">
+                    <FaMapMarkerAlt className="mr-2" size={12} />
+                    <span className="font-light tracking-wider">{agency.city}</span>
                   </div>
-                  
-                  <div className="flex items-center group/item">
-                    <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center shadow-sm border border-orange-200 mr-4 group-hover/item:scale-110 transition-transform duration-500">
-                      <FaPhone className="text-orange-500" size={16} />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-1">Téléphone</h3>
-                      <a href={`tel:${agency.phone}`} className="text-base text-gray-600 hover:text-orange-500 transition-colors font-light">
-                        {agency.phone}
-                      </a>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center group/item">
-                    <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center shadow-sm border border-orange-200 mr-4 group-hover/item:scale-110 transition-transform duration-500">
-                      <FaEnvelope className="text-orange-500" size={16} />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-1">Email</h3>
-                      <a href={`mailto:${agency.email}`} className="text-base text-gray-600 hover:text-orange-500 transition-colors font-light">
-                        {agency.email}
-                      </a>
-                    </div>
+                  <div className="ml-4 bg-white px-3 py-1 rounded-full shadow-sm border border-gray-200">
+                    {renderStars(agency.stars)}
                   </div>
                 </div>
+                {agency.description && (
+                  <p className="text-gray-600 italic">{agency.description}</p>
+                )}
               </div>
             </div>
           </div>

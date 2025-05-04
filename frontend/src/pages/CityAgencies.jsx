@@ -154,11 +154,11 @@ function CityAgencies() {
             <img 
               src={agency.image}
               alt={`Agence ${agency.name}`}
-              className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-2000 ease-out"
+              className="w-32 h-32 object-contain absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10"
               onError={handleImageError}
               loading="lazy"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-60 group-hover:opacity-50 transition-opacity duration-700"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-100 to-white opacity-90"></div>
             
             {/* Badge type d'agence */}
             <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-lg z-20 border border-white/50">
