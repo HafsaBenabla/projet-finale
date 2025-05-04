@@ -249,15 +249,30 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Données utilisateur manquantes');
       }
       
-      // Préserver les propriétés importantes
+      // Créer un nouvel objet avec les données mises à jour
       const updatedUser = {
+        ...user,
         ...updatedUserData,
         userId: user.userId || user._id || user.id,
-        isAdmin: updatedUserData.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+        isAdmin: updatedUserData.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase(),
+        firstName: updatedUserData.firstName || user.firstName,
+        username: updatedUserData.firstName || user.firstName,
+        email: updatedUserData.email || user.email,
+        phone: updatedUserData.phone || user.phone
       };
       
+      // Mettre à jour le state
       setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Mettre à jour le localStorage
+      try {
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      } catch (storageError) {
+        console.error('Erreur lors de la sauvegarde dans localStorage:', storageError);
+      }
+      
+      // Mettre à jour l'état d'authentification
+      setIsAuthenticated(true);
       
       return updatedUser;
     } catch (error) {

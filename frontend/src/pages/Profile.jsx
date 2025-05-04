@@ -162,23 +162,20 @@ const Profile = () => {
       if (response.data) {
         console.log('Réponse du serveur après mise à jour:', response.data);
         
-        // Mettre à jour le contexte utilisateur avec toutes les nouvelles données
+        // Créer un objet avec les données mises à jour
         const updatedUserData = {
           ...user,
-          ...response.data,
-          firstName: response.data.firstName || editedData.firstName || user.firstName,
-          username: response.data.firstName || editedData.firstName || user.firstName,
-          email: response.data.email || editedData.email || user.email,
-          phone: response.data.phone || editedData.phone || user.phone
+          firstName: editedData.firstName || user.firstName,
+          username: editedData.firstName || user.firstName,
+          email: editedData.email || user.email,
+          phone: editedData.phone || user.phone
         };
         
-        // Mettre à jour le localStorage avec toutes les données
+        // Mettre à jour le localStorage et le contexte
         localStorage.setItem('user', JSON.stringify(updatedUserData));
-        
-        // Mettre à jour le contexte avec les nouvelles données
         updateUserProfile(updatedUserData);
         
-        // Mettre à jour l'état local editedData avec les nouvelles valeurs
+        // Mettre à jour l'état local
         setEditedData({
           firstName: updatedUserData.firstName,
           email: updatedUserData.email,
@@ -194,45 +191,6 @@ const Profile = () => {
           details: '',
           timestamp: new Date().toLocaleTimeString()
         });
-
-        // Rafraîchir les données de l'utilisateur
-        try {
-          const userResponse = await axios.get(
-            `http://localhost:5000/api/users/${user.userId}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
-
-          if (userResponse.data) {
-            const freshUserData = {
-              ...userResponse.data,
-              firstName: userResponse.data.firstName || editedData.firstName || user.firstName,
-              username: userResponse.data.firstName || editedData.firstName || user.firstName,
-              email: userResponse.data.email || editedData.email || user.email,
-              phone: userResponse.data.phone || editedData.phone || user.phone
-            };
-            
-            // Mettre à jour le localStorage avec les données fraîches
-            localStorage.setItem('user', JSON.stringify(freshUserData));
-            
-            // Mettre à jour le contexte avec les données fraîches
-            updateUserProfile(freshUserData);
-            
-            // Mettre à jour l'état local
-            setEditedData({
-              firstName: freshUserData.firstName,
-              email: freshUserData.email,
-              phone: freshUserData.phone,
-              username: freshUserData.firstName
-            });
-          }
-        } catch (refreshError) {
-          console.error('Erreur lors du rechargement des données:', refreshError);
-        }
 
         setTimeout(() => {
           setNotification({ message: '', type: '', details: '', timestamp: '' });

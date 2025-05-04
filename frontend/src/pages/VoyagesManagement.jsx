@@ -199,9 +199,6 @@ const VoyagesManagement = () => {
       // Incrémenter le déclencheur de rafraîchissement pour recharger les données
       setRefreshTrigger(prev => prev + 1);
       setShowDeleteConfirm(false);
-      
-      // Afficher une notification de succès
-      alert('Voyage supprimé avec succès');
     } catch (error) {
       console.error('Erreur de suppression:', error);
       alert(`Erreur lors de la suppression: ${error.message}`);
