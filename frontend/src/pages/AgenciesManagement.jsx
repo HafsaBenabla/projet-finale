@@ -60,6 +60,7 @@ const AgenciesManagement = () => {
     "Rabat",
     "Safi",
     "Salé",
+    "Taghazout",
     "Tanger",
     "Taroudant",
     "Tétouan",

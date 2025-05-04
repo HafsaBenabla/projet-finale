@@ -26,7 +26,7 @@ const EditAgencyForm = ({ agency, onClose, onUpdate }) => {
     "Chefchaouen", "Dakhla", "El Jadida", "Errachidia", "Essaouira", "Fès",
     "Ifrane", "Kénitra", "Larache", "Marrakech", "Meknès", "Merzouga",
     "Mohammedia", "Nador", "Ouarzazate", "Oujda", "Rabat", "Safi", "Salé",
-    "Tanger", "Taroudant", "Tétouan", "Zagora", "Toutes les villes du Maroc"
+    "Taghazout", "Tanger", "Taroudant", "Tétouan", "Zagora", "Toutes les villes du Maroc"
   ].sort();
 
   useEffect(() => {
