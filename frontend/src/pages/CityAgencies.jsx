@@ -174,7 +174,7 @@ function CityAgencies() {
             
             {/* Nom et ville en overlay sur l'image */}
             <div className="absolute bottom-0 left-0 right-0 p-4 z-20">
-              <h3 className="text-xl font-light text-white mb-2 tracking-wider shadow-text">{agency.name}</h3>
+              <h3 className="text-xl font-semibold text-white mb-2 tracking-wider bg-black/40 inline-block px-3 py-1 rounded-lg backdrop-blur-sm">{agency.name}</h3>
               <div className="flex items-center">
                 <div className="flex items-center text-white/90 text-xs bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full">
                   <FaMapMarkerAlt className="mr-2" size={12} />

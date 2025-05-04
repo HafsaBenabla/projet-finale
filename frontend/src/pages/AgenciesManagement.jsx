@@ -214,7 +214,6 @@ const AgenciesManagement = () => {
       if (response.data.agency || response.data) {
         const savedAgency = response.data.agency || response.data;
         console.log('Agence sauvegardée avec succès:', savedAgency);
-        alert('Agence ajoutée avec succès!');
         
         // Réinitialiser le formulaire
         setAgencyData({
