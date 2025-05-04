@@ -24,7 +24,8 @@ const AddNew = () => {
     maxParticipants: '',
     isWeekendOnly: false,
     voyageId: '', // Pour les activités de type voyage
-    category: ''
+    category: '',
+    agencyId: ''
   });
 
   const [voyages, setVoyages] = useState([]);
@@ -395,7 +396,8 @@ const AddNew = () => {
           maxParticipants: '',
           isWeekendOnly: false,
           voyageId: '',
-          category: ''
+          category: '',
+          agencyId: ''
         });
         navigate('/activites');
       }
@@ -978,6 +980,26 @@ const AddNew = () => {
               </>
             )}
 
+            {activityData.type === 'voyage' && (
+              <Form.Group className="mb-3">
+                <Form.Label>Agence organisatrice</Form.Label>
+                <Form.Select
+                  name="agencyId"
+                  value={activityData.agencyId}
+                  onChange={handleActivityChange}
+                  required
+                  style={{ borderRadius: '8px' }}
+                >
+                  <option value="">Sélectionnez une agence</option>
+                  {agencies.filter(agency => agency.type === 'activite').map((agency) => (
+                    <option key={agency._id} value={agency._id}>
+                      {agency.name} - {agency.city === "Toutes les villes du Maroc" ? "Disponible dans toutes les villes" : `Disponible à ${agency.city}`}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            )}
+
             <Form.Group className="mb-3">
               <Form.Label>Description</Form.Label>
               <Form.Control
@@ -1046,9 +1068,9 @@ const AddNew = () => {
                     style={{ borderRadius: '8px' }}
                   >
                     <option value="">Sélectionnez une agence</option>
-                    {agencies.map((agency) => (
+                    {agencies.filter(agency => agency.type === 'voyage').map((agency) => (
                       <option key={agency._id} value={agency.name}>
-                        {agency.name} ({agency.city})
+                        {agency.name} - {agency.city === "Toutes les villes du Maroc" ? "Disponible dans toutes les villes" : `Disponible à ${agency.city}`}
                       </option>
                     ))}
                   </Form.Select>

@@ -437,9 +437,9 @@ const VoyagesManagement = () => {
                       className="rounded-lg"
                     >
                       <option value="">Sélectionnez une agence</option>
-                      {agencies.map((agency) => (
+                      {agencies.filter(agency => agency.type === 'voyage').map((agency) => (
                         <option key={agency._id} value={agency.name}>
-                          {agency.name} ({agency.city})
+                          {agency.name} - {agency.city === "Toutes les villes du Maroc" ? "Disponible dans toutes les villes" : `Disponible à ${agency.city}`}
                         </option>
                       ))}
                     </Form.Select>
