@@ -150,15 +150,15 @@ function CityAgencies() {
       <div key={agency._id} className="bg-white overflow-hidden group transition-all duration-700 hover:shadow-[0_20px_50px_rgba(8,_112,_184,_0.1)] relative rounded-xl border border-gray-100 hover:border-orange-200/50">
         <div className="flex flex-col h-full">
           {/* Image de l'agence avec overlay élégant - hauteur réduite */}
-          <div className="relative h-44 overflow-hidden">
+          <div className="relative h-72 overflow-hidden">
             <img 
               src={agency.image}
               alt={`Agence ${agency.name}`}
-              className="w-32 h-32 object-contain absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10"
+              className="w-64 h-64 object-contain absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10"
               onError={handleImageError}
               loading="lazy"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-gray-100 to-white opacity-90"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-100 to-white opacity-70"></div>
             
             {/* Badge type d'agence */}
             <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-lg z-20 border border-white/50">
