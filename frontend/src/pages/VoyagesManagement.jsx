@@ -15,6 +15,7 @@ const VoyagesManagement = () => {
   const [error, setError] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [voyageToDelete, setVoyageToDelete] = useState(null);
+  const [showAddConfirm, setShowAddConfirm] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formError, setFormError] = useState(null);
@@ -251,85 +252,41 @@ const VoyagesManagement = () => {
         return;
       }
 
+      // Au lieu d'envoyer directement, on montre la confirmation
+      setShowAddConfirm(true);
+    } catch (error) {
+      setFormError(error.message);
+    }
+  };
+
+  const confirmAdd = async () => {
+    try {
+      const selectedAgency = agencies.find(agency => agency.name === voyageData.agence);
+      
       // Créer une copie du payload pour éviter de modifier l'état directement
       const voyagePayload = {
         ...voyageData,
         price: Number(voyageData.price),
         duration: Number(voyageData.duration),
         availableSpots: Number(voyageData.availableSpots),
-        // Ajouter les champs nécessaires pour le modèle Voyage
         agencyId: selectedAgency._id,
         agencyName: selectedAgency.name
       };
 
-      // Formater les dates pour l'envoi au serveur
-      console.log('Formatage des dates pour envoi au serveur:', {
-        departureOriginal: voyagePayload.departureDate,
-        returnOriginal: voyagePayload.returnDate
-      });
-
-      // Vérifier et formater les dates si elles sont définies
-      if (voyagePayload.departureDate) {
-        try {
-          const departureDate = new Date(voyagePayload.departureDate);
-          if (!isNaN(departureDate.getTime())) {
-            // Date valide
-            console.log('Date de départ valide:', departureDate);
-          } else {
-            console.warn('Format de date de départ invalide:', voyagePayload.departureDate);
-          }
-        } catch (err) {
-          console.error('Erreur lors du traitement de la date de départ:', err);
-        }
-      }
-
-      if (voyagePayload.returnDate) {
-        try {
-          const returnDate = new Date(voyagePayload.returnDate);
-          if (!isNaN(returnDate.getTime())) {
-            // Date valide
-            console.log('Date de retour valide:', returnDate);
-          } else {
-            console.warn('Format de date de retour invalide:', voyagePayload.returnDate);
-          }
-        } catch (err) {
-          console.error('Erreur lors du traitement de la date de retour:', err);
-        }
-      }
-
-      // S'assurer que les URLs sont complètes
-      console.log('Vérification finale des URLs d\'images avant soumission:');
-      console.log('- Image principale:', voyagePayload.image);
-      console.log('- Image hébergement:', voyagePayload.hebergementImage);
-      console.log('- Dates de voyage:', {
-        departureDate: voyagePayload.departureDate,
-        returnDate: voyagePayload.returnDate
-      });
-
       // Récupérer le token d'authentification du stockage local
       const token = localStorage.getItem('token');
       if (!token) {
-        setFormError("Vous devez être connecté pour ajouter un voyage");
-        return;
+        throw new Error("Vous devez être connecté pour ajouter un voyage");
       }
 
-      console.log('Envoi des données voyage:', voyagePayload);
-      console.log('Champs hébergement:', {
-        hebergement: voyagePayload.hebergement,
-        hebergementImage: voyagePayload.hebergementImage
-      });
       const response = await axios.post('http://localhost:5000/api/voyages', voyagePayload, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
-      console.log('Réponse voyage:', response.data);
-      
+
       if (response.data) {
-        alert('Voyage ajouté avec succès!');
-        
         // Réinitialiser le formulaire
         setVoyageData({
           title: '',
@@ -348,7 +305,8 @@ const VoyagesManagement = () => {
           hebergementImage: ''
         });
         
-        // Fermer le formulaire et rafraîchir la liste
+        // Fermer les modales et rafraîchir la liste
+        setShowAddConfirm(false);
         setShowAddForm(false);
         setRefreshTrigger(prev => prev + 1);
       }
@@ -369,7 +327,7 @@ const VoyagesManagement = () => {
       }
       
       setFormError(errorMessage);
-      alert(errorMessage);
+      setShowAddConfirm(false);
     }
   };
 
@@ -740,6 +698,41 @@ const VoyagesManagement = () => {
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
               >
                 Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Confirmation Modal */}
+      {showAddConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-auto">
+            <h3 className="text-xl font-bold mb-4">Confirmer l'ajout du voyage</h3>
+            <div className="mb-6">
+              <p className="text-gray-600 mb-4">
+                Voulez-vous ajouter ce voyage avec les détails suivants ?
+              </p>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p><strong>Titre:</strong> {voyageData.title}</p>
+                <p><strong>Destination:</strong> {voyageData.destination}</p>
+                <p><strong>Prix:</strong> {voyageData.price} DH</p>
+                <p><strong>Durée:</strong> {voyageData.duration} jours</p>
+                <p><strong>Agence:</strong> {voyageData.agence}</p>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowAddConfirm(false)}
+                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={confirmAdd}
+                className="px-4 py-2 bg-sahara text-white rounded hover:bg-sahara/90"
+              >
+                Confirmer l'ajout
               </button>
             </div>
           </div>

@@ -28,8 +28,7 @@ const VoyageDetail = () => {
     nom: '',
     email: '',
     telephone: '',
-    nombrePersonnes: 1,
-    dateDepart: ''
+    nombrePersonnes: 1
   });
 
   // Modification temporaire pour tester
@@ -840,21 +839,6 @@ const VoyageDetail = () => {
                       />
                       <span className="ml-2 text-gray-500">/ {voyage.availableSpots} disponibles</span>
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-2" htmlFor="dateDepart">
-                      Date de départ souhaitée
-                    </label>
-                    <input
-                      type="date"
-                      id="dateDepart"
-                      name="dateDepart"
-                      value={formData.dateDepart}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sahara focus:border-transparent transition-all"
-                      required
-                    />
                   </div>
                 </div>
 
