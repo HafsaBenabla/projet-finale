@@ -26,6 +26,14 @@ const agencySchema = new mongoose.Schema({
         type: String,
         required: [true, "La description est requise"]
     },
+    type: {
+        type: String,
+        required: [true, "Le type d'agence est requis"],
+        enum: {
+            values: ['voyage', 'activite'],
+            message: "Le type d'agence doit être 'voyage' ou 'activite'"
+        }
+    },
     image: {
         type: String,
         required: [true, "L'URL de l'image est requise"],
@@ -57,8 +65,8 @@ const agencySchema = new mongoose.Schema({
 
 // Middleware pre-save pour s'assurer que les champs requis sont présents
 agencySchema.pre('save', function(next) {
-    if (!this.image || !this.stars) {
-        next(new Error('Les champs image et stars sont obligatoires'));
+    if (!this.image || !this.stars || !this.type) {
+        next(new Error('Les champs image, stars et type sont obligatoires'));
     }
     next();
 });

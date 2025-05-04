@@ -13,7 +13,8 @@ const EditAgencyForm = ({ agency, onClose, onUpdate }) => {
     email: '',
     description: '',
     stars: '0',
-    image: ''
+    image: '',
+    type: ''
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,13 +40,15 @@ const EditAgencyForm = ({ agency, onClose, onUpdate }) => {
         email: agency.email || '',
         description: agency.description || '',
         stars: (agency.stars || 0).toString(),
-        image: agency.image || ''
+        image: agency.image || '',
+        type: agency.type || ''
       });
     }
   }, [agency]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log(`Champ modifié: ${name}, Nouvelle valeur: ${value}`);
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -62,6 +65,9 @@ const EditAgencyForm = ({ agency, onClose, onUpdate }) => {
     setError('');
 
     try {
+      console.log('État du formulaire avant soumission:', formData);
+      console.log('Type d\'agence sélectionné:', formData.type);
+
       if (!formData.image) {
         throw new Error('Veuillez uploader une image pour l\'agence');
       }
@@ -70,27 +76,32 @@ const EditAgencyForm = ({ agency, onClose, onUpdate }) => {
       if (!formData.stars || formData.stars === '0') {
         throw new Error("Veuillez sélectionner le nombre d'étoiles");
       }
+
+      if (!formData.type || formData.type.trim() === '') {
+        throw new Error("Veuillez sélectionner le type d'agence");
+      }
       
       // Conversion des étoiles en nombre et préparation des données
       const updatedData = {
         ...formData,
-        stars: parseFloat(formData.stars)
+        stars: parseFloat(formData.stars),
+        type: formData.type.trim()
       };
       
-      console.log('Envoi des données de mise à jour:', updatedData);
+      console.log('Données envoyées au serveur:', updatedData);
       
       const response = await axios.put(
         `http://localhost:5000/api/agencies/${agency._id}`,
         updatedData
       );
 
-      console.log('Agence mise à jour avec succès:', response.data);
+      console.log('Réponse du serveur:', response.data);
       
       // Retourner l'agence mise à jour au parent
       onUpdate(response.data.agency || response.data);
       onClose();
     } catch (err) {
-      console.error('Erreur de mise à jour:', err);
+      console.error('Erreur détaillée:', err);
       setError(err.response?.data?.message || err.message || 'Erreur lors de la mise à jour de l\'agence');
     } finally {
       setIsSubmitting(false);
@@ -119,7 +130,7 @@ const EditAgencyForm = ({ agency, onClose, onUpdate }) => {
 
           {!isSubmitting && !error && (
             <div className="bg-blue-50 text-blue-700 p-3 rounded-lg mb-4">
-              Les données de l'agence sont chargées. Vous pouvez maintenant modifier l'image et le nombre d'étoiles.
+              Les données de l'agence sont chargées. Vous pouvez maintenant modifier l'image, le type et le nombre d'étoiles.
             </div>
           )}
           
@@ -158,10 +169,32 @@ const EditAgencyForm = ({ agency, onClose, onUpdate }) => {
                     onChange={handleChange}
                     required
                     className="rounded-lg bg-gray-100"
-                    disabled={true} // Le nom ne peut pas être modifié
+                    disabled={true}
                   />
                 </Form.Group>
               </Col>
+              <Col md={6}>
+                <Form.Group className="mb-4">
+                  <Form.Label>Type d'agence</Form.Label>
+                  <Form.Select
+                    name="type"
+                    value={formData.type}
+                    onChange={handleChange}
+                    required
+                    className="rounded-lg border-2 border-sahara"
+                  >
+                    <option value="">Sélectionnez le type d'agence</option>
+                    <option value="voyage">Agence de voyages</option>
+                    <option value="activite">Agence d'activités</option>
+                  </Form.Select>
+                  <Form.Text className="text-muted">
+                    Vous pouvez modifier le type de l'agence.
+                  </Form.Text>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
               <Col md={6}>
                 <Form.Group className="mb-4">
                   <Form.Label>Ville</Form.Label>
@@ -171,12 +204,35 @@ const EditAgencyForm = ({ agency, onClose, onUpdate }) => {
                     onChange={handleChange}
                     required
                     className="rounded-lg bg-gray-100"
-                    disabled={true} // La ville ne peut pas être modifiée
+                    disabled={true}
                   >
                     <option value="">Sélectionnez une ville</option>
                     {availableCities.map((city) => (
                       <option key={city} value={city}>{city}</option>
                     ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-4">
+                  <Form.Label>Étoiles</Form.Label>
+                  <Form.Select 
+                    name="stars" 
+                    value={formData.stars} 
+                    onChange={handleChange}
+                    required
+                    className="rounded-lg border-2 border-sahara"
+                  >
+                    <option value="0">Sélectionnez le nombre d'étoiles</option>
+                    <option value="1">1 étoile</option>
+                    <option value="1.5">1.5 étoiles</option>
+                    <option value="2">2 étoiles</option>
+                    <option value="2.5">2.5 étoiles</option>
+                    <option value="3">3 étoiles</option>
+                    <option value="3.5">3.5 étoiles</option>
+                    <option value="4">4 étoiles</option>
+                    <option value="4.5">4.5 étoiles</option>
+                    <option value="5">5 étoiles</option>
                   </Form.Select>
                 </Form.Group>
               </Col>
@@ -238,31 +294,6 @@ const EditAgencyForm = ({ agency, onClose, onUpdate }) => {
                 style={{ minHeight: '120px' }}
                 disabled={true} // La description ne peut pas être modifiée
               />
-            </Form.Group>
-            
-            <Form.Group className="mb-4">
-              <Form.Label>Étoiles</Form.Label>
-              <Form.Select 
-                name="stars" 
-                value={formData.stars} 
-                onChange={handleChange}
-                required
-                className="rounded-lg border-2 border-sahara"
-              >
-                <option value="0">Sélectionnez le nombre d'étoiles</option>
-                <option value="1">1 étoile</option>
-                <option value="1.5">1.5 étoiles</option>
-                <option value="2">2 étoiles</option>
-                <option value="2.5">2.5 étoiles</option>
-                <option value="3">3 étoiles</option>
-                <option value="3.5">3.5 étoiles</option>
-                <option value="4">4 étoiles</option>
-                <option value="4.5">4.5 étoiles</option>
-                <option value="5">5 étoiles</option>
-              </Form.Select>
-              <Form.Text className="text-muted">
-                Selon la route backend existante, seuls l'image et le nombre d'étoiles peuvent être modifiés.
-              </Form.Text>
             </Form.Group>
 
             <div className="flex justify-end mt-6">

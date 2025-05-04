@@ -423,6 +423,12 @@ app.get('/api/agencies', async (req, res) => {
     const { city, email } = req.query;
     console.log('Recherche des agences pour la ville:', city, 'et email:', email);
     
+    // Mettre à jour les agences sans type
+    await Agency.updateMany(
+      { type: { $exists: false } },
+      { $set: { type: 'voyage' } }
+    );
+    
     let query = {};
     if (city) {
       // Si une ville spécifique est demandée, on cherche:
@@ -477,10 +483,10 @@ app.get('/api/agencies', async (req, res) => {
 app.post('/api/agencies', async (req, res) => {
   try {
     console.log('1. Données reçues pour l\'ajout d\'une agence:', req.body);
-    const { name, address, city, phone, email, description, image, stars } = req.body;
+    const { name, address, city, phone, email, description, image, stars, type } = req.body;
 
     // Vérification des champs requis
-    if (!name || !address || !city || !phone || !email || !description || !image || !stars) {
+    if (!name || !address || !city || !phone || !email || !description || !image || !stars || !type) {
       console.log('2. Champs manquants:', {
         name: !name,
         address: !address,
@@ -489,13 +495,22 @@ app.post('/api/agencies', async (req, res) => {
         email: !email,
         description: !description,
         image: !image,
-        stars: !stars
+        stars: !stars,
+        type: !type
       });
       return res.status(400).json({ 
         message: "Tous les champs sont requis",
-        missingFields: Object.entries({ name, address, city, phone, email, description, image, stars })
+        missingFields: Object.entries({ name, address, city, phone, email, description, image, stars, type })
           .filter(([_, value]) => !value)
           .map(([key]) => key)
+      });
+    }
+
+    // Validation du type d'agence
+    if (!['voyage', 'activite'].includes(type)) {
+      return res.status(400).json({ 
+        message: "Le type d'agence doit être 'voyage' ou 'activite'",
+        field: "type"
       });
     }
 
@@ -536,6 +551,7 @@ app.post('/api/agencies', async (req, res) => {
       description: description.trim(),
       image: image.trim(),
       stars: starsNumber,
+      type: type.trim().toLowerCase(),
       createdAt: new Date()
     });
 
@@ -599,7 +615,7 @@ app.delete('/api/agencies/:id', async (req, res) => {
 // Route pour mettre à jour une agence
 app.put('/api/agencies/:id', async (req, res) => {
   try {
-    const { image, stars } = req.body;
+    const { image, stars, type } = req.body;
     
     // Validation de l'URL de l'image
     if (!image || image.trim().length === 0) {
@@ -612,14 +628,27 @@ app.put('/api/agencies/:id', async (req, res) => {
       return res.status(400).json({ message: "Le nombre d'étoiles doit être un nombre entier ou un demi-nombre entre 0 et 5" });
     }
 
+    // Validation du type si fourni
+    if (type && !['voyage', 'activite'].includes(type)) {
+      return res.status(400).json({ 
+        message: "Le type d'agence doit être 'voyage' ou 'activite'",
+        field: "type"
+      });
+    }
+
+    const updateData = { 
+      image: image.trim(),
+      stars: starsNumber
+    };
+
+    // Ajouter le type à la mise à jour s'il est fourni
+    if (type) {
+      updateData.type = type.trim().toLowerCase();
+    }
+
     const updatedAgency = await Agency.findByIdAndUpdate(
       req.params.id,
-      { 
-        $set: { 
-          image: image.trim(),
-          stars: starsNumber
-        }
-      },
+      { $set: updateData },
       { new: true, runValidators: true }
     );
 
@@ -828,6 +857,37 @@ app.post('/api/reactions-direct', verifyToken, async (req, res) => {
     res.status(500).json({ 
       message: 'Erreur lors du traitement de la réaction',
       error: error.message
+    });
+  }
+});
+
+// Route pour mettre à jour le type des agences existantes
+app.post('/api/agencies/update-types', async (req, res) => {
+  try {
+    console.log('Début de la mise à jour des types d\'agences');
+    
+    // Trouver toutes les agences sans type
+    const agencesSansType = await Agency.find({ type: { $exists: false } });
+    console.log(`Nombre d'agences sans type trouvées: ${agencesSansType.length}`);
+    
+    // Mettre à jour toutes les agences sans type
+    const result = await Agency.updateMany(
+      { type: { $exists: false } },
+      { $set: { type: 'voyage' } }
+    );
+    
+    console.log('Résultat de la mise à jour:', result);
+    
+    res.json({
+      message: 'Types d\'agences mis à jour avec succès',
+      nombreAgencesMisesAJour: result.modifiedCount,
+      nombreAgencesSansType: agencesSansType.length
+    });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour des types d\'agences:', error);
+    res.status(500).json({ 
+      message: 'Erreur lors de la mise à jour des types d\'agences',
+      error: error.message 
     });
   }
 });
