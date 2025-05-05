@@ -16,6 +16,7 @@ const ActivitiesManagement = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [formError, setFormError] = useState(null);
   const [voyages, setVoyages] = useState([]);
+  const [agencies, setAgencies] = useState([]);
   
   // États pour le formulaire d'activité
   const [activityData, setActivityData] = useState({
@@ -31,7 +32,8 @@ const ActivitiesManagement = () => {
     category: '',
     timeSlots: [],
     voyageName: '',
-    voyageId: ''
+    voyageId: '',
+    agencyId: ''
   });
   
   // Pour gérer les créneaux horaires temporaires avant de les ajouter
@@ -204,30 +206,61 @@ const ActivitiesManagement = () => {
     }));
   };
 
-  const handleActivitySubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setFormError(null);
+    setIsSubmitting(true);
+    setError('');
+
     try {
-      if (!activityData.image) {
-        setFormError('Veuillez uploader une image pour l\'activité');
+      // Vérifier si une agence est sélectionnée
+      if (!activityData.agencyId) {
+        setFormError('Veuillez sélectionner une agence');
+        return;
+      }
+
+      // Trouver l'agence sélectionnée
+      const selectedAgency = agencies.find(agency => agency._id === activityData.agencyId);
+      if (!selectedAgency) {
+        setFormError('Agence non trouvée');
         return;
       }
 
       const activityPayload = {
-        ...activityData,
+        name: activityData.name,
+        description: activityData.description,
         price: Number(activityData.price),
+        city: activityData.city,
+        image: activityData.image,
+        type: activityData.type,
+        duration: activityData.duration,
         maxParticipants: Number(activityData.maxParticipants),
-        duration: Number(activityData.duration)
+        isWeekendOnly: activityData.isWeekendOnly,
+        voyageId: activityData.voyageId,
+        category: activityData.category,
+        agencyId: activityData.agencyId,
+        agencyName: selectedAgency.name
       };
 
-      console.log('Envoi des données activité:', activityPayload);
-      const response = await axios.post('http://localhost:5000/api/activities', activityPayload);
-      
-      console.log('Réponse activité:', response.data);
-      
+      console.log('Envoi des données de l\'activité:', activityPayload);
+
+      // Récupérer le token d'authentification
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error("Vous devez être connecté pour ajouter une activité");
+      }
+
+      const response = await axios.post(
+        'http://localhost:5000/api/activities',
+        activityPayload,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
       if (response.data) {
-        alert('Activité ajoutée avec succès!');
-        
         // Réinitialiser le formulaire
         setActivityData({
           name: '',
@@ -239,34 +272,36 @@ const ActivitiesManagement = () => {
           duration: '',
           maxParticipants: '',
           isWeekendOnly: false,
+          voyageId: '',
           category: '',
-          timeSlots: [],
-          voyageName: '',
-          voyageId: ''
+          agencyId: ''
         });
         
         // Fermer le formulaire et rafraîchir la liste
         setShowAddForm(false);
         setRefreshTrigger(prev => prev + 1);
       }
-    } catch (error) {
-      console.error('Erreur complète:', error);
-      let errorMessage = 'Erreur lors de l\'ajout de l\'activité';
-      
-      if (error.response) {
-        if (error.response.headers['content-type']?.includes('application/json')) {
-          errorMessage = error.response.data.message || errorMessage;
-        } else {
-          errorMessage = 'Le serveur a retourné une réponse invalide';
-        }
-      } else if (error.request) {
-        errorMessage = 'Impossible de contacter le serveur';
-      }
-      
-      setFormError(errorMessage);
-      alert(errorMessage);
+    } catch (err) {
+      console.error('Erreur lors de l\'ajout:', err);
+      setFormError(err.response?.data?.message || err.message || 'Erreur lors de l\'ajout de l\'activité');
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  // Chargement des agences existantes
+  useEffect(() => {
+    const fetchAgencies = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/agencies');
+        setAgencies(response.data);
+      } catch (error) {
+        console.error('Erreur lors du chargement des agences:', error);
+      }
+    };
+    
+    fetchAgencies();
+  }, [refreshTrigger]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -311,7 +346,7 @@ const ActivitiesManagement = () => {
               </div>
             )}
             
-            <Form onSubmit={handleActivitySubmit}>
+            <Form onSubmit={handleSubmit}>
               {/* Image en premier */}
               <div className="mb-5">
                 <Form.Label className="font-medium mb-2 block">Image de l'activité</Form.Label>
@@ -329,10 +364,32 @@ const ActivitiesManagement = () => {
                       onChange={handleActivityChange}
                       required
                       className="rounded-lg"
-                      placeholder="Entrez le nom de l'activité"
+                      placeholder="Nom de l'activité"
                     />
                   </Form.Group>
                 </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-4">
+                    <Form.Label>Agence organisatrice</Form.Label>
+                    <Form.Select
+                      name="agencyId"
+                      value={activityData.agencyId}
+                      onChange={handleActivityChange}
+                      required
+                      className="rounded-lg"
+                    >
+                      <option value="">Sélectionnez une agence</option>
+                      {agencies.filter(agency => agency.type === 'activite').map((agency) => (
+                        <option key={agency._id} value={agency._id}>
+                          {agency.name} - {agency.city === "Toutes les villes du Maroc" ? "Disponible dans toutes les villes" : `Disponible à ${agency.city}`}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row>
                 <Col md={6}>
                   <Form.Group className="mb-4">
                     <Form.Label>Type d'activité</Form.Label>
@@ -348,32 +405,26 @@ const ActivitiesManagement = () => {
                     </Form.Select>
                   </Form.Group>
                 </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-4">
+                    <Form.Label>Voyage associé</Form.Label>
+                    <Form.Select
+                      name="voyageId"
+                      value={activityData.voyageId}
+                      onChange={handleActivityChange}
+                      required
+                      className="rounded-lg"
+                    >
+                      <option value="">Sélectionnez un voyage</option>
+                      {voyages.map((voyage) => (
+                        <option key={voyage._id} value={voyage._id}>
+                          {voyage.title} - {voyage.destination}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
               </Row>
-
-              {/* Champ pour le nom de voyage - visible uniquement si le type est "voyage" */}
-              {activityData.type === 'voyage' && (
-                <Row>
-                  <Col md={12}>
-                    <Form.Group className="mb-4">
-                      <Form.Label>Voyage associé</Form.Label>
-                      <Form.Select
-                        name="voyageId"
-                        value={activityData.voyageId}
-                        onChange={handleActivityChange}
-                        required
-                        className="rounded-lg"
-                      >
-                        <option value="">Sélectionnez un voyage</option>
-                        {voyages.map((voyage) => (
-                          <option key={voyage._id} value={voyage._id}>
-                            {voyage.title} - {voyage.destination}
-                          </option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                </Row>
-              )}
 
               <Row>
                 <Col md={6}>
