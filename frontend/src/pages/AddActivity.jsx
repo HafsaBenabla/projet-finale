@@ -19,17 +19,46 @@ const AddActivity = () => {
 
   // Liste des villes disponibles
   const availableCities = [
-    "Agadir", "Al Hoceima", "Asilah", "Azrou", "Béni Mellal", "Casablanca",
-    "Chefchaouen", "Dakhla", "El Jadida", "Errachidia", "Essaouira", "Fès",
-    "Ifrane", "Kénitra", "Larache", "Marrakech", "Meknès", "Merzouga",
-    "Mohammedia", "Nador", "Ouarzazate", "Oujda", "Rabat", "Safi", "Salé",
-    "Tanger", "Taghazout", "Taroudant", "Tétouan", "Zagora"
-  ].sort();
+    "Agadir",
+    "Al Hoceima",
+    "Asilah",
+    "Azrou",
+    "Béni Mellal",
+    "Casablanca",
+    "Chefchaouen",
+    "Dakhla",
+    "El Jadida",
+    "Errachidia",
+    "Essaouira",
+    "Fès",
+    "Ifrane",
+    "Kénitra",
+    "Larache",
+    "Marrakech",
+    "Meknès",
+    "Merzouga",
+    "Mohammedia",
+    "Nador",
+    "Ouarzazate",
+    "Oujda",
+    "Rabat",
+    "Safi",
+    "Salé",
+    "Taghazout",
+    "Tanger",
+    "Taroudant",
+    "Tétouan",
+    "Zagora"
+  ];
+
+  // Log pour vérifier la liste des villes
+  console.log('Liste des villes disponibles:', availableCities);
 
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log('Changement de valeur:', name, value);
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -214,7 +243,9 @@ const AddActivity = () => {
               >
                 <option value="">Sélectionnez une ville</option>
                 {availableCities.map(city => (
-                  <option key={city} value={city}>{city}</option>
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
                 ))}
               </select>
             </div>

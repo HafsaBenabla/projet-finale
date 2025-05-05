@@ -197,10 +197,10 @@ const VoyageDetail = () => {
         console.log('Après désélection:', newSelection);
         return newSelection;
       } else {
-        // Ajouter l'activité avec un nombre de personnes par défaut égal au nombre de personnes du voyage
+        // Ajouter l'activité avec le même nombre de personnes que le voyage
         const newSelection = [...prev, { 
           ...activity, 
-          participantCount: formData.nombrePersonnes || 1
+          participantCount: formData.nombrePersonnes 
         }];
         console.log('Après sélection:', newSelection);
         return newSelection;
@@ -208,19 +208,24 @@ const VoyageDetail = () => {
     });
   };
 
-  // Nouvelle fonction pour gérer le changement du nombre de participants pour une activité
-  const handleActivityParticipantChange = (activityId, count) => {
-    // S'assurer que le nombre de participants ne dépasse pas le nombre de personnes du voyage
-    const maxParticipants = formData.nombrePersonnes;
-    const safeCount = Math.min(parseInt(count, 10), maxParticipants);
-    
+  // Mise à jour du nombre de participants des activités quand le nombre de personnes du voyage change
+  useEffect(() => {
     setSelectedActivities(prev => 
-      prev.map(activity => 
-        activity._id === activityId 
-          ? { ...activity, participantCount: safeCount } 
-          : activity
-      )
+      prev.map(activity => ({
+        ...activity,
+        participantCount: formData.nombrePersonnes
+      }))
     );
+  }, [formData.nombrePersonnes]);
+
+  // Calculer le prix total
+  const calculateTotalPrice = () => {
+    const voyagePrice = voyage.price * formData.nombrePersonnes;
+    const activitiesTotal = selectedActivities.reduce(
+      (sum, activity) => sum + (activity.price * formData.nombrePersonnes), 
+      0
+    );
+    return voyagePrice + activitiesTotal;
   };
 
   const handleSubmit = async (e) => {
@@ -253,15 +258,10 @@ const VoyageDetail = () => {
         activityId: activity._id,
         name: activity.name,
         price: activity.price,
-        participantCount: activity.participantCount || formData.nombrePersonnes
+        participantCount: formData.nombrePersonnes // Utiliser le nombre de personnes du voyage
       }));
       
-      // Calculer le prix total avec les nombres de participants spécifiques par activité
-      const activitiesTotal = selectedActivities.reduce(
-        (sum, activity) => sum + (activity.price * activity.participantCount), 0
-      );
-      
-      const totalPrice = (voyage.price * formData.nombrePersonnes) + activitiesTotal;
+      const totalPrice = calculateTotalPrice();
       
       // Construire l'objet de réservation
       const reservationData = {
@@ -638,36 +638,6 @@ const VoyageDetail = () => {
                               </div>
                               <div className="font-semibold text-sahara">{activity.price} MAD</div>
                             </div>
-                            
-                            {/* Champ de saisie du nombre de participants pour l'activité */}
-                            {isSelected && (
-                              <div className="mt-3 pt-3 border-t border-gray-200">
-                                <div className="flex items-center">
-                                  <label className="text-sm text-gray-600 mr-2">Nombre de participants:</label>
-                                  <input
-                                    type="number"
-                                    value={selectedActivities.find(a => a._id === activity._id)?.participantCount || 1}
-                                    onChange={(e) => {
-                                      // Empêcher les valeurs négatives et 0
-                                      const value = Math.max(1, parseInt(e.target.value, 10) || 1);
-                                      handleActivityParticipantChange(activity._id, value);
-                                    }}
-                                    min="1"
-                                    max={formData.nombrePersonnes}
-                                    className="w-16 text-center px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-sahara"
-                                    onClick={(e) => e.stopPropagation()} // Empêcher la désélection de l'activité lors du clic sur l'input
-                                    onKeyDown={(e) => {
-                                      // Empêcher la saisie de valeurs supérieures au max
-                                      const newValue = e.target.value + e.key;
-                                      if (!isNaN(newValue) && parseInt(newValue, 10) > formData.nombrePersonnes) {
-                                        e.preventDefault();
-                                      }
-                                    }}
-                                  />
-                                  <span className="ml-2 text-xs text-gray-500">/ {formData.nombrePersonnes} max</span>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         </div> 
                       );
