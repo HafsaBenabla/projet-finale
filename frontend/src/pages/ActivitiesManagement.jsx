@@ -18,6 +18,7 @@ const ActivitiesManagement = () => {
   const [voyages, setVoyages] = useState([]);
   const [agencies, setAgencies] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activities, setActivities] = useState([]);
   
   // États pour le formulaire d'activité
   const [activityData, setActivityData] = useState({
@@ -44,6 +45,21 @@ const ActivitiesManagement = () => {
     endTime: '',
     availableSpots: ''
   });
+
+  // Charger la liste des activités
+  const fetchActivities = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/api/activities');
+      setActivities(response.data);
+    } catch (error) {
+      console.error('Erreur lors du chargement des activités:', error);
+    }
+  };
+
+  // Charger les activités au montage et quand refreshTrigger change
+  useEffect(() => {
+    fetchActivities();
+  }, [refreshTrigger]);
 
   // Chargement des voyages existants
   useEffect(() => {
@@ -291,8 +307,13 @@ const ActivitiesManagement = () => {
           timeSlots: []
         });
         
-        // Fermer le formulaire et rafraîchir la liste
+        // Mettre à jour la liste des activités immédiatement
+        setActivities(prevActivities => [...prevActivities, response.data]);
+        
+        // Fermer le formulaire
         setShowAddForm(false);
+        
+        // Déclencher le rafraîchissement
         setRefreshTrigger(prev => prev + 1);
       }
     } catch (err) {
@@ -714,9 +735,10 @@ const ActivitiesManagement = () => {
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Liste des Activités</h2>
           <ActivitiesTable 
+            activities={activities}
             onEdit={handleEdit} 
             onDelete={handleDelete} 
-            refreshTrigger={refreshTrigger} 
+            refreshTrigger={refreshTrigger}
           />
         </div>
       </div>

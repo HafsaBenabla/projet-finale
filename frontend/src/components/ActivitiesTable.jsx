@@ -1,142 +1,96 @@
 import React, { useState, useEffect } from 'react';
 import { FaEdit, FaTrash, FaSpinner } from 'react-icons/fa';
 
-const ActivitiesTable = ({ onEdit, onDelete }) => {
-  const [activities, setActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
+const ActivitiesTable = ({ activities, onEdit, onDelete }) => {
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  const refreshActivities = () => {
-    setLoading(true);
-    setError(null);
-    setRefreshTrigger(prev => prev + 1);
-  };
-
-  useEffect(() => {
-    const fetchActivities = async () => {
-      try {
-        console.log('Tentative de récupération des activités...');
-        const response = await fetch('http://localhost:5000/api/activities');
-        
-        console.log('Statut de la réponse:', response.status);
-        
-        if (!response.ok) {
-          throw new Error(`Erreur lors de la récupération des activités (${response.status}): ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        console.log('Nombre d\'activités récupérées:', Array.isArray(data) ? data.length : 'Format inattendu');
-        setActivities(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Erreur détaillée:', err);
-        if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
-          setError('Impossible de contacter le serveur. Vérifiez que le backend est démarré sur http://localhost:5000');
-        } else {
-          setError(err.message);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchActivities();
-  }, [refreshTrigger]);
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-40">
-        <FaSpinner className="animate-spin text-sahara text-3xl" />
+      <div className="text-center py-4">
+        <FaSpinner className="animate-spin inline-block text-2xl text-sahara" />
+        <p className="mt-2 text-gray-600">Chargement des activités...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-100 text-red-700 p-4 rounded-lg">
-        <p className="font-bold mb-2">Erreur de chargement:</p>
-        <p>{error}</p>
-        <div className="mt-3">
-          <button 
-            onClick={refreshActivities}
-            className="bg-sahara text-white px-3 py-1 rounded text-sm hover:bg-sahara/90"
-          >
-            Réessayer
-          </button>
-        </div>
+      <div className="text-center py-4 text-red-600">
+        <p>Erreur: {error}</p>
+      </div>
+    );
+  }
+
+  if (!activities || activities.length === 0) {
+    return (
+      <div className="text-center py-4 text-gray-600">
+        <p>Aucune activité trouvée.</p>
       </div>
     );
   }
 
   return (
     <div className="overflow-x-auto">
-      {/* Info du nombre d'activités et bouton d'actualisation */}
-      <div className="mb-4 p-3 bg-gray-100 rounded-lg">
-        <div className="flex justify-between items-center">
-          <div>
-            <p>Nombre d'activités: <span className="font-semibold">{activities.length}</span></p>
-          </div>
-          <button 
-            onClick={refreshActivities} 
-            className="bg-sahara text-white px-3 py-1 rounded flex items-center text-sm"
-          >
-            <FaSpinner className={`mr-1 ${loading ? 'animate-spin' : ''}`} />
-            Actualiser
-          </button>
-        </div>
-      </div>
-      
-      <table className="min-w-full bg-white rounded-lg overflow-hidden shadow-lg">
-        <thead className="bg-gray-100">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
           <tr>
-            <th className="py-3 px-4 text-left text-sm font-medium text-gray-600">ID</th>
-            <th className="py-3 px-4 text-left text-sm font-medium text-gray-600">Titre</th>
-            <th className="py-3 px-4 text-left text-sm font-medium text-gray-600">Ville</th>
-            <th className="py-3 px-4 text-left text-sm font-medium text-gray-600">Prix (DH)</th>
-            <th className="py-3 px-4 text-left text-sm font-medium text-gray-600">Durée</th>
-            <th className="py-3 px-4 text-left text-sm font-medium text-gray-600">Actions</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ville</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200">
-          {activities.length === 0 ? (
-            <tr>
-              <td colSpan="6" className="py-4 px-6 text-center text-gray-500">
-                Aucune activité trouvée
+        <tbody className="bg-white divide-y divide-gray-200">
+          {activities.map((activity) => (
+            <tr key={activity._id}>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <img 
+                  src={activity.image.startsWith('http') ? activity.image : `http://localhost:5000${activity.image}`}
+                  alt={activity.name}
+                  className="h-16 w-16 object-cover rounded-lg"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "https://via.placeholder.com/150?text=Image+non+disponible";
+                  }}
+                />
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm font-medium text-gray-900">{activity.name}</div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                  activity.type === 'locale' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {activity.type === 'locale' ? 'Locale' : 'Voyage'}
+                </span>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {activity.city}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {activity.price} DH
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <button
+                  onClick={() => onEdit(activity)}
+                  className="text-indigo-600 hover:text-indigo-900 mr-4"
+                  title="Modifier"
+                >
+                  <FaEdit size={18} />
+                </button>
+                <button
+                  onClick={() => onDelete(activity._id)}
+                  className="text-red-600 hover:text-red-900"
+                  title="Supprimer"
+                >
+                  <FaTrash size={18} />
+                </button>
               </td>
             </tr>
-          ) : (
-            activities.map((activity) => (
-              <tr key={activity._id || activity.id || 'unknown'} className="hover:bg-gray-50">
-                <td className="py-3 px-4 text-sm text-gray-900">{activity._id || activity.id || 'ID manquant'}</td>
-                <td className="py-3 px-4 text-sm text-gray-900">{activity.name || activity.title || 'Sans titre'}</td>
-                <td className="py-3 px-4 text-sm text-gray-900">{activity.city || 'Non spécifié'}</td>
-                <td className="py-3 px-4 text-sm text-gray-900">
-                  {activity.price ? Number(activity.price).toLocaleString() : '0'} DH
-                </td>
-                <td className="py-3 px-4 text-sm text-gray-900">{activity.duration || '0'} heures</td>
-                <td className="py-3 px-4 text-sm text-gray-900">
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={() => onEdit(activity)}
-                      className="text-blue-600 hover:text-blue-800 transition-colors"
-                      title="Modifier"
-                      disabled={!activity._id && !activity.id}
-                    >
-                      <FaEdit size={18} />
-                    </button>
-                    <button
-                      onClick={() => onDelete(activity._id || activity.id)}
-                      className="text-red-600 hover:text-red-800 transition-colors"
-                      title="Supprimer"
-                      disabled={!activity._id && !activity.id}
-                    >
-                      <FaTrash size={18} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))
-          )}
+          ))}
         </tbody>
       </table>
     </div>
