@@ -17,6 +17,7 @@ const ActivitiesManagement = () => {
   const [formError, setFormError] = useState(null);
   const [voyages, setVoyages] = useState([]);
   const [agencies, setAgencies] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // États pour le formulaire d'activité
   const [activityData, setActivityData] = useState({
@@ -209,12 +210,20 @@ const ActivitiesManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setError('');
+    setFormError(null);
 
     try {
+      // Vérifier si l'image est présente
+      if (!activityData.image) {
+        setFormError('Veuillez ajouter une image pour l\'activité');
+        setIsSubmitting(false);
+        return;
+      }
+
       // Vérifier si une agence est sélectionnée
       if (!activityData.agencyId) {
         setFormError('Veuillez sélectionner une agence');
+        setIsSubmitting(false);
         return;
       }
 
@@ -222,6 +231,7 @@ const ActivitiesManagement = () => {
       const selectedAgency = agencies.find(agency => agency._id === activityData.agencyId);
       if (!selectedAgency) {
         setFormError('Agence non trouvée');
+        setIsSubmitting(false);
         return;
       }
 
@@ -238,7 +248,8 @@ const ActivitiesManagement = () => {
         voyageId: activityData.voyageId,
         category: activityData.category,
         agencyId: activityData.agencyId,
-        agencyName: selectedAgency.name
+        agencyName: selectedAgency.name,
+        timeSlots: activityData.timeSlots
       };
 
       console.log('Envoi des données de l\'activité:', activityPayload);
@@ -260,6 +271,8 @@ const ActivitiesManagement = () => {
         }
       );
 
+      console.log('Réponse du serveur:', response.data);
+
       if (response.data) {
         // Réinitialiser le formulaire
         setActivityData({
@@ -274,7 +287,8 @@ const ActivitiesManagement = () => {
           isWeekendOnly: false,
           voyageId: '',
           category: '',
-          agencyId: ''
+          agencyId: '',
+          timeSlots: []
         });
         
         // Fermer le formulaire et rafraîchir la liste
@@ -638,9 +652,19 @@ const ActivitiesManagement = () => {
                   style={{ backgroundColor: '#FF8C38', borderColor: '#FF8C38' }}
                   className="text-white border-0 rounded-lg px-6 py-2 font-semibold" 
                   type="submit"
+                  disabled={isSubmitting}
                 >
-                  <FaPlus className="inline mr-2" />
-                  Ajouter l'activité
+                  {isSubmitting ? (
+                    <>
+                      <FaSpinner className="inline mr-2 animate-spin" />
+                      Ajout en cours...
+                    </>
+                  ) : (
+                    <>
+                      <FaPlus className="inline mr-2" />
+                      Ajouter l'activité
+                    </>
+                  )}
                 </Button>
               </div>
             </Form>
