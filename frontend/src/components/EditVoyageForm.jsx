@@ -126,12 +126,20 @@ const EditVoyageForm = ({ voyage, onClose, onUpdate }) => {
   }, [voyage]);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    if (type === 'checkbox') {
-      setFormData(prev => ({ ...prev, [name]: checked }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
+    const { name, value } = e.target;
+    console.log(`Modification du champ ${name}:`, {
+      ancienneValeur: formData[name],
+      nouvelleValeur: value
+    });
+    
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: value
+      };
+      console.log('Nouveau state:', newData);
+      return newData;
+    });
   };
 
   const handleImageUpload = (imageUrl) => {
@@ -165,24 +173,40 @@ const EditVoyageForm = ({ voyage, onClose, onUpdate }) => {
     setError('');
 
     try {
-      // Préparer les données à envoyer au serveur
+      // Convertir explicitement en nombre entier avec parseInt
+      const availableSpotsValue = parseInt(formData.availableSpots, 10);
+      console.log('Valeur des places disponibles avant envoi:', {
+        valeurBrute: formData.availableSpots,
+        valeurConvertie: availableSpotsValue
+      });
+
       const voyagePayload = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
         price: Number(formData.price),
+        destination: formData.destination,
         duration: Number(formData.duration),
-        availableSpots: Number(formData.availableSpots),
-        maxPlaces: Number(formData.maxPlaces)
+        image: formData.image,
+        agencyId: formData.agencyId,
+        agencyName: formData.agencyName,
+        availableSpots: availableSpotsValue, // Utiliser la valeur convertie
+        maxPlaces: Number(formData.maxPlaces),
+        hebergement: formData.hebergement,
+        hebergementImage: formData.hebergementImage,
+        departureDate: formData.departureDate,
+        returnDate: formData.returnDate,
+        inclusions: formData.inclusions,
+        programme: formData.programme
       };
 
-      console.log('Envoi des données pour mise à jour:', voyagePayload);
+      console.log('Données envoyées au serveur:', voyagePayload);
 
-      // Récupérer le token d'authentification du stockage local
+      // Récupérer le token d'authentification
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error("Vous devez être connecté pour modifier un voyage");
       }
 
-      // Appel à l'API pour mettre à jour le voyage
       const response = await axios.put(
         `http://localhost:5000/api/voyages/${voyage._id}`,
         voyagePayload,
@@ -194,18 +218,13 @@ const EditVoyageForm = ({ voyage, onClose, onUpdate }) => {
         }
       );
 
-      console.log('Voyage mis à jour avec succès:', response.data);
-      
-      // Mettre à jour le contexte des voyages pour synchroniser les cartes
+      console.log('Réponse du serveur:', response.data);
       updateVoyageInContext(response.data);
-      
-      // Vider le cache pour forcer un rafraîchissement complet
       clearCache();
-      
       onUpdate(response.data);
       onClose();
     } catch (err) {
-      console.error('Erreur de mise à jour:', err);
+      console.error('Erreur lors de la modification:', err);
       setError(err.response?.data?.message || err.message || 'Erreur lors de la mise à jour du voyage');
     } finally {
       setIsSubmitting(false);
@@ -328,8 +347,20 @@ const EditVoyageForm = ({ voyage, onClose, onUpdate }) => {
                     type="number"
                     name="availableSpots"
                     value={formData.availableSpots}
-                    onChange={handleChange}
+                    onChange={(e) => {
+                      const newValue = e.target.value;
+                      console.log('Modification des places disponibles:', {
+                        valeurPrecedente: formData.availableSpots,
+                        nouvelleValeur: newValue,
+                        type: typeof newValue
+                      });
+                      setFormData(prev => ({
+                        ...prev,
+                        availableSpots: newValue
+                      }));
+                    }}
                     required
+                    min="0"
                     className="rounded-lg"
                   />
                 </Form.Group>
