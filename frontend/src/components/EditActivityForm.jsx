@@ -95,7 +95,7 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
     "Chefchaouen", "Dakhla", "El Jadida", "Errachidia", "Essaouira", "Fès",
     "Ifrane", "Kénitra", "Larache", "Marrakech", "Meknès", "Merzouga",
     "Mohammedia", "Nador", "Ouarzazate", "Oujda", "Rabat", "Safi", "Salé",
-    "Tanger", "Taroudant", "Tétouan", "Zagora"
+    "Tanger", "Taghazout", "Taroudant", "Tétouan", "Zagora"
   ].sort();
 
   useEffect(() => {

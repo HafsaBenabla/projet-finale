@@ -46,7 +46,7 @@ const VoyagesManagement = () => {
     "Chefchaouen", "Dakhla", "El Jadida", "Errachidia", "Essaouira", "Fès",
     "Ifrane", "Kénitra", "Larache", "Marrakech", "Meknès", "Merzouga",
     "Mohammedia", "Nador", "Ouarzazate", "Oujda", "Rabat", "Safi", "Salé",
-    "Tanger", "Tarazout", "Taroudant", "Tétouan", "Zagora"
+    "Tanger", "Taghazout", "Taroudant", "Tétouan", "Zagora"
   ].sort();
   
   const navigate = useNavigate();
