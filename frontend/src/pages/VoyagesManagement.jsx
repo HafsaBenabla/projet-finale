@@ -46,7 +46,7 @@ const VoyagesManagement = () => {
     "Chefchaouen", "Dakhla", "El Jadida", "Errachidia", "Essaouira", "Fès",
     "Ifrane", "Kénitra", "Larache", "Marrakech", "Meknès", "Merzouga",
     "Mohammedia", "Nador", "Ouarzazate", "Oujda", "Rabat", "Safi", "Salé",
-    "Tanger", "Taroudant", "Tétouan", "Zagora"
+    "Tanger", "Tarazout", "Taroudant", "Tétouan", "Zagora"
   ].sort();
   
   const navigate = useNavigate();
@@ -252,17 +252,6 @@ const VoyagesManagement = () => {
         return;
       }
 
-      // Au lieu d'envoyer directement, on montre la confirmation
-      setShowAddConfirm(true);
-    } catch (error) {
-      setFormError(error.message);
-    }
-  };
-
-  const confirmAdd = async () => {
-    try {
-      const selectedAgency = agencies.find(agency => agency.name === voyageData.agence);
-      
       // Créer une copie du payload pour éviter de modifier l'état directement
       const voyagePayload = {
         ...voyageData,
@@ -273,7 +262,7 @@ const VoyagesManagement = () => {
         agencyName: selectedAgency.name
       };
 
-      // Récupérer le token d'authentification du stockage local
+      // Récupérer le token d'authentification
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error("Vous devez être connecté pour ajouter un voyage");
@@ -305,8 +294,7 @@ const VoyagesManagement = () => {
           hebergementImage: ''
         });
         
-        // Fermer les modales et rafraîchir la liste
-        setShowAddConfirm(false);
+        // Fermer le formulaire et rafraîchir la liste
         setShowAddForm(false);
         setRefreshTrigger(prev => prev + 1);
       }
@@ -327,7 +315,6 @@ const VoyagesManagement = () => {
       }
       
       setFormError(errorMessage);
-      setShowAddConfirm(false);
     }
   };
 
@@ -698,41 +685,6 @@ const VoyagesManagement = () => {
                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
               >
                 Supprimer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Add Confirmation Modal */}
-      {showAddConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md mx-auto">
-            <h3 className="text-xl font-bold mb-4">Confirmer l'ajout du voyage</h3>
-            <div className="mb-6">
-              <p className="text-gray-600 mb-4">
-                Voulez-vous ajouter ce voyage avec les détails suivants ?
-              </p>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p><strong>Titre:</strong> {voyageData.title}</p>
-                <p><strong>Destination:</strong> {voyageData.destination}</p>
-                <p><strong>Prix:</strong> {voyageData.price} DH</p>
-                <p><strong>Durée:</strong> {voyageData.duration} jours</p>
-                <p><strong>Agence:</strong> {voyageData.agence}</p>
-              </div>
-            </div>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowAddConfirm(false)}
-                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={confirmAdd}
-                className="px-4 py-2 bg-sahara text-white rounded hover:bg-sahara/90"
-              >
-                Confirmer l'ajout
               </button>
             </div>
           </div>
