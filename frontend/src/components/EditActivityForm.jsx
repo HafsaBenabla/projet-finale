@@ -445,21 +445,23 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
             </Row>
 
             <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
+              {formData.type === 'locale' && (
+                <Col md={6}>
                   <Form.Group className="mb-3">
-                    <Form.Label>Nombre maximum de participants</Form.Label>
-                    <Form.Control
-                      type="number"
-                      name="maxParticipants"
-                      value={formData.maxParticipants}
-                      onChange={handleChange}
-                      required
-                      className="rounded-lg"
-                    />
+                    <Form.Group className="mb-3">
+                      <Form.Label>Nombre maximum de participants</Form.Label>
+                      <Form.Control
+                        type="number"
+                        name="maxParticipants"
+                        value={formData.maxParticipants}
+                        onChange={handleChange}
+                        required
+                        className="rounded-lg"
+                      />
+                    </Form.Group>
                   </Form.Group>
-                </Form.Group>
-              </Col>
+                </Col>
+              )}
             </Row>
 
             <Row>
