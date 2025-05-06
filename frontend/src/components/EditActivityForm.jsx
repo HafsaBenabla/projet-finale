@@ -42,10 +42,11 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
       try {
         const [voyagesResponse, agenciesResponse] = await Promise.all([
           axios.get('http://localhost:5000/api/voyages'),
-          axios.get('http://localhost:5000/api/agencies')
+          axios.get('http://localhost:5000/api/agencies?type=activite')
         ]);
         setVoyages(voyagesResponse.data);
-        setAgencies(agenciesResponse.data);
+        const activityAgencies = agenciesResponse.data.filter(agency => agency.type === 'activite');
+        setAgencies(activityAgencies);
       } catch (error) {
         console.error('Erreur lors du chargement des données:', error);
       }
@@ -400,13 +401,11 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
                       required
                       className="rounded-lg"
                     >
-                      <option value="">Sélectionnez une agence</option>
-                      {agencies
-                        .filter(agency => agency.type === 'activite')
-                        .map((agency) => (
-                          <option key={agency._id} value={agency._id}>
-                            {agency.name} - {agency.city} ({agency.stars}★)
-                          </option>
+                      <option value="">Sélectionnez une agence d'activités</option>
+                      {agencies.map((agency) => (
+                        <option key={agency._id} value={agency._id}>
+                          {agency.name} - {agency.city} ({agency.stars}★)
+                        </option>
                       ))}
                     </Form.Select>
                     {formData.agencyId && agencies.length > 0 && (
