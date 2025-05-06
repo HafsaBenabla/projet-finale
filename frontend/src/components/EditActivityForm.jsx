@@ -430,14 +430,6 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
                                       <span>⭐ {selectedAgency.stars} étoiles</span>
                                     </div>
                                   </div>
-                                  <a
-                                    href={`/agency-activities/${selectedAgency._id}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-                                  >
-                                    Voir les activités
-                                  </a>
                                 </div>
                                 <p className="text-sm text-gray-600">{selectedAgency.description}</p>
                               </>

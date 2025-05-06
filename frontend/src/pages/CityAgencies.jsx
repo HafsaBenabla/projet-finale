@@ -197,18 +197,8 @@ function CityAgencies() {
                 {agency.description}
               </p>
             </div>
-            
-            {/* Informations générales de l'agence au lieu des contacts directs */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="flex items-center gap-2 group/item transition-all duration-300">
-                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shadow-sm border border-orange-200">
-                  <FaStar className="text-orange-500" size={14} />
-                </div>
-                <span className="text-sm text-gray-600">{agency.stars} étoiles</span>
-              </div>
-            </div>
 
-            {/* Bouton d'action en fonction du type d'agence */}
+            {/* Bouton d'action */}
             <div className="mt-4">
               {agency.type === 'activite' ? (
                 <button
