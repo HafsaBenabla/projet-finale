@@ -440,25 +440,27 @@ const ActivitiesManagement = () => {
                     </Form.Select>
                   </Form.Group>
                 </Col>
-                <Col md={6}>
-                  <Form.Group className="mb-4">
-                    <Form.Label>Voyage associé</Form.Label>
-                    <Form.Select
-                      name="voyageId"
-                      value={activityData.voyageId}
-                      onChange={handleActivityChange}
-                      required
-                      className="rounded-lg"
-                    >
-                      <option value="">Sélectionnez un voyage</option>
-                      {voyages.map((voyage) => (
-                        <option key={voyage._id} value={voyage._id}>
-                          {voyage.title} - {voyage.destination}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
+                {activityData.type === 'voyage' && (
+                  <Col md={6}>
+                    <Form.Group className="mb-4">
+                      <Form.Label>Voyage associé</Form.Label>
+                      <Form.Select
+                        name="voyageId"
+                        value={activityData.voyageId}
+                        onChange={handleActivityChange}
+                        required
+                        className="rounded-lg"
+                      >
+                        <option value="">Sélectionnez un voyage</option>
+                        {voyages.map((voyage) => (
+                          <option key={voyage._id} value={voyage._id}>
+                            {voyage.title} - {voyage.destination}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                )}
               </Row>
 
               <Row>
