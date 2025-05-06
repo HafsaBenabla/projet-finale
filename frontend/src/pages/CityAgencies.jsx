@@ -117,6 +117,11 @@ function CityAgencies() {
     navigate(`/voyages?agencyId=${agencyId}&agencyName=${encodeURIComponent(agencyName)}`);
   };
 
+  // Navigation vers la page des activités de l'agence
+  const navigateToAgencyActivities = (agencyId) => {
+    navigate(`/agency-activities/${agencyId}`);
+  };
+
   // Navigation vers la page de détail d'un voyage
   const navigateToVoyage = (voyageId) => {
     navigate(`/voyage/${voyageId}`);
@@ -199,91 +204,28 @@ function CityAgencies() {
                 <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shadow-sm border border-orange-200">
                   <FaStar className="text-orange-500" size={14} />
                 </div>
-                <span className="text-xs font-light text-gray-600 truncate">
-                  Agence {agency.stars >= 4 ? 'premium' : 'partenaire'}
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-2 group/item transition-all duration-300">
-                <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center shadow-sm border border-orange-200">
-                  <FaUsers className="text-orange-500" size={14} />
-                </div>
-                <span className="text-xs text-gray-600 font-light truncate">
-                  {voyages.length > 0 ? `${voyages.length} voyages proposés` : 'Voyages personnalisés'}
-                </span>
+                <span className="text-sm text-gray-600">{agency.stars} étoiles</span>
               </div>
             </div>
 
-            {/* Section des voyages - version compacte */}
-            <div>
-              {!isLoading && voyages.length === 0 && !agencyVoyages[agency._id] && (
-                <button 
-                  onClick={() => navigateToAgencyVoyages(agency._id, agency.name)}
-                  className="w-full py-2.5 text-xs bg-orange-500 text-white uppercase tracking-widest font-light hover:bg-orange-600 transition-all flex items-center justify-center shadow-sm hover:shadow-md border border-orange-600/50 rounded-lg"
+            {/* Bouton d'action en fonction du type d'agence */}
+            <div className="mt-4">
+              {agency.type === 'activite' ? (
+                <button
+                  onClick={() => navigateToAgencyActivities(agency._id)}
+                  className="w-full bg-orange-500 text-white py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
                 >
-                  Découvrir les voyages <FaAngleRight className="ml-2" size={12} />
+                  <span>Voir les activités</span>
+                  <FaChevronRight size={14} />
                 </button>
-              )}
-              
-              {isLoading && (
-                <div className="flex justify-center py-4">
-                  <div className="animate-spin rounded-full h-7 w-7 border-[2px] border-orange-100 border-t-orange-400"></div>
-                </div>
-              )}
-              
-              {voyages.length === 0 && agencyVoyages[agency._id] && (
-                <div className="text-center p-2 bg-gradient-to-r from-orange-50/30 to-white rounded-md border border-orange-100/50">
-                  <p className="text-gray-400 text-xs py-1 font-light italic">
-                    Aucun voyage disponible pour le moment
-                  </p>
-                </div>
-              )}
-              
-              {voyages.length > 0 && (
-                <>
-                  <div className="space-y-2">
-                    {voyages.slice(0, 1).map(voyage => (
-                      <div 
-                        key={voyage._id}
-                        className="flex items-center p-2 bg-gradient-to-r from-white to-orange-50/10 rounded-lg cursor-pointer hover:shadow-md transition-all border border-orange-200/40 hover:border-orange-300/50 group/voyage"
-                        onClick={() => navigateToVoyage(voyage._id)}
-                      >
-                        <div className="relative h-16 w-20 overflow-hidden rounded-md shadow-sm mr-3">
-                          <img 
-                            src={voyage.image}
-                            alt={voyage.title}
-                            className="h-full w-full object-cover transform group-hover/voyage:scale-105 transition-transform duration-700"
-                            onError={(e) => { e.target.src = "https://images.pexels.com/photos/2577274/pexels-photo-2577274.jpeg" }}
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                        </div>
-                        <div className="flex-grow min-w-0">
-                          <div className="mb-1">
-                            <h5 className="font-light text-sm mb-1 truncate group-hover/voyage:text-orange-500 transition-colors">{voyage.title}</h5>
-                            <div className="flex items-center text-xs text-gray-500">
-                              <span className="bg-orange-100 px-1.5 py-0.5 rounded-full text-orange-700 text-[10px] font-medium">{voyage.destination}</span>
-                              {voyage.duration && (
-                                <span className="ml-2 text-[10px] text-gray-400">{voyage.duration} jours</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium text-sm text-orange-500">{voyage.price ? `${voyage.price.toLocaleString()} DH` : 'Sur demande'}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {voyages.length > 1 && (
-                    <button 
-                      onClick={() => navigateToAgencyVoyages(agency._id, agency.name)}
-                      className="w-full mt-2 py-1.5 bg-orange-100 text-orange-600 text-xs font-light hover:bg-orange-200 transition-all flex items-center justify-center rounded-lg"
-                    >
-                      Voir tous les voyages ({voyages.length}) <FaChevronRight className="ml-2" size={8} />
-                    </button>
-                  )}
-                </>
+              ) : (
+                <button
+                  onClick={() => navigateToAgencyVoyages(agency._id, agency.name)}
+                  className="w-full bg-orange-500 text-white py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
+                >
+                  <span>Voir les voyages</span>
+                  <FaChevronRight size={14} />
+                </button>
               )}
             </div>
           </div>

@@ -1,6 +1,7 @@
 import express from 'express';
 import { Activity } from '../models/Activity.js';
 import { Voyage } from '../models/voyage.js';
+import { Agency } from '../models/agency.js';
 
 const router = express.Router();
 
@@ -17,6 +18,7 @@ router.get('/', async (req, res) => {
 
     const activities = await Activity.find(filter)
       .populate('voyageId', 'title destination')
+      .populate('agencyId', 'name type description city stars image')
       .sort({ createdAt: -1 });
 
     res.json(activities);
@@ -26,16 +28,48 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Récupérer les activités d'une agence spécifique
+router.get('/by-agency/:agencyId', async (req, res) => {
+  try {
+    const { agencyId } = req.params;
+    console.log('Route /by-agency/:agencyId appelée avec ID:', agencyId);
+    
+    // Vérifier que l'agence existe
+    const agency = await Agency.findById(agencyId);
+    if (!agency) {
+      console.log('Agence non trouvée avec ID:', agencyId);
+      return res.status(404).json({ message: "Agence non trouvée" });
+    }
+    console.log('Agence trouvée:', agency.name);
+
+    // Récupérer toutes les activités de l'agence
+    const activities = await Activity.find({ agencyId })
+      .populate('voyageId', 'title destination')
+      .populate('agencyId', 'name type description city stars image')
+      .sort({ createdAt: -1 });
+
+    console.log(`${activities.length} activités trouvées pour l'agence ${agency.name}`);
+    res.json(activities);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des activités de l\'agence:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Récupérer une activité par son ID
 router.get('/:id', async (req, res) => {
   try {
+    console.log('Route /:id appelée avec ID:', req.params.id);
     const activity = await Activity.findById(req.params.id)
-      .populate('voyageId', 'title destination');
+      .populate('voyageId', 'title destination')
+      .populate('agencyId', 'name type description city stars image');
     
     if (!activity) {
+      console.log('Activité non trouvée avec ID:', req.params.id);
       return res.status(404).json({ message: "Activité non trouvée" });
     }
     
+    console.log('Activité trouvée:', activity.name);
     res.json(activity);
   } catch (error) {
     console.error('Erreur lors de la récupération de l\'activité:', error);
@@ -50,6 +84,13 @@ router.post('/', async (req, res) => {
     
     const activityData = { ...req.body };
     
+    // Vérifier que l'agence existe
+    const agency = await Agency.findById(activityData.agencyId);
+    if (!agency) {
+      return res.status(404).json({ error: 'Agence non trouvée' });
+    }
+    activityData.agencyName = agency.name;
+
     // Si c'est une activité de type voyage, vérifier que le voyage existe
     let voyage = null;
     if (activityData.type === 'voyage' && activityData.voyageId) {
@@ -90,6 +131,15 @@ router.put('/:id', async (req, res) => {
   try {
     const activityData = { ...req.body };
     
+    // Si l'agence a changé, vérifier la nouvelle agence
+    if (activityData.agencyId) {
+      const agency = await Agency.findById(activityData.agencyId);
+      if (!agency) {
+        return res.status(404).json({ error: 'Nouvelle agence non trouvée' });
+      }
+      activityData.agencyName = agency.name;
+    }
+    
     // Si le type ou le voyageId a changé, mettre à jour les références
     const oldActivity = await Activity.findById(req.params.id);
     if (!oldActivity) {
@@ -118,7 +168,7 @@ router.put('/:id', async (req, res) => {
       req.params.id,
       activityData,
       { new: true, runValidators: true }
-    );
+    ).populate('agencyId', 'name');
     
     if (!updatedActivity) {
       return res.status(404).json({ message: "Activité non trouvée" });

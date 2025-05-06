@@ -18,7 +18,9 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
     category: '',
     timeSlots: [],
     voyageName: '',
-    voyageId: ''
+    voyageId: '',
+    agencyId: '',
+    agencyName: ''
   });
   
   // Pour gérer les créneaux horaires temporaires avant de les ajouter
@@ -32,19 +34,24 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [voyages, setVoyages] = useState([]);
+  const [agencies, setAgencies] = useState([]);
 
-  // Chargement des voyages existants
+  // Chargement des voyages et des agences existants
   useEffect(() => {
-    const fetchVoyages = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/voyages');
-        setVoyages(response.data);
+        const [voyagesResponse, agenciesResponse] = await Promise.all([
+          axios.get('http://localhost:5000/api/voyages'),
+          axios.get('http://localhost:5000/api/agencies')
+        ]);
+        setVoyages(voyagesResponse.data);
+        setAgencies(agenciesResponse.data);
       } catch (error) {
-        console.error('Erreur lors du chargement des voyages:', error);
+        console.error('Erreur lors du chargement des données:', error);
       }
     };
     
-    fetchVoyages();
+    fetchData();
   }, []);
 
   // Pour générer automatiquement les dates du week-end
@@ -114,7 +121,9 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
         category: activity.category || '',
         voyageId: activity.voyageId || '',
         timeSlots: activity.timeSlots || [],
-        voyageName: activity.voyageName || ''
+        voyageName: activity.voyageName || '',
+        agencyId: activity.agencyId || '',
+        agencyName: activity.agencyName || ''
       });
     }
   }, [activity]);
@@ -123,6 +132,21 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
     const { name, value, type, checked } = e.target;
     if (type === 'checkbox') {
       setFormData(prev => ({ ...prev, [name]: checked }));
+    } else if (name === 'type') {
+      // Réinitialiser l'agence lors du changement de type
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        agencyId: '',
+        agencyName: ''
+      }));
+    } else if (name === 'agencyId') {
+      const selectedAgency = agencies.find(agency => agency._id === value);
+      setFormData(prev => ({
+        ...prev,
+        agencyId: value,
+        agencyName: selectedAgency ? selectedAgency.name : ''
+      }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -186,6 +210,12 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
       return;
     }
 
+    if (!formData.agencyId) {
+      setError('Veuillez sélectionner une agence');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       // Préparer les données à envoyer au serveur
       const activityPayload = {
@@ -197,28 +227,19 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
 
       console.log('Envoi des données pour mise à jour:', activityPayload);
 
-      // Corriger le chemin de l'API
-      const response = await fetch(`http://localhost:5000/api/activities/${activity._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(activityPayload)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erreur lors de la modification de l\'activité');
+      let response;
+      if (activity?._id) {
+        response = await axios.put(`http://localhost:5000/api/activities/${activity._id}`, activityPayload);
+      } else {
+        response = await axios.post('http://localhost:5000/api/activities', activityPayload);
       }
 
-      const updatedActivity = await response.json();
-      console.log('Activité mise à jour avec succès:', updatedActivity);
-      
-      onUpdate(updatedActivity);
+      console.log('Réponse du serveur:', response.data);
+      onUpdate(response.data);
       onClose();
-    } catch (err) {
-      console.error('Erreur de mise à jour:', err);
-      setError(err.message);
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error);
+      setError(error.response?.data?.message || 'Une erreur est survenue lors de la mise à jour');
     } finally {
       setIsSubmitting(false);
     }
@@ -363,6 +384,89 @@ const EditActivityForm = ({ activity, onClose, onUpdate }) => {
                       <option key={city} value={city}>{city}</option>
                     ))}
                   </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={12}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Agence organisatrice</Form.Label>
+                  <div className="agency-select-container">
+                    <Form.Select
+                      name="agencyId"
+                      value={formData.agencyId}
+                      onChange={handleChange}
+                      required
+                      className="rounded-lg"
+                    >
+                      <option value="">Sélectionnez une agence</option>
+                      {agencies
+                        .filter(agency => agency.type === 'activite')
+                        .map((agency) => (
+                          <option key={agency._id} value={agency._id}>
+                            {agency.name} - {agency.city} ({agency.stars}★)
+                          </option>
+                      ))}
+                    </Form.Select>
+                    {formData.agencyId && agencies.length > 0 && (
+                      <div className="selected-agency-info mt-2 p-3 bg-gray-50 rounded-lg">
+                        {(() => {
+                          const selectedAgency = agencies.find(a => a._id === formData.agencyId);
+                          if (selectedAgency) {
+                            return (
+                              <>
+                                <div className="flex items-center gap-3 mb-2">
+                                  {selectedAgency.image && (
+                                    <img
+                                      src={selectedAgency.image}
+                                      alt={selectedAgency.name}
+                                      className="w-16 h-16 object-cover rounded-lg"
+                                    />
+                                  )}
+                                  <div className="flex-grow">
+                                    <h4 className="font-semibold">{selectedAgency.name}</h4>
+                                    <div className="text-sm text-gray-600">
+                                      <span className="mr-2">📍 {selectedAgency.city}</span>
+                                      <span>⭐ {selectedAgency.stars} étoiles</span>
+                                    </div>
+                                  </div>
+                                  <a
+                                    href={`/agency-activities/${selectedAgency._id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                                  >
+                                    Voir les activités
+                                  </a>
+                                </div>
+                                <p className="text-sm text-gray-600">{selectedAgency.description}</p>
+                              </>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Group className="mb-3">
+                    <Form.Label>Nombre maximum de participants</Form.Label>
+                    <Form.Control
+                      type="number"
+                      name="maxParticipants"
+                      value={formData.maxParticipants}
+                      onChange={handleChange}
+                      required
+                      className="rounded-lg"
+                    />
+                  </Form.Group>
                 </Form.Group>
               </Col>
             </Row>

@@ -18,12 +18,14 @@ import Register from './pages/Register'
 import Profile from './pages/Profile'
 import CityAgencies from './pages/CityAgencies'
 import AgencyVoyages from './pages/AgencyVoyages'
+import AgencyActivities from './pages/AgencyActivities'
 import AddActivity from './pages/AddActivity'
 import ActivitiesManagement from './pages/ActivitiesManagement'
 import VoyagesManagement from './pages/VoyagesManagement'
 import AgenciesManagement from './pages/AgenciesManagement'
 import ReservationsManagement from './pages/ReservationsManagement'
 import AdminDashboard from './pages/AdminDashboard'
+import AgencyForm from './components/AgencyForm'
 import { VoyagesProvider } from './context/VoyagesContext'
 import { AuthProvider } from './context/AuthContext'
 import AdminRoute from './components/AdminRoute'
@@ -114,6 +116,7 @@ const App = () => {
                     <Route path="/city/:cityName" element={<CityAgencies />} />
                     <Route path="/city-agencies/:cityName" element={<CityAgencies />} />
                     <Route path="/agency-voyages/:agencyId" element={<AgencyVoyages />} />
+                    <Route path="/agency-activities/:agencyId" element={<AgencyActivities />} />
                     
                     {/* Routes administratives */}
                     <Route path="/admin/dashboard" element={
@@ -139,6 +142,11 @@ const App = () => {
                     <Route path="/admin/agencies" element={
                       <AdminRoute>
                         <AgenciesManagement />
+                      </AdminRoute>
+                    } />
+                    <Route path="/admin/add-agency" element={
+                      <AdminRoute>
+                        <AgencyForm />
                       </AdminRoute>
                     } />
                     <Route path="/admin/reservations" element={

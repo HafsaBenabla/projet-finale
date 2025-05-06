@@ -34,6 +34,15 @@ const activitySchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  agencyId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Agency',
+    required: true
+  },
+  agencyName: {
+    type: String,
+    required: true
+  },
   category: {
     type: String,
     enum: ['culture', 'aventure', 'gastronomie', 'bien-etre', 'sport-sensations', 'nature-aventure'],
