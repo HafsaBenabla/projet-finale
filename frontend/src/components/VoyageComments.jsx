@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { FaUser, FaComment, FaPaperPlane, FaTrash } from 'react-icons/fa';
+import { FaUser, FaComment, FaPaperPlane, FaTrash, FaExclamationTriangle } from 'react-icons/fa';
 
 const VoyageComments = ({ voyageId, onCommentAdded }) => {
   const { user, isAuthenticated, token } = useAuth();
@@ -11,6 +11,8 @@ const VoyageComments = ({ voyageId, onCommentAdded }) => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [deletingCommentId, setDeletingCommentId] = useState(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState(null);
 
   useEffect(() => {
     fetchComments();
@@ -123,6 +125,27 @@ const VoyageComments = ({ voyageId, onCommentAdded }) => {
     );
   };
 
+  // Fonction pour afficher la boîte de dialogue de confirmation
+  const showDeleteConfirmation = (comment) => {
+    setCommentToDelete(comment);
+    setShowConfirmDialog(true);
+  };
+
+  // Fonction pour annuler la suppression
+  const cancelDelete = () => {
+    setShowConfirmDialog(false);
+    setCommentToDelete(null);
+  };
+
+  // Fonction modifiée pour la suppression
+  const confirmDelete = async () => {
+    if (!commentToDelete) return;
+    
+    await handleDeleteComment(commentToDelete._id);
+    setShowConfirmDialog(false);
+    setCommentToDelete(null);
+  };
+
   // Fonction pour supprimer un commentaire
   const handleDeleteComment = async (commentId) => {
     if (!isAuthenticated || !token) {
@@ -197,7 +220,6 @@ const VoyageComments = ({ voyageId, onCommentAdded }) => {
       
       // Notifier le parent qu'un commentaire a été supprimé
       if (typeof onCommentAdded === 'function') {
-        // On utilise la même fonction mais dans ce cas elle va décrémenter le compteur
         onCommentAdded('delete');
       }
       
@@ -205,6 +227,7 @@ const VoyageComments = ({ voyageId, onCommentAdded }) => {
       setTimeout(() => {
         setSuccess(null);
       }, 3000);
+
     } catch (err) {
       console.error('Erreur lors de la suppression du commentaire:', err);
       setError(err.message || 'Une erreur est survenue lors de la suppression du commentaire');
@@ -231,6 +254,35 @@ const VoyageComments = ({ voyageId, onCommentAdded }) => {
 
   return (
     <div className="space-y-6">
+      {/* Boîte de dialogue de confirmation */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 transform transition-all">
+            <div className="flex items-center justify-center mb-4 text-red-500">
+              <FaExclamationTriangle size={48} />
+            </div>
+            <h3 className="text-xl font-bold text-center mb-4">Confirmer la suppression</h3>
+            <p className="text-gray-600 text-center mb-6">
+              Êtes-vous sûr de vouloir supprimer ce commentaire ? Cette action est irréversible.
+            </p>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={cancelDelete}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Formulaire de commentaire */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex items-start gap-4">
@@ -243,7 +295,7 @@ const VoyageComments = ({ voyageId, onCommentAdded }) => {
             <textarea
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder={isAuthenticated ? "Partagez votre expérience..." : "Connectez-vous pour commenter..."}
+              placeholder={isAuthenticated ? "Discutez avec les autres voyageurs à propos de cette destination..." : "Connectez-vous pour participer à la discussion..."}
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sahara focus:border-transparent transition-all resize-none"
               rows="3"
               disabled={!isAuthenticated || submitting}
@@ -306,11 +358,11 @@ const VoyageComments = ({ voyageId, onCommentAdded }) => {
                   <p className="text-gray-700">{comment.content}</p>
                 </div>
                 
-                {/* Bouton de suppression - visible uniquement pour les commentaires de l'utilisateur */}
+                {/* Bouton de suppression modifié */}
                 {isUserComment(comment) && (
                   <div className="absolute top-2 right-2">
                     <button
-                      onClick={() => handleDeleteComment(comment._id)}
+                      onClick={() => showDeleteConfirmation(comment)}
                       className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-full opacity-70 hover:opacity-100 transition-all"
                       title="Supprimer ce commentaire"
                       disabled={deletingCommentId === comment._id}

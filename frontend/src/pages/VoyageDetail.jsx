@@ -46,41 +46,49 @@ const VoyageDetail = () => {
 
   const [loadingSubmit, setLoadingSubmit] = useState(false);
 
-  // Fonction pour récupérer les détails du voyage
-  const fetchVoyageDetails = async () => {
-    try {
-      const response = await axios.get(`http://localhost:5000/api/voyages/${id}`);
-      setVoyage(response.data);
-      
-      if (response.data && response.data.activities && response.data.activities.length > 0) {
-        setAvailableActivities(response.data.activities);
+  // Effet pour charger les détails du voyage
+  useEffect(() => {
+    const fetchVoyageDetails = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/api/voyages/${id}`);
+        setVoyage(response.data);
         
-        // Si une activité était sélectionnée dans la navigation, la présélectionner
-        if (location.state && location.state.selectedActivityId) {
-          const selectedActivityId = location.state.selectedActivityId;
-          console.log("Activité à présélectionner:", selectedActivityId);
+        // Récupérer le nombre réel de commentaires
+        const commentsResponse = await axios.get(`http://localhost:5000/api/voyages/${id}/comments`);
+        const realCommentCount = commentsResponse.data.length;
+        console.log('Nombre réel de commentaires:', realCommentCount);
+        
+        // Mettre à jour le compteur avec le nombre réel de commentaires
+        setCommentCount(realCommentCount);
+        
+        if (response.data && response.data.activities && response.data.activities.length > 0) {
+          setAvailableActivities(response.data.activities);
           
-          // Trouver l'activité correspondante
-          const activityToSelect = response.data.activities.find(activity => activity._id === selectedActivityId);
-          
-          if (activityToSelect) {
-            console.log("Activité trouvée, présélection:", activityToSelect.name);
-            setSelectedActivities([{ 
-              ...activityToSelect, 
-              participantCount: formData.nombrePersonnes || 1
-            }]);
+          // Si une activité était sélectionnée dans la navigation, la présélectionner
+          if (location.state && location.state.selectedActivityId) {
+            const selectedActivityId = location.state.selectedActivityId;
+            console.log("Activité à présélectionner:", selectedActivityId);
+            
+            // Trouver l'activité correspondante
+            const activityToSelect = response.data.activities.find(activity => activity._id === selectedActivityId);
+            
+            if (activityToSelect) {
+              console.log("Activité trouvée, présélection:", activityToSelect.name);
+              setSelectedActivities([{ 
+                ...activityToSelect, 
+                participantCount: formData.nombrePersonnes || 1
+              }]);
+            }
           }
         }
+      } catch (error) {
+        console.error('Erreur lors du chargement du voyage:', error);
       }
-      
-      setCommentCount(response.data.commentCount || 0);
-    } catch (err) {
-      console.error("Erreur lors de la récupération du voyage:", err);
-    }
-  };
+    };
 
-  useEffect(() => {
-    fetchVoyageDetails();
+    if (id) {
+      fetchVoyageDetails();
+    }
   }, [id]);
 
   // Effet pour détecter les changements dans l'état de navigation (si l'utilisateur revient en arrière puis revient)
@@ -323,6 +331,15 @@ const VoyageDetail = () => {
       });
     } finally {
       setLoadingSubmit(false);
+    }
+  };
+
+  // Fonction pour gérer les changements de commentaires
+  const handleCommentChange = (action) => {
+    if (action === 'delete') {
+      setCommentCount(prev => Math.max(0, prev - 1));
+    } else {
+      setCommentCount(prev => prev + 1);
     }
   };
 
@@ -651,13 +668,13 @@ const VoyageDetail = () => {
               )}
             </div>
 
-            {/* Section Commentaires - avec une référence React */}
-            <div id="comments" ref={commentsRef} className="bg-white rounded-2xl shadow-lg p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <FaComment className="text-sahara text-2xl" />
-                <h2 className="text-3xl font-semibold text-gray-800">Commentaires</h2>
-              </div>
-              <CommentSection voyageId={voyage._id} />
+            {/* Section Commentaires */}
+            <div id="comments" className="bg-white rounded-2xl shadow-lg p-8">
+              <h2 className="text-3xl font-semibold mb-6 text-gray-800 flex items-center gap-3">
+                <FaComment className="text-sahara" />
+                Commentaires
+              </h2>
+              <VoyageComments voyageId={voyage._id} onCommentAdded={handleCommentChange} />
             </div>
           </div>
 
