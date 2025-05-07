@@ -116,6 +116,9 @@ const Profile = () => {
     commentContent: ''
   });
 
+  // État pour les voyages avec commentaires
+  const [voyagesWithComments, setVoyagesWithComments] = useState([]);
+
   // Mettre à jour les données éditées quand l'utilisateur est chargé
   useEffect(() => {
     if (user) {
@@ -698,20 +701,30 @@ const Profile = () => {
   // Fonction pour supprimer un commentaire
   const handleDeleteComment = async (commentId) => {
     try {
-      const url = `http://localhost:5000/api/comments/${commentId}`;
-      const response = await axios.delete(url, {
+      // Trouver le commentaire dans les données actuelles
+      const comment = userComments.data.find(c => c._id === commentId);
+      if (!comment) {
+        console.error('Commentaire non trouvé:', commentId);
+        return;
+      }
+
+      console.log('Tentative de suppression du commentaire:', {
+        commentId,
+        voyageId: comment.voyageId
+      });
+
+      const url = `http://localhost:5000/api/voyages/${comment.voyageId}/comments/${commentId}`;
+      await axios.delete(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
       
-      console.log('Réponse de suppression du commentaire:', response.data);
-      
       // Mettre à jour l'état des commentaires
       setUserComments(prev => ({
         ...prev,
-        data: prev.data.filter(comment => comment._id !== commentId)
+        data: prev.data.filter(c => c._id !== commentId)
       }));
       
       // Fermer la modale
@@ -1149,6 +1162,27 @@ const Profile = () => {
       setLoading(false);
     }
   };
+
+  // Fonction pour charger les voyages avec leurs commentaires
+  const fetchVoyagesWithComments = async () => {
+    try {
+      const response = await axios.get(`http://localhost:5000/api/user/voyages-with-comments`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      setVoyagesWithComments(response.data);
+    } catch (error) {
+      console.error('Erreur lors du chargement des voyages avec commentaires:', error);
+    }
+  };
+
+  // Charger les voyages avec commentaires au montage du composant
+  useEffect(() => {
+    if (token) {
+      fetchVoyagesWithComments();
+    }
+  }, [token]);
 
   if (!isAuthenticated) {
     return null;

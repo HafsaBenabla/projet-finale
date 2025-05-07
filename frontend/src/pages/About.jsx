@@ -249,60 +249,83 @@ export default function About() {
       {/* Section de témoignages avec images */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <motion.div
-            className="text-center mb-16"
+          <motion.div 
+            className="text-center max-w-3xl mx-auto mb-16"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-4xl font-bold mb-4">Ce Que Disent Nos Voyageurs</h2>
+            <h2 className="text-4xl font-bold mb-4">Ce que disent nos voyageurs</h2>
+            <p className="text-xl text-gray-600">
+              Des expériences authentiques partagées par notre communauté
+            </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Premier témoignage */}
             <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="bg-gray-50 rounded-xl p-8 shadow-lg flex flex-col md:flex-row gap-6"
+              transition={{ delay: 0 }}
+              className="bg-gray-50 p-8 rounded-2xl shadow-lg"
             >
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden flex-shrink-0 mx-auto md:mx-0">
-                <img 
-                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=987&q=80" 
-                  alt="Témoignage" 
-                  className="w-full h-full object-cover"
-                />
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 rounded-full bg-sahara flex items-center justify-center text-white text-xl font-bold">
+                  Y
+                </div>
+                <div className="ml-4">
+                  <h4 className="text-xl font-semibold">Youssef Benali</h4>
+                  <p className="text-gray-600">Voyage à Chefchaouen</p>
+                </div>
               </div>
-              <div>
-                <FaQuoteLeft className="text-2xl text-sahara/30 mb-2" />
-                <p className="text-gray-600 italic mb-4">
-                  "Notre voyage à travers le Maroc a été une révélation. L'équipe de MaghrebXplore a conçu un itinéraire parfait qui nous a permis de découvrir des lieux authentiques loin des sentiers battus."
-                </p>
-                <h4 className="font-bold text-gray-800">Sophie Martin</h4>
-                <p className="text-sahara">France</p>
-              </div>
+              <p className="text-gray-700 leading-relaxed">
+                "Une expérience inoubliable dans la ville bleue ! Notre guide local nous a fait découvrir des ruelles cachées et des points de vue spectaculaires. La maison d'hôtes traditionnelle était un véritable havre de paix."
+              </p>
             </motion.div>
 
+            {/* Deuxième témoignage */}
             <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="bg-gray-50 rounded-xl p-8 shadow-lg flex flex-col md:flex-row gap-6"
+              transition={{ delay: 0.2 }}
+              className="bg-gray-50 p-8 rounded-2xl shadow-lg"
             >
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden flex-shrink-0 mx-auto md:mx-0">
-                <img 
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=987&q=80" 
-                  alt="Témoignage" 
-                  className="w-full h-full object-cover"
-                />
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 rounded-full bg-sahara flex items-center justify-center text-white text-xl font-bold">
+                  F
+                </div>
+                <div className="ml-4">
+                  <h4 className="text-xl font-semibold">Fatima Zahra</h4>
+                  <p className="text-gray-600">Circuit du Sud</p>
+                </div>
               </div>
-              <div>
-                <FaQuoteLeft className="text-2xl text-sahara/30 mb-2" />
-                <p className="text-gray-600 italic mb-4">
-                  "Grâce à MaghrebXplore, j'ai découvert un Maroc que je ne soupçonnais pas. Les guides locaux étaient passionnés et les expériences proposées étaient vraiment uniques."
-                </p>
-                <h4 className="font-bold text-gray-800">Thomas Dubois</h4>
-                <p className="text-sahara">Belgique</p>
+              <p className="text-gray-700 leading-relaxed">
+                "Le circuit dans le Sud marocain était parfaitement organisé. Des nuits magiques dans le désert de Merzouga aux kasbahs majestueuses de Ouarzazate, chaque moment était unique. Un grand merci à toute l'équipe !"
+              </p>
+            </motion.div>
+
+            {/* Troisième témoignage */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4 }}
+              className="bg-gray-50 p-8 rounded-2xl shadow-lg"
+            >
+              <div className="flex items-center mb-6">
+                <div className="w-12 h-12 rounded-full bg-sahara flex items-center justify-center text-white text-xl font-bold">
+                  K
+                </div>
+                <div className="ml-4">
+                  <h4 className="text-xl font-semibold">Karim Tazi</h4>
+                  <p className="text-gray-600">Escapade à Essaouira</p>
+                </div>
               </div>
+              <p className="text-gray-700 leading-relaxed">
+                "Essaouira est un véritable joyau ! Entre les remparts historiques, le port animé et les plages magnifiques, nous avons vécu des moments exceptionnels. La gastronomie locale était délicieuse."
+              </p>
             </motion.div>
           </div>
         </div>

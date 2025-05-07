@@ -7,30 +7,24 @@ import mongoose from 'mongoose';
 const router = express.Router();
 
 // Fonction pour synchroniser le compteur de commentaires
-export const syncCommentCount = async () => {
+const syncCommentCount = async (voyageId) => {
   try {
-    console.log('Synchronisation des compteurs de commentaires...');
+    console.log('Synchronisation du compteur de commentaires pour le voyage:', voyageId);
     
-    // Récupérer tous les voyages
-    const voyages = await Voyage.find();
+    // Compter les commentaires pour ce voyage
+    const commentCount = await Comment.countDocuments({ voyageId });
     
-    // Pour chaque voyage, compter les commentaires et mettre à jour le compteur
-    for (const voyage of voyages) {
-      const commentCount = await Comment.countDocuments({ voyageId: voyage._id });
-      
-      // Ne mettre à jour que si le compteur est différent
-      if (voyage.commentCount !== commentCount) {
-        await Voyage.updateOne(
-          { _id: voyage._id },
-          { $set: { commentCount: commentCount } }
-        );
-        console.log(`Compteur de commentaires mis à jour pour le voyage ${voyage._id}: ${commentCount} commentaires`);
-      }
-    }
+    // Mettre à jour le compteur dans le voyage
+    await Voyage.findByIdAndUpdate(
+      voyageId,
+      { $set: { commentCount: commentCount } }
+    );
     
-    console.log('Synchronisation des compteurs de commentaires terminée');
+    console.log(`Compteur de commentaires mis à jour: ${commentCount} commentaires`);
+    return commentCount;
   } catch (error) {
-    console.error('Erreur lors de la synchronisation des compteurs de commentaires:', error);
+    console.error('Erreur lors de la synchronisation du compteur:', error);
+    throw error;
   }
 };
 
@@ -82,55 +76,19 @@ router.post('/voyages/:voyageId/comments', auth, async (req, res) => {
 // Supprimer un commentaire
 router.delete('/comments/:commentId', auth, async (req, res) => {
   try {
-    console.log(`Requête de suppression de commentaire reçue - commentId: ${req.params.commentId}`);
-    
-    // Vérifier que l'ID est valide
-    if (!mongoose.Types.ObjectId.isValid(req.params.commentId)) {
-      console.log('ID de commentaire invalide');
-      return res.status(400).json({ message: 'ID de commentaire invalide' });
-    }
-    
-    // Vérifier que l'utilisateur est autorisé à supprimer ce commentaire
     const comment = await Comment.findById(req.params.commentId);
-    
     if (!comment) {
-      console.log('Commentaire non trouvé');
       return res.status(404).json({ message: 'Commentaire non trouvé' });
     }
-    
-    // Récupérer l'ID utilisateur du token
+
+    // Vérifier l'autorisation
     const currentUser = req.user;
-    
-    if (!currentUser) {
-      console.log('Utilisateur non authentifié dans auth middleware');
-      return res.status(401).json({ message: 'Utilisateur non authentifié' });
-    }
-    
-    // Récupérer tous les formats possibles d'ID utilisateur actuel
-    const currentUserIds = [
-      currentUser._id,
-      currentUser._id?.toString(),
-      currentUser.id,
-      currentUser.id?.toString(),
-      currentUser.userId,
-      currentUser.userId?.toString()
-    ].filter(Boolean); // Filtrer les valeurs null/undefined
-    
-    // Récupérer tous les formats possibles d'ID utilisateur du commentaire
-    const commentUserIds = [
-      comment.userId,
-      typeof comment.userId === 'object' ? comment.userId.toString() : comment.userId
-    ].filter(Boolean);
-    
-    console.log('Comparaison des IDs utilisateur:', {
-      commentUserIds,
-      currentUserIds,
-      currentUser: JSON.stringify(currentUser)
-    });
-    
-    // Vérifier s'il y a une correspondance d'ID
     let isAuthorized = false;
-    
+
+    // Convertir les IDs en chaînes pour la comparaison
+    const commentUserIds = [comment.userId].map(String);
+    const currentUserIds = [currentUser.userId, currentUser._id].map(String);
+
     // Vérifier chaque combinaison possible d'ID
     for (const commentUserId of commentUserIds) {
       for (const currentUserId of currentUserIds) {
@@ -141,32 +99,33 @@ router.delete('/comments/:commentId', auth, async (req, res) => {
       }
       if (isAuthorized) break;
     }
-    
+
     // Autoriser également si l'utilisateur est admin
     if (currentUser.role === 'admin') {
       console.log('Utilisateur admin autorisé à supprimer n\'importe quel commentaire');
       isAuthorized = true;
     }
-    
+
     if (!isAuthorized) {
       console.log('Utilisateur non autorisé à supprimer ce commentaire');
       return res.status(403).json({ message: 'Vous ne pouvez pas supprimer le commentaire d\'un autre utilisateur' });
     }
-    
+
+    // Sauvegarder le voyageId avant de supprimer le commentaire
+    const voyageId = comment.voyageId;
+
     // Supprimer le commentaire
     await Comment.findByIdAndDelete(req.params.commentId);
     console.log(`Commentaire ${req.params.commentId} supprimé avec succès`);
-    
-    // Décrémenter le compteur de commentaires dans le voyage
-    await Voyage.findByIdAndUpdate(
-      comment.voyageId,
-      { $inc: { commentCount: -1 } },
-      { new: true }
-    );
-    
-    console.log(`Compteur de commentaires mis à jour après suppression pour le voyage ${comment.voyageId}`);
-    
-    res.json({ message: 'Commentaire supprimé avec succès' });
+
+    // Synchroniser le compteur de commentaires
+    const newCommentCount = await syncCommentCount(voyageId);
+    console.log(`Nouveau compteur de commentaires après synchronisation: ${newCommentCount}`);
+
+    res.json({ 
+      message: 'Commentaire supprimé avec succès',
+      commentCount: newCommentCount
+    });
   } catch (error) {
     console.error('Erreur lors de la suppression du commentaire:', error);
     res.status(500).json({ message: error.message });

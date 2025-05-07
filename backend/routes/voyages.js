@@ -652,4 +652,46 @@ router.delete('/:voyageId/comments/:commentId', auth, async (req, res) => {
     }
 });
 
+// Route pour obtenir les voyages avec leurs commentaires pour un utilisateur
+router.get('/user/voyages-with-comments', auth, async (req, res) => {
+  try {
+    // Récupérer l'ID de l'utilisateur depuis le token
+    const userId = req.user.userId;
+
+    // Récupérer tous les commentaires de l'utilisateur
+    const userComments = await Comment.find({ userId });
+
+    // Récupérer les IDs uniques des voyages commentés
+    const voyageIds = [...new Set(userComments.map(comment => comment.voyageId))];
+
+    // Récupérer les voyages correspondants avec leurs commentaires
+    const voyagesWithComments = await Promise.all(
+      voyageIds.map(async (voyageId) => {
+        const voyage = await Voyage.findById(voyageId);
+        const comments = userComments.filter(comment => 
+          comment.voyageId.toString() === voyageId.toString()
+        );
+
+        return {
+          voyage: voyage ? {
+            _id: voyage._id,
+            title: voyage.title,
+            destination: voyage.destination,
+            commentCount: voyage.commentCount || 0
+          } : null,
+          comments: comments
+        };
+      })
+    );
+
+    // Filtrer les voyages null (qui ont peut-être été supprimés)
+    const filteredVoyages = voyagesWithComments.filter(v => v.voyage !== null);
+
+    res.json(filteredVoyages);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des voyages avec commentaires:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 export default router;
