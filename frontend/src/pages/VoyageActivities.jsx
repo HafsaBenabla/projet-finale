@@ -78,10 +78,6 @@ const VoyageActivities = () => {
                     <span>{activity.duration} heures</span>
                   </div>
                   <div className="flex items-center text-gray-600">
-                    <FaUsers className="mr-2 text-sahara" />
-                    <span>Max {activity.maxParticipants} personnes</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
                     <FaMoneyBillWave className="mr-2 text-sahara" />
                     <span>{activity.price} MAD</span>
                   </div>

@@ -251,6 +251,7 @@ const ActivitiesManagement = () => {
         return;
       }
 
+      // Préparer les données selon le type d'activité
       const activityPayload = {
         name: activityData.name,
         description: activityData.description,
@@ -258,17 +259,34 @@ const ActivitiesManagement = () => {
         city: activityData.city,
         image: activityData.image,
         type: activityData.type,
-        duration: activityData.duration,
-        maxParticipants: Number(activityData.maxParticipants),
-        isWeekendOnly: activityData.isWeekendOnly,
-        voyageId: activityData.voyageId,
+        duration: Number(activityData.duration),
         category: activityData.category,
         agencyId: activityData.agencyId,
         agencyName: selectedAgency.name,
-        timeSlots: activityData.timeSlots
+        maxParticipants: activityData.type === 'locale' ? Number(activityData.maxParticipants) : 999 // Valeur par défaut pour les activités de voyage
       };
 
-      console.log('Envoi des données de l\'activité:', activityPayload);
+      // Ajouter les champs spécifiques selon le type d'activité
+      if (activityData.type === 'locale') {
+        activityPayload.isWeekendOnly = activityData.isWeekendOnly;
+        if (activityData.isWeekendOnly) {
+          activityPayload.timeSlots = activityData.timeSlots;
+        }
+      } else if (activityData.type === 'voyage') {
+        if (!activityData.voyageId) {
+          setFormError('Veuillez sélectionner un voyage');
+          setIsSubmitting(false);
+          return;
+        }
+        activityPayload.voyageId = activityData.voyageId;
+        // Trouver le voyage sélectionné pour obtenir son nom
+        const selectedVoyage = voyages.find(v => v._id === activityData.voyageId);
+        if (selectedVoyage) {
+          activityPayload.voyageName = selectedVoyage.title;
+        }
+      }
+
+      console.log('Données de l\'activité à envoyer:', activityPayload);
 
       // Récupérer le token d'authentification
       const token = localStorage.getItem('token');
@@ -307,17 +325,13 @@ const ActivitiesManagement = () => {
           timeSlots: []
         });
         
-        // Mettre à jour la liste des activités immédiatement
+        // Mettre à jour la liste des activités
         setActivities(prevActivities => [...prevActivities, response.data]);
-        
-        // Fermer le formulaire
         setShowAddForm(false);
-        
-        // Déclencher le rafraîchissement
         setRefreshTrigger(prev => prev + 1);
       }
     } catch (err) {
-      console.error('Erreur lors de l\'ajout:', err);
+      console.error('Erreur détaillée:', err.response?.data || err.message);
       setFormError(err.response?.data?.message || err.message || 'Erreur lors de l\'ajout de l\'activité');
     } finally {
       setIsSubmitting(false);
