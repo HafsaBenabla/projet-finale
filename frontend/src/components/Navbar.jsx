@@ -158,7 +158,7 @@ const Navbar = () => {
                   className={profileMenuStyle.mobile.button}
                 >
                   <FaUserCircle className="text-xl" />
-                  <span>{user.username}</span>
+                  <span>{isAdmin ? 'Benabla' : user.username}</span>
                 </button>
                 {isProfileOpen && (
                   <div className={profileMenuStyle.mobile.menu}>
@@ -255,7 +255,7 @@ const Navbar = () => {
                 className={profileMenuStyle.desktop.button}
               >
                 <FaUserCircle className="text-3xl" />
-                <span className="text-lg font-medium">{user.username}</span>
+                <span className="text-lg font-medium">{isAdmin ? 'Benabla' : user.username}</span>
               </button>
               {isProfileOpen && (
                 <div className={profileMenuStyle.desktop.menu}>

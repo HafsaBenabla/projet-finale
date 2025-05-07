@@ -1278,142 +1278,14 @@ const Profile = () => {
 
             {/* Informations de l'utilisateur - adaptées pour mobile */}
             <div className="flex-grow text-center md:text-left">
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="flex items-center mb-3 sm:mb-4">
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      name="firstName"
-                      value={editedData.firstName}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-sahara"
-                      placeholder="Prénom"
-                    />
-                  ) : (
-                    user?.firstName || 'Utilisateur'
-                  )}
+                  {user?.isAdmin ? 'Benabla' : (user?.firstName || 'Utilisateur')}
                 </h2>
-                <button 
-                  onClick={() => {
-                    if (isEditing) {
-                      handleSaveChanges();
-                    } else {
-                      setIsEditing(true);
-                    }
-                  }}
-                  className="text-xs sm:text-sm text-orange-500 hover:text-orange-600 flex items-center"
-                >
-                  {isEditing ? (
-                    <>
-                      <FaSave className="mr-1" />
-                      <span className="hidden sm:inline">Enregistrer</span>
-                    </>
-                  ) : (
-                    <>
-                      <FaPencilAlt className="mr-1" />
-                      <span className="hidden sm:inline">Modifier</span>
-                    </>
-                  )}
-                </button>
               </div>
-              
               <div className="p-3 sm:p-4 bg-orange-50 rounded-lg mb-3 sm:mb-4 shadow-sm">
                 <h3 className="font-semibold text-orange-800 mb-2 sm:mb-3 border-b border-orange-200 pb-2 flex justify-between items-center">
                   <span>Informations de contact</span>
-                  <button 
-                    onClick={() => {
-                      const newUsername = prompt('Entrez votre nouveau prénom:', user?.firstName || user?.username);
-                      if (newUsername && newUsername.trim()) {
-                        // Vérifier que le prénom a changé
-                        if (newUsername.trim() === user?.firstName) {
-                          setNotification({
-                            message: 'Le prénom est identique à l\'actuel',
-                            type: 'error',
-                            details: 'Veuillez choisir un prénom différent',
-                            timestamp: new Date().toLocaleTimeString()
-                          });
-                          setTimeout(() => {
-                            setNotification({ message: '', type: '', details: '', timestamp: '' });
-                          }, 5000);
-                          return;
-                        }
-                        
-                        if (newUsername.trim().length < 2) {
-                          setNotification({
-                            message: 'Prénom trop court',
-                            type: 'error',
-                            details: 'Le prénom doit contenir au moins 2 caractères',
-                            timestamp: new Date().toLocaleTimeString()
-                          });
-                          setTimeout(() => {
-                            setNotification({ message: '', type: '', details: '', timestamp: '' });
-                          }, 5000);
-                          return;
-                        }
-                        
-                        // Afficher un indicateur de chargement
-                        setNotification({
-                          message: 'Mise à jour du prénom en cours...',
-                          type: 'info',
-                          details: '',
-                          timestamp: new Date().toLocaleTimeString()
-                        });
-                        
-                        // Préparer les données à envoyer au serveur
-                        const updateData = { 
-                          firstName: newUsername.trim()
-                        };
-                        console.log('Données envoyées pour la mise à jour:', updateData);
-                        
-                        // Appel API pour mettre à jour le prénom
-                        axios.patch(
-                          `http://localhost:5000/api/users/${user.userId}`,
-                          updateData,
-                          {
-                            headers: {
-                              'Authorization': `Bearer ${token}`,
-                              'Content-Type': 'application/json'
-                            }
-                          }
-                        )
-                        .then(response => {
-                          console.log('Réponse du serveur:', response.data);
-                          // Mise à jour du contexte utilisateur avec les nouvelles données
-                          if (response.data && updateUserProfile) {
-                            updateUserProfile({ ...user, firstName: newUsername.trim() });
-                          }
-                          // Notification de succès
-                          setNotification({
-                            message: 'Prénom mis à jour avec succès',
-                            type: 'success',
-                            details: '',
-                            timestamp: new Date().toLocaleTimeString()
-                          });
-                          
-                          setTimeout(() => {
-                            setNotification({ message: '', type: '', details: '', timestamp: '' });
-                          }, 5000);
-                        })
-                        .catch(err => {
-                          console.error('Erreur lors de la mise à jour du prénom:', err);
-                          const errorMessage = err.response?.data?.message || err.message || 'Une erreur est survenue';
-                          setNotification({
-                            message: 'Échec de la mise à jour du prénom',
-                            type: 'error',
-                            details: errorMessage,
-                            timestamp: new Date().toLocaleTimeString()
-                          });
-                          
-                          setTimeout(() => {
-                            setNotification({ message: '', type: '', details: '', timestamp: '' });
-                          }, 8000);
-                        });
-                      }
-                    }}
-                    className="text-xs text-orange-500 cursor-pointer hover:underline hidden group-hover:block absolute right-3 top-3"
-                  >
-                    <FaPencilAlt className="inline mr-1" /> Modifier
-                  </button>
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   <div className="flex items-center space-x-3 bg-white p-3 rounded-md shadow-sm relative group">
@@ -1422,18 +1294,7 @@ const Profile = () => {
                     </div>
                     <div className="flex-grow">
                       <p className="text-sm text-gray-500 font-medium">Email</p>
-                      {isEditing ? (
-                        <input
-                          type="email"
-                          name="email"
-                          value={editedData.email}
-                          onChange={handleChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-sahara"
-                          placeholder="Email"
-                        />
-                      ) : (
-                        <p className="text-sm sm:text-base text-gray-800 font-medium">{user?.email}</p>
-                      )}
+                      <p className="text-sm sm:text-base text-gray-800 font-medium">{user?.email}</p>
                     </div>
                   </div>
 
@@ -1443,33 +1304,12 @@ const Profile = () => {
                     </div>
                     <div className="flex-grow">
                       <p className="text-sm text-gray-500 font-medium">Téléphone</p>
-                      {isEditing ? (
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={editedData.phone}
-                          onChange={handleChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-sahara"
-                          placeholder="Téléphone"
-                        />
-                      ) : (
-                        <p className="text-sm sm:text-base text-gray-800 font-medium">
-                          {user?.phone || 'Non renseigné'}
-                        </p>
-                      )}
+                      <p className="text-sm sm:text-base text-gray-800 font-medium">
+                        {user?.isAdmin ? '0706335519' : '0661233400'}
+                      </p>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Option pour changer le mot de passe */}
-              <div className="text-center md:text-left">
-                <button 
-                  onClick={() => setShowPasswordForm(true)}
-                  className="text-orange-500 hover:text-orange-600 text-sm font-medium"
-                >
-                  Changer mon mot de passe
-                </button>
               </div>
             </div>
           </div>
