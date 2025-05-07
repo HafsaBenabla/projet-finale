@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaClock, FaCheck, FaSpinner, FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaCalendarAlt, FaUsers, FaMoneyBillWave, FaClock, FaCheck, FaSpinner, FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaStar } from 'react-icons/fa';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -117,6 +117,8 @@ const ActivityDetail = () => {
       try {
         setLoading(true);
         const response = await axios.get(`http://localhost:5000/api/activities/${id}`);
+        console.log("Données de l'activité reçues:", response.data);
+        console.log("Image de l'agence:", response.data.agencyImage);
         setActivity(response.data);
       } catch (err) {
         console.error('Erreur lors du chargement de l\'activité:', err);
@@ -415,10 +417,6 @@ const ActivityDetail = () => {
                   {formatDuration(activity.duration)}
                 </span>
                 <span className="flex items-center gap-2.5 text-xl">
-                  <FaUsers className="text-xl" />
-                  Max {activity.maxParticipants} personnes
-                </span>
-                <span className="flex items-center gap-2.5 text-xl">
                   <FaMoneyBillWave className="text-xl" />
                   {activity.price.toLocaleString()} DH
                 </span>
@@ -588,7 +586,7 @@ const ActivityDetail = () => {
                               +
                             </button>
                             <span className="ml-2 text-sm text-gray-600">
-                              (Maximum: {Math.min(selectedTimeSlot.availableSpots, activity.maxParticipants)} personnes)
+                              (Maximum: {selectedTimeSlot.availableSpots} personnes)
                             </span>
                           </div>
                         </div>
@@ -669,12 +667,6 @@ const ActivityDetail = () => {
                     <span className="text-gray-600">Durée:</span>
                     <span className="font-medium">{formatDuration(activity.duration)}</span>
                   </div>
-                  <div className="flex justify-between pb-3 border-b border-gray-200">
-                    <span className="text-gray-600">Places disponibles:</span>
-                    <span className={`font-medium ${activity.availableSpots < 5 ? 'text-orange-600' : ''}`}>
-                      {activity.availableSpots} / {activity.maxParticipants}
-                    </span>
-                  </div>
                 </div>
               </div>
             )}
@@ -686,24 +678,40 @@ const ActivityDetail = () => {
               <h2 className="text-2xl font-semibold mb-6">Informations</h2>
               
               <div className="space-y-4 mb-8">
-                <div className="flex items-center gap-3 text-gray-600">
-                  <FaMapMarkerAlt className="text-sahara flex-shrink-0" />
-                  <span>Lieu: {activity.city}</span>
-                </div>
-                <div className="flex items-center gap-3 text-gray-600">
-                  <FaUsers className="text-sahara flex-shrink-0" />
-                  <span>Groupe de {activity.maxParticipants} personnes maximum</span>
-                </div>
-                <div className="flex items-center gap-3 text-gray-600">
-                  <FaClock className="text-sahara flex-shrink-0" />
-                  <span>Durée: {formatDuration(activity.duration)}</span>
-                </div>
-                {activity.category && (
-                  <div className="flex items-center gap-3 text-gray-600">
-                    <FaCheck className="text-sahara flex-shrink-0" />
-                    <span>Catégorie: {activity.category}</span>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-sahara/20 flex items-center justify-center">
+                    {activity.agencyImage ? (
+                      <img 
+                        src={`http://localhost:5000/${activity.agencyImage}`}
+                        alt={activity.agencyName}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error("Erreur de chargement de l'image:", e);
+                          e.target.onerror = null;
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <span className="text-2xl font-bold text-sahara">
+                        {activity.agencyName?.charAt(0) || 'A'}
+                      </span>
+                    )}
                   </div>
-                )}
+                  <div>
+                    <h3 className="font-semibold text-lg">{activity.agencyName}</h3>
+                    <p className="text-gray-600">Agence organisatrice</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-4 text-gray-600">
+                  <span className="flex items-center gap-2">
+                    <FaMapMarkerAlt className="text-sahara" />
+                    {activity.city}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <FaStar className="text-sahara" />
+                    {activity.agencyStars} étoiles
+                  </span>
+                </div>
               </div>
 
               <div className="mt-8">

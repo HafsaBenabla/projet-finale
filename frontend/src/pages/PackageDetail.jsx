@@ -110,18 +110,18 @@ const PackageDetail = () => {
             <div className="text-white max-w-3xl">
               <h1 className="text-5xl font-bold mb-4">{packageData.name}</h1>
               <p className="text-2xl mb-6">Par {packageData.agencyName}</p>
-              <div className="flex items-center gap-6 text-lg">
-                <span className="flex items-center gap-2">
-                  <FaCalendarAlt />
-                  {packageData.duration}
+              <div className="flex flex-wrap items-center gap-6 text-lg">
+                <span className="flex items-center gap-2.5 text-xl">
+                  <FaClock className="text-xl" />
+                  {formatDuration(packageData.duration)}
                 </span>
-                <span className="flex items-center gap-2">
-                  <FaUsers />
-                  Max {packageData.maxParticipants} personnes
+                <span className="flex items-center gap-2.5 text-xl">
+                  <FaMoneyBillWave className="text-xl" />
+                  {packageData.price.toLocaleString()} DH
                 </span>
-                <span className="flex items-center gap-2">
-                  <FaMoneyBillWave />
-                  {packageData.price} DH
+                <span className="flex items-center gap-2.5 text-xl">
+                  <FaMapMarkerAlt className="text-xl" />
+                  {packageData.destination}
                 </span>
               </div>
             </div>

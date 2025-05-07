@@ -397,6 +397,17 @@ const ReservationForm = ({ activity, onClose, onSuccess }) => {
               </div>
             </div>
             
+            {isSlotCapacityExceeded && (
+              <p className="text-red-500 text-sm mt-1">
+                Il ne reste que {selectedTimeSlot.availableSpots} places disponibles pour ce créneau.
+              </p>
+            )}
+            {isVoyageCapacityExceeded && (
+              <p className="text-red-500 text-sm mt-1">
+                Il ne reste que {activity.availableSpots} places disponibles pour ce voyage.
+              </p>
+            )}
+            
             <button 
               type="submit"
               disabled={(activity.type === 'locale' && (availableTimeSlots.length === 0 || !selectedTimeSlot)) || 
