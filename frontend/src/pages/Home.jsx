@@ -107,13 +107,19 @@ const Home = () => {
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/40 to-black/60" />
         <div className="w-full max-w-[1400px] mx-auto px-4 relative flex-grow flex flex-col items-center justify-center text-white">
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold text-center mb-4 sm:mb-6 tracking-tight">
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold text-center mb-8 tracking-tight">
             Le Maroc Authentique
             <span className="block mt-2 text-orange-400">Vous Attend</span>
           </h1>
-          <p className="text-lg sm:text-xl md:text-2xl text-center mb-8 sm:mb-12 max-w-3xl px-4">
-            Découvrez toutes les merveilles du Maroc, des montagnes aux plages, des médinas aux déserts
-          </p>
+          
+          <div className="max-w-4xl mx-auto text-center space-y-8 mb-12">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white/90">
+              Explorez le Maroc comme jamais auparavant
+            </h2>
+            <p className="text-base sm:text-lg md:text-xl leading-relaxed text-white/80 max-w-3xl mx-auto px-4">
+              Rencontrez les meilleures agences, vivez des expériences uniques et laissez-vous guider au cœur des trésors marocains. Avec nous, chaque voyage devient une aventure inoubliable.
+            </p>
+          </div>
 
           {/* Search Bar */}
           <SearchBar />
@@ -133,7 +139,7 @@ const Home = () => {
         <Destinations />
 
         {/* Hébergements de Luxe Section */}
-        <section className="py-12 sm:py-16 bg-gray-50">
+        <section className="py-12 sm:py-16 bg-gray-50 scroll-mt-24" id="hebergements">
           <div className="w-full max-w-[1400px] mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
@@ -192,7 +198,7 @@ const Home = () => {
         </section>
 
         {/* Activities Section */}
-        <section className="py-12 sm:py-16">
+        <section className="py-12 sm:py-16 scroll-mt-24" id="activites">
           <div className="w-full max-w-[1400px] mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">

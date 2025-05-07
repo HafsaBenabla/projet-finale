@@ -174,7 +174,7 @@ const Destinations = () => {
   };
 
   return (
-    <div className="bg-gray-50 py-16">
+    <section className="py-12 sm:py-16 scroll-mt-24" id="destinations">
       <div className="container mx-auto px-4">
         <h2 className="text-4xl font-bold text-center text-gray-900 mb-4">
           Destinations Populaires
@@ -244,7 +244,7 @@ const Destinations = () => {
           </button>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 
