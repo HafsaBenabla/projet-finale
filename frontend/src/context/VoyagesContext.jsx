@@ -128,6 +128,99 @@ export const VoyagesProvider = ({ children }) => {
     fetchVoyages(true);
   };
 
+  // Fonction pour synchroniser le nombre de commentaires
+  const syncCommentCount = async (voyageId) => {
+    try {
+      const commentsResponse = await fetch(`http://localhost:5000/api/voyages/${voyageId}/comments`);
+      const comments = await commentsResponse.json();
+      const realCount = comments.length;
+
+      // Mettre à jour dans le state global et le localStorage
+      setVoyages(prevVoyages => {
+        const updatedVoyages = prevVoyages.map(voyage => 
+          voyage._id === voyageId 
+            ? { ...voyage, commentCount: realCount }
+            : voyage
+        );
+        
+        // Mettre à jour le localStorage
+        localStorage.setItem('voyages', JSON.stringify(updatedVoyages));
+        
+        // Déclencher un événement pour notifier les autres composants
+        const event = new CustomEvent('commentCountUpdated', {
+          detail: { voyageId, commentCount: realCount }
+        });
+        window.dispatchEvent(event);
+        
+        return updatedVoyages;
+      });
+
+      return realCount;
+    } catch (error) {
+      console.error('Erreur lors de la synchronisation des commentaires:', error);
+      return null;
+    }
+  };
+
+  // Fonction pour mettre à jour le nombre de places disponibles
+  const updateAvailableSpots = async (voyageId, newSpots) => {
+    try {
+      // Mettre à jour le backend d'abord
+      await fetch(`http://localhost:5000/api/voyages/${voyageId}/spots`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ availableSpots: newSpots })
+      });
+
+      // Forcer un rafraîchissement des données depuis le serveur
+      const response = await fetch(`http://localhost:5000/api/voyages/${voyageId}`);
+      const updatedVoyage = await response.json();
+
+      // Mettre à jour dans le state global et le localStorage
+      setVoyages(prevVoyages => {
+        const updatedVoyages = prevVoyages.map(voyage => 
+          voyage._id === voyageId 
+            ? { ...voyage, ...updatedVoyage }
+            : voyage
+        );
+        
+        // Mettre à jour le localStorage
+        localStorage.setItem('voyages', JSON.stringify(updatedVoyages));
+        
+        // Déclencher un événement pour notifier les autres composants
+        const event = new CustomEvent('spotsUpdated', {
+          detail: { 
+            voyageId, 
+            newSpots,
+            updatedVoyage
+          }
+        });
+        window.dispatchEvent(event);
+
+        // Déclencher aussi l'événement voyagesUpdated pour forcer la mise à jour des cartes
+        const updateEvent = new CustomEvent('voyagesUpdated', {
+          detail: {
+            updatedVoyage: updatedVoyage,
+            timestamp: Date.now()
+          }
+        });
+        window.dispatchEvent(updateEvent);
+        
+        return updatedVoyages;
+      });
+
+      // Forcer un rafraîchissement des voyages
+      fetchVoyages(true);
+
+      return newSpots;
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour des places disponibles:', error);
+      return null;
+    }
+  };
+
   // Effet lors du montage du composant
   useEffect(() => {
     console.log('VoyagesContext initialisé');
@@ -175,7 +268,40 @@ export const VoyagesProvider = ({ children }) => {
     };
   }, []);
 
-  // Exposer le contexte
+  // Écouter les mises à jour
+  useEffect(() => {
+    const handleSpotsUpdate = (e) => {
+      const { voyageId, newSpots, updatedVoyage } = e.detail;
+      setVoyages(prevVoyages => 
+        prevVoyages.map(voyage => 
+          voyage._id === voyageId 
+            ? { ...voyage, ...updatedVoyage }
+            : voyage
+        )
+      );
+    };
+
+    const handleCommentCountUpdate = (e) => {
+      const { voyageId, commentCount } = e.detail;
+      setVoyages(prevVoyages => 
+        prevVoyages.map(voyage => 
+          voyage._id === voyageId 
+            ? { ...voyage, commentCount }
+            : voyage
+        )
+      );
+    };
+
+    window.addEventListener('spotsUpdated', handleSpotsUpdate);
+    window.addEventListener('commentCountUpdated', handleCommentCountUpdate);
+    
+    return () => {
+      window.removeEventListener('spotsUpdated', handleSpotsUpdate);
+      window.removeEventListener('commentCountUpdated', handleCommentCountUpdate);
+    };
+  }, []);
+
+  // Exposer le contexte avec les nouvelles fonctions
   const contextValue = {
     voyages,
     loading,
@@ -183,7 +309,9 @@ export const VoyagesProvider = ({ children }) => {
     lastFetchTime,
     refreshVoyages: () => fetchVoyages(true),
     updateVoyageInContext,
-    clearCache
+    clearCache,
+    syncCommentCount,
+    updateAvailableSpots
   };
 
   return (

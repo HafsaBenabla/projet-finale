@@ -180,15 +180,14 @@ const ActivityDetail = () => {
 
   const handleNumberOfPersonsChange = (change) => {
     setClientInfo(prev => {
-      const newValue = Math.max(1, prev.numberOfPersons + change);
-      // Ne pas dépasser le nombre de places disponibles ou le maximum de participants
-      const max = activity.type === 'locale' 
-        ? Math.min(activity.maxParticipants, selectedTimeSlot?.availableSpots || 0)
-        : Math.min(activity.maxParticipants, activity.availableSpots || 0);
+      const currentValue = parseInt(prev.numberOfPersons) || 1;
+      const newValue = currentValue + change;
+      const maxSpots = selectedTimeSlot?.availableSpots || 0;
       
+      // S'assurer que la nouvelle valeur est entre 1 et le maximum disponible
       return {
         ...prev,
-        numberOfPersons: Math.min(newValue, max)
+        numberOfPersons: Math.min(Math.max(1, newValue), maxSpots)
       };
     });
   };
@@ -574,19 +573,31 @@ const ActivityDetail = () => {
                             >
                               -
                             </button>
-                            <span className="px-4 py-1 border-t border-b border-gray-200">
-                              {clientInfo.numberOfPersons}
-                            </span>
+                            <input
+                              type="number"
+                              min="1"
+                              max={selectedTimeSlot?.availableSpots || 0}
+                              value={clientInfo.numberOfPersons}
+                              onChange={(e) => {
+                                const value = parseInt(e.target.value) || 1;
+                                const maxSpots = selectedTimeSlot?.availableSpots || 0;
+                                setClientInfo(prev => ({
+                                  ...prev,
+                                  numberOfPersons: Math.min(Math.max(1, value), maxSpots)
+                                }));
+                              }}
+                              className="w-16 px-2 py-1 text-center border-t border-b border-gray-200 focus:outline-none focus:ring-2 focus:ring-sahara"
+                            />
                             <button 
                               type="button"
                               onClick={() => handleNumberOfPersonsChange(1)}
                               className="px-3 py-1 bg-gray-200 rounded-r-lg hover:bg-gray-300"
-                              disabled={clientInfo.numberOfPersons >= selectedTimeSlot.availableSpots}
+                              disabled={clientInfo.numberOfPersons >= (selectedTimeSlot?.availableSpots || 0)}
                             >
                               +
                             </button>
                             <span className="ml-2 text-sm text-gray-600">
-                              (Maximum: {selectedTimeSlot.availableSpots} personnes)
+                              (Maximum: {selectedTimeSlot?.availableSpots || 0} personnes)
                             </span>
                           </div>
                         </div>

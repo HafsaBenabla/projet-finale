@@ -15,7 +15,7 @@ const VoyageDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { loading, error } = useVoyages();
+  const { loading, error, syncCommentCount, updateAvailableSpots } = useVoyages();
   const { user, token, isAuthenticated } = useAuth();
   const commentsRef = useRef(null);
   const activitiesRef = useRef(null);
@@ -53,13 +53,9 @@ const VoyageDetail = () => {
         const response = await axios.get(`http://localhost:5000/api/voyages/${id}`);
         setVoyage(response.data);
         
-        // Récupérer le nombre réel de commentaires
-        const commentsResponse = await axios.get(`http://localhost:5000/api/voyages/${id}/comments`);
-        const realCommentCount = commentsResponse.data.length;
-        console.log('Nombre réel de commentaires:', realCommentCount);
-        
-        // Mettre à jour le compteur avec le nombre réel de commentaires
-        setCommentCount(realCommentCount);
+        // Synchroniser le nombre de commentaires
+        const realCommentCount = await syncCommentCount(id);
+        setCommentCount(realCommentCount || 0);
         
         if (response.data && response.data.activities && response.data.activities.length > 0) {
           setAvailableActivities(response.data.activities);
@@ -89,7 +85,7 @@ const VoyageDetail = () => {
     if (id) {
       fetchVoyageDetails();
     }
-  }, [id]);
+  }, [id, syncCommentCount]);
 
   // Effet pour détecter les changements dans l'état de navigation (si l'utilisateur revient en arrière puis revient)
   useEffect(() => {
@@ -241,12 +237,6 @@ const VoyageDetail = () => {
     setReservationStatus(null);
     setLoadingSubmit(true);
     
-    console.log('=== Début de la création de réservation ===', {
-      isAuthenticated,
-      user,
-      token: token ? 'Présent' : 'Absent'
-    });
-    
     if (!isAuthenticated) {
       console.log('Tentative de réservation sans authentification');
       setReservationStatus({
@@ -304,6 +294,16 @@ const VoyageDetail = () => {
       
       console.log('Réponse de création de réservation:', response.data);
       
+      // Mettre à jour le nombre de places disponibles et attendre la mise à jour
+      const newAvailableSpots = voyage.availableSpots - formData.nombrePersonnes;
+      await updateAvailableSpots(voyage._id, newAvailableSpots);
+      
+      // Mettre à jour l'état local
+      setVoyage(prev => ({
+        ...prev,
+        availableSpots: newAvailableSpots
+      }));
+
       // Afficher le message de confirmation
       setReservationStatus({
         type: 'success',
@@ -335,13 +335,39 @@ const VoyageDetail = () => {
   };
 
   // Fonction pour gérer les changements de commentaires
-  const handleCommentChange = (action) => {
-    if (action === 'delete') {
-      setCommentCount(prev => Math.max(0, prev - 1));
-    } else {
-      setCommentCount(prev => prev + 1);
-    }
+  const handleCommentChange = async (action) => {
+    const newCount = action === 'delete' ? Math.max(0, commentCount - 1) : commentCount + 1;
+    setCommentCount(newCount);
+    
+    // Synchroniser avec le contexte global et attendre la mise à jour
+    await syncCommentCount(id);
   };
+
+  // Effet pour écouter les mises à jour des places et des commentaires
+  useEffect(() => {
+    const handleSpotsUpdate = (e) => {
+      if (e.detail.voyageId === id) {
+        setVoyage(prev => ({
+          ...prev,
+          availableSpots: e.detail.newSpots
+        }));
+      }
+    };
+
+    const handleCommentCountUpdate = (e) => {
+      if (e.detail.voyageId === id) {
+        setCommentCount(e.detail.commentCount);
+      }
+    };
+
+    window.addEventListener('spotsUpdated', handleSpotsUpdate);
+    window.addEventListener('commentCountUpdated', handleCommentCountUpdate);
+
+    return () => {
+      window.removeEventListener('spotsUpdated', handleSpotsUpdate);
+      window.removeEventListener('commentCountUpdated', handleCommentCountUpdate);
+    };
+  }, [id]);
 
   if (loading && !voyage) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error} />;
